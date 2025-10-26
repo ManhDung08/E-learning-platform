@@ -1,0 +1,44 @@
+# ==============================
+# Node modules (Frontend + Backend)
+# ==============================
+node_modules/
+
+# ==============================
+# Environment files
+# ==============================
+.env
+frontend/.env
+backend/.env
+
+# ==============================
+# Logs
+# ==============================
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ==============================
+# Build / Production files
+# ==============================
+# React build output
+frontend/dist/
+frontend/build/
+
+# Backend production output (if any)
+backend/dist/
+backend/build/
+
+# ==============================
+# OS / System files
+# ==============================
+.DS_Store         # macOS
+Thumbs.db         # Windows
+.idea/            # JetBrains IDEs (WebStorm, IntelliJ, etc.)
+.vscode/          # VS Code settings (optional — keep if your team shares settings)
+
+# ==============================
+# Misc
+# ==============================
+*.pem            # Private keys
+
