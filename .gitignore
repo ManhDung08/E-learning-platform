@@ -34,8 +34,8 @@ backend/build/
 # ==============================
 .DS_Store         # macOS
 Thumbs.db         # Windows
-.idea/            # JetBrains IDEs (WebStorm, IntelliJ, etc.)
-.vscode/          # VS Code settings (optional — keep if your team shares settings)
+.idea/           
+.vscode/         
 
 # ==============================
 # Misc
