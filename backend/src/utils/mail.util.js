@@ -1,16 +1,4 @@
-import nodemailer from "nodemailer";
-
-const createTransporter = () => {
-  return nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: process.env.SMTP_PORT,
-    secure: false,
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASSWORD,
-    },
-  });
-};
+import { createTransporter } from "../configs/mail.config";
 
 // Email xác nhận
 const sendVerificationEmail = async (email, username, verificationToken) => {
@@ -76,7 +64,9 @@ const sendVerificationEmail = async (email, username, verificationToken) => {
               <p>If you didn't create an account, please ignore this email.</p>
             </div>
             <div class="footer">
-              <p>&copy; ${new Date().getFullYear()} ${process.env.APP_NAME}. All rights reserved.</p>
+              <p>&copy; ${new Date().getFullYear()} ${
+        process.env.APP_NAME
+      }. All rights reserved.</p>
             </div>
           </div>
         </body>
