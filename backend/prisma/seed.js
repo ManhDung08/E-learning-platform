@@ -14,21 +14,29 @@ async function main() {
       username: "admin_user",
       passwordHash: password,
       role: "admin",
+      emailVerified: true,
+      verificationToken: null,
+      verificationTokenExpiry: null,
     },
     {
       email: "student@example.com",
       username: "student_user",
       passwordHash: password,
       role: "student",
+      emailVerified: true,
+      verificationToken: null,
+      verificationTokenExpiry: null,
     },
     {
       email: "instructor@example.com",
       username: "instructor_user",
       passwordHash: password,
       role: "instructor",
+      emailVerified: true,
+      verificationToken: null,
+      verificationTokenExpiry: null,
     },
   ];
-
   for (const user of users) {
     await prisma.user.upsert({
       where: { email: user.email },
