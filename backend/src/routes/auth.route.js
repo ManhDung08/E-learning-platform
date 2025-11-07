@@ -10,6 +10,9 @@ const router = Router();
 
 router.post("/login", loginValidation, validate, authController.login);
 router.post("/signup", signupValidation, validate, authController.signup);
+
+router.get("/verify-email", authController.verifyEmail);
+router.post("/resend-verification", authController.resendVerification);
 router.post("/logout", authController.logout);
 
 export default router;

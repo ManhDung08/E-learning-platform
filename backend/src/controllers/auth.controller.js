@@ -28,6 +28,13 @@ const login = async (req, res, next) => {
       });
     }
 
+    if (result?.error === "email_not_verified") {
+      return res.status(403).json({
+        message: "Please verify your email before logging in",
+        field: "email_not_verified",
+      });
+    }
+
     setAuthCookies(res, result);
 
     return res.status(200).json({
@@ -59,13 +66,74 @@ const signup = async (req, res, next) => {
       });
     }
 
-    setAuthCookies(res, result);
-
     return res.status(201).json({
-      message: "Signup successful",
+      message: result.message,
+      userId: result.userId,
     });
   } catch (error) {
     console.error("Signup error:", error);
+    next(error);
+  }
+};
+
+const verifyEmail = async (req, res, next) => {
+  try {
+    const { token } = req.query;
+
+    if (!token) {
+      return res.status(400).json({
+        message: "Verification token is required",
+      });
+    }
+
+    const result = await authService.verifyEmail(token);
+
+    if (result?.error === "invalid_token") {
+      return res.status(400).json({
+        message: "Invalid or expired verification token",
+      });
+    }
+
+    setAuthCookies(res, result);
+
+    return res.status(200).json({
+      message: result.message,
+    });
+  } catch (error) {
+    console.error("Verify email error:", error);
+    next(error);
+  }
+};
+
+const resendVerification = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        message: "Email is required",
+      });
+    }
+
+    const result = await authService.resendVerificationEmail(email);
+
+    if (result?.error === "user_not_found") {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    if (result?.error === "already_verified") {
+      return res.status(400).json({
+        message: "Email is already verified",
+      });
+    }
+
+    return res.status(200).json({
+      message: result.message,
+    });
+  } catch (error) {
+    console.error("Resend verification error:", error);
     next(error);
   }
 };
@@ -115,5 +183,7 @@ const setAuthCookies = (res, { access_token, refresh_token }) => {
 export default {
   login,
   signup,
+  verifyEmail,
+  resendVerification,
   logout,
 };
