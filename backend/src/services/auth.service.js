@@ -3,6 +3,7 @@ import { compare, hash } from "bcrypt";
 import pkg from "jsonwebtoken";
 import mailUtil from "../utils/mail.util.js";
 const { sign } = pkg;
+import bcrypt from 'bcrypt';
 
 const login = async (usernameOrEmail, password) => {
   try {
@@ -200,6 +201,42 @@ const resendVerificationEmail = async (email) => {
   } catch (error) {
     console.error("Error in resendVerificationEmail function:", error);
     throw new Error("Failed to resend verification email");
+  }
+};
+
+export const changePassword = async (userId, currentPassword, newPassword) => {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) {
+    const err = new Error('User not found');
+    err.status = 404;
+    throw err;
+  }
+
+  const match = await bcrypt.compare(currentPassword, user.password);
+  if (!match) {
+    const err = new Error('Current password is incorrect');
+    err.status = 400;
+    throw err;
+  }
+
+  const saltRounds = 10;
+  const hashed = await bcrypt.hash(newPassword, saltRounds);
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: { password: hashed },
+  });
+
+  try {
+    if (user.email) {
+      await mailUtil.sendMail({
+        to: user.email,
+        subject: 'Your password has been changed',
+        text: 'Your account password was successfully changed. If this was not you, please contact support immediately.',
+      });
+    }
+  } catch (e) {
+    console.error('Failed to send password change email', e);
   }
 };
 

@@ -40,3 +40,19 @@ export const loginValidation = [
     .notEmpty()
     .withMessage("Password is required"),
 ];
+
+export const changePassword = [
+    body('currentPassword')
+      .exists().withMessage('currentPassword is required')
+      .isLength({ min: 6 }).withMessage('currentPassword must be at least 6 characters'),
+
+    body('newPassword')
+      .exists().withMessage('newPassword is required') 
+      .isLength({ min: 6 }).withMessage('newPassword must be at least 6 characters')
+      .custom((value, { req }) => {
+        if (value === req.body.currentPassword) {
+          throw new Error('newPassword must be different from currentPassword');
+        }
+        return true;
+      }),
+];

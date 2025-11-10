@@ -180,6 +180,19 @@ const setAuthCookies = (res, { access_token, refresh_token }) => {
   });
 };
 
+export const changePassword = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const { currentPassword, newPassword } = req.body;
+
+    await authService.changePassword(userId, currentPassword, newPassword);
+
+    return res.status(200).json({ message: 'Password changed successfully' });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export default {
   login,
   signup,
