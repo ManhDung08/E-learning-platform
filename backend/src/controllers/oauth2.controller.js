@@ -42,11 +42,7 @@ const googleCallback = async (req, res, next) => {
     res.redirect(`${frontendUrl}/dashboard`);
   } catch (error) {
     console.error("Google OAuth callback error:", error);
-    // If it's an AppError, let error middleware handle the response but redirect user to login with error query
     const frontendUrl = process.env.FRONTEND_URL;
-    if (error instanceof AppError) {
-      return res.redirect(`${frontendUrl}/login?error=${encodeURIComponent(error.code || "oauth_failed")}`);
-    }
     return res.redirect(`${frontendUrl}/login?error=oauth_failed`);
   }
 };

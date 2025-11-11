@@ -17,6 +17,7 @@ import {
   EmailAlreadyExistsError,
   UsernameAlreadyExistsError,
 } from "../errors/ConflictError.js";
+import { PermissionError } from "../errors/PermissionError.js";
 import { BadRequestError } from "../errors/BadRequestError.js";
 
 const login = async (usernameOrEmail, password) => {
@@ -32,6 +33,13 @@ const login = async (usernameOrEmail, password) => {
       "Username or email is incorrect",
       isEmail ? "email" : "username",
       "invalid_credentials"
+    );
+  }
+
+  if (!user.isActive) {
+    throw new PermissionError(
+      "User account is deactivated",
+      "account_deactivated"
     );
   }
 
@@ -62,7 +70,17 @@ const login = async (usernameOrEmail, password) => {
   return { access_token: accessToken, refresh_token: refreshToken };
 };
 
-const signup = async (username, email, password, role = "student") => {
+const signup = async (
+  username,
+  email,
+  password,
+  role = "student",
+  firstName,
+  lastName,
+  gender,
+  dateOfBirth,
+  phoneNumber,
+) => {
   // Check if username already exists
   const existingUsername = await prisma.user.findFirst({
     where: { username: username },
@@ -96,6 +114,11 @@ const signup = async (username, email, password, role = "student") => {
       emailVerified: false,
       verificationToken: verificationToken,
       verificationTokenExpiry: verificationTokenExpiry,
+      firstName: firstName || null,
+      lastName: lastName || null,
+      gender: gender || null,
+      dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
+      phoneNumber: phoneNumber || null
     },
   });
 
@@ -186,6 +209,13 @@ const forgotPassword = async (email) => {
 
   if (!user) {
     throw new NotFoundError("User", "user_not_found");
+  }
+
+  if (!user.isActive) {
+    throw new PermissionError(
+      "User account is deactivated",
+      "account_deactivated"
+    );
   }
 
   if (!user.emailVerified) {
