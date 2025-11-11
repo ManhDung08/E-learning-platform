@@ -1,14 +1,13 @@
 import { Router } from "express";
 import authController from "../controllers/auth.controller.js";
-import * as authController from '../controllers/auth.controller.js';
-import { validate } from '../middlewares/validate.middleware.js';
-import { changePassword } from '../validations/auth.validation.js';
-import { authenticate } from '../middlewares/auth.middleware.js';
+import * as authController from "../controllers/auth.controller.js";
+import { validate } from "../middlewares/validate.middleware.js";
 import {
   signupValidation,
   loginValidation,
+  forgotPasswordValidation,
+  resetPasswordValidation,
 } from "../validations/auth.validation.js";
-import { validate } from "../middlewares/validate.middleware.js";
 
 const router = Router();
 
@@ -17,12 +16,20 @@ router.post("/signup", signupValidation, validate, authController.signup);
 
 router.get("/verify-email", authController.verifyEmail);
 router.post("/resend-verification", authController.resendVerification);
-router.post("/logout", authController.logout);
+
 router.post(
-  '/change-password',
-  authenticate,
-  validate(changePassword),
-  authController.changePassword
+  "/forgot-password",
+  forgotPasswordValidation,
+  validate,
+  authController.forgotPassword
 );
+router.post(
+  "/reset-password",
+  resetPasswordValidation,
+  validate,
+  authController.resetPassword
+);
+
+router.post("/logout", authController.logout);
 
 export default router;
