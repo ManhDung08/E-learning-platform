@@ -1,14 +1,13 @@
 import oauthService from "../services/oath2.service.js";
+import AppError from "../errors/AppError.js";
 
-const googleAuth = (req, res) => {
+const googleAuth = (req, res, next) => {
   try {
     const authUrl = oauthService.getGoogleAuthUrl();
     return res.redirect(authUrl);
   } catch (error) {
     console.error("Error generating Google auth URL:", error);
-    return res
-      .status(500)
-      .json({ message: "Failed to start Google authentication" });
+    next(new AppError("Failed to start Google authentication", 500, "oauth_failed"));
   }
 };
 
@@ -17,9 +16,7 @@ const googleCallback = async (req, res, next) => {
     const { code } = req.query;
 
     if (!code) {
-      return res.status(400).json({
-        message: "Authorization code is missing",
-      });
+      return res.status(400).json({ message: "Authorization code is missing" });
     }
 
     const result = await oauthService.handleGoogleCallback(code);
@@ -41,12 +38,16 @@ const googleCallback = async (req, res, next) => {
     });
 
     // Redirect to frontend after successful login
-    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+    const frontendUrl = process.env.FRONTEND_URL;
     res.redirect(`${frontendUrl}/dashboard`);
   } catch (error) {
     console.error("Google OAuth callback error:", error);
-    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
-    res.redirect(`${frontendUrl}/login?error=oauth_failed`);
+    // If it's an AppError, let error middleware handle the response but redirect user to login with error query
+    const frontendUrl = process.env.FRONTEND_URL;
+    if (error instanceof AppError) {
+      return res.redirect(`${frontendUrl}/login?error=${encodeURIComponent(error.code || "oauth_failed")}`);
+    }
+    return res.redirect(`${frontendUrl}/login?error=oauth_failed`);
   }
 };
 

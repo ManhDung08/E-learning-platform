@@ -1,48 +1,34 @@
 import authService from "../services/auth.service.js";
+import AppError from "../errors/AppError.js";
+import { ValidationError } from "../errors/ValidationError.js";
+import {
+  AuthError,
+  EmailNotVerifiedError,
+  OAuthUserError,
+} from "../errors/AuthError.js";
+import {
+  TokenError,
+  VerificationTokenError,
+  ResetPasswordTokenError,
+} from "../errors/TokenError.js";
+import { NotFoundError } from "../errors/NotFoundError.js";
 
 const login = async (req, res, next) => {
   try {
     const { username, password } = req.body;
-
     const result = await authService.login(username, password);
-
-    if (result?.error === "username") {
-      return res.status(401).json({
-        message: "Username or email is incorrect",
-        field: "username",
-      });
-    }
-
-    if (result?.error === "password") {
-      return res.status(401).json({
-        message: "Password is incorrect",
-        field: "password",
-      });
-    }
-
-    if (result?.error === "oauth") {
-      return res.status(400).json({
-        message:
-          "This account was created via OAuth. Please log in with Google",
-        field: "oauth",
-      });
-    }
-
-    if (result?.error === "email_not_verified") {
-      return res.status(403).json({
-        message: "Please verify your email before logging in",
-        field: "email_not_verified",
-      });
-    }
 
     setAuthCookies(res, result);
 
-    return res.status(200).json({
-      message: "Login successful",
-    });
-  } catch (error) {
-    console.error("Login error:", error);
-    next(error);
+    return res.status(200).json({ message: "Login successful" });
+  } catch (err) {
+    if (err instanceof AuthError) {
+      return res
+        .status(err.statusCode)
+        .json({ message: err.message, field: err.field });
+    }
+    console.error("Login error:", err);
+    next(err);
   }
 };
 
@@ -50,26 +36,19 @@ const signup = async (req, res, next) => {
   try {
     const { username, email, password, role } = req.body;
 
-    const result = await authService.signup(username, email, password, role);
-
-    if (result?.error === "username") {
-      return res.status(409).json({
-        message: "Username already exists",
-        field: "username",
-      });
+    try {
+      const result = await authService.signup(username, email, password, role);
+      return res
+        .status(201)
+        .json({ message: result.message, userId: result.userId });
+    } catch (err) {
+      if (err instanceof ValidationError) {
+        return res
+          .status(err.statusCode || 400)
+          .json({ message: err.message, field: err.field });
+      }
+      throw err;
     }
-
-    if (result?.error === "email") {
-      return res.status(409).json({
-        message: "Email already exists",
-        field: "email",
-      });
-    }
-
-    return res.status(201).json({
-      message: result.message,
-      userId: result.userId,
-    });
   } catch (error) {
     console.error("Signup error:", error);
     next(error);
@@ -86,19 +65,16 @@ const verifyEmail = async (req, res, next) => {
       });
     }
 
-    const result = await authService.verifyEmail(token);
-
-    if (result?.error === "invalid_token") {
-      return res.status(400).json({
-        message: "Invalid or expired verification token",
-      });
+    try {
+      const result = await authService.verifyEmail(token);
+      setAuthCookies(res, result);
+      return res.status(200).json({ message: result.message });
+    } catch (err) {
+      if (err instanceof TokenError) {
+        return res.status(err.statusCode || 400).json({ message: err.message });
+      }
+      throw err;
     }
-
-    setAuthCookies(res, result);
-
-    return res.status(200).json({
-      message: result.message,
-    });
   } catch (error) {
     console.error("Verify email error:", error);
     next(error);
@@ -115,23 +91,18 @@ const resendVerification = async (req, res, next) => {
       });
     }
 
-    const result = await authService.resendVerificationEmail(email);
-
-    if (result?.error === "user_not_found") {
-      return res.status(404).json({
-        message: "User not found",
-      });
+    try {
+      const result = await authService.resendVerificationEmail(email);
+      return res.status(200).json({ message: result.message });
+    } catch (err) {
+      if (err instanceof NotFoundError) {
+        return res.status(404).json({ message: err.message });
+      }
+      if (err instanceof AppError && err.code === "already_verified") {
+        return res.status(400).json({ message: err.message });
+      }
+      throw err;
     }
-
-    if (result?.error === "already_verified") {
-      return res.status(400).json({
-        message: "Email is already verified",
-      });
-    }
-
-    return res.status(200).json({
-      message: result.message,
-    });
   } catch (error) {
     console.error("Resend verification error:", error);
     next(error);
@@ -142,23 +113,18 @@ const forgotPassword = async (req, res, next) => {
   try {
     const { email } = req.body;
 
-    const result = await authService.forgotPassword(email);
-
-    if (result?.error === "user_not_found") {
-      return res.status(404).json({
-        message: "User not found with this email",
-      });
+    try {
+      const result = await authService.forgotPassword(email);
+      return res.status(200).json({ message: result.message });
+    } catch (err) {
+      if (err instanceof NotFoundError) {
+        return res.status(404).json({ message: err.message });
+      }
+      if (err instanceof OAuthUserError) {
+        return res.status(err.statusCode || 400).json({ message: err.message });
+      }
+      throw err;
     }
-
-    if (result?.error === "oauth_user") {
-      return res.status(400).json({
-        message: "This account uses OAuth login. Password reset is not available.",
-      });
-    }
-
-    return res.status(200).json({
-      message: result.message,
-    });
   } catch (error) {
     console.error("Forgot password error:", error);
     next(error);
@@ -169,17 +135,15 @@ const resetPassword = async (req, res, next) => {
   try {
     const { token, newPassword } = req.body;
 
-    const result = await authService.resetPassword(token, newPassword);
-
-    if (result?.error === "invalid_token") {
-      return res.status(400).json({
-        message: "Invalid or expired reset token",
-      });
+    try {
+      const result = await authService.resetPassword(token, newPassword);
+      return res.status(200).json({ message: result.message });
+    } catch (err) {
+      if (err instanceof TokenError) {
+        return res.status(err.statusCode || 400).json({ message: err.message });
+      }
+      throw err;
     }
-
-    return res.status(200).json({
-      message: result.message,
-    });
   } catch (error) {
     console.error("Reset password error:", error);
     next(error);
