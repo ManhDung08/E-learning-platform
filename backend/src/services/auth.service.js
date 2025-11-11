@@ -1,9 +1,8 @@
 import prisma from "../configs/prisma.config.js";
 import { compare, hash } from "bcrypt";
-import pkg from "jsonwebtoken";
+import { generateTokens } from "../utils/jwt.util.js";
 import mailUtil from "../utils/mail.util.js";
-const { sign } = pkg;
-import bcrypt from 'bcrypt';
+import crypto from "crypto";
 
 const login = async (usernameOrEmail, password) => {
   try {
@@ -32,27 +31,15 @@ const login = async (usernameOrEmail, password) => {
     const isPasswordValid = await compare(password, user.passwordHash);
 
     if (!isPasswordValid) {
-      // Password không đúng
       return { error: "password" };
     }
 
-    if (!process.env.JWT_SECRET) {
-      throw new Error("JWT_SECRET environment variable is not set");
-    }
+    const { accessToken, refreshToken } = generateTokens({
+      id: user.id,
+      role: user.role,
+    });
 
-    const access_token = sign(
-      { id: user.id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: "1h" }
-    );
-
-    const refresh_token = sign(
-      { id: user.id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
-
-    return { access_token, refresh_token };
+    return { access_token: accessToken, refresh_token: refreshToken };
   } catch (error) {
     console.error("Error in login function:", error);
     throw new Error("Login failed");
@@ -99,10 +86,10 @@ const signup = async (username, email, password, role = "student") => {
 
     await mailUtil.sendVerificationEmail(email, username, verificationToken);
 
-    return { 
-      success: true, 
+    return {
+      success: true,
       message: "Please check your email to verify your account",
-      userId: user.id 
+      userId: user.id,
     };
   } catch (error) {
     console.error("Error in signup function:", error);
@@ -134,31 +121,18 @@ const verifyEmail = async (token) => {
       },
     });
 
-    // Gửi email chào mừng
     await mailUtil.sendWelcomeEmail(user.email, user.username);
 
-    // Tạo tokens để tự động đăng nhập sau khi verify
-    if (!process.env.JWT_SECRET) {
-      throw new Error("JWT_SECRET environment variable is not set");
-    }
+    const { accessToken, refreshToken } = generateTokens({
+      id: user.id,
+      role: user.role,
+    });
 
-    const access_token = sign(
-      { id: user.id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: "1h" }
-    );
-
-    const refresh_token = sign(
-      { id: user.id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
-
-    return { 
-      success: true, 
-      access_token, 
-      refresh_token,
-      message: "Email verified successfully" 
+    return {
+      success: true,
+      access_token: accessToken,
+      refresh_token: refreshToken,
+      message: "Email verified successfully",
     };
   } catch (error) {
     console.error("Error in verifyEmail function:", error);
@@ -192,11 +166,15 @@ const resendVerificationEmail = async (email) => {
       },
     });
 
-    await mailUtil.sendVerificationEmail(email, user.username, verificationToken);
+    await mailUtil.sendVerificationEmail(
+      email,
+      user.username,
+      verificationToken
+    );
 
-    return { 
-      success: true, 
-      message: "Verification email has been resent" 
+    return {
+      success: true,
+      message: "Verification email has been resent",
     };
   } catch (error) {
     console.error("Error in resendVerificationEmail function:", error);
@@ -204,39 +182,83 @@ const resendVerificationEmail = async (email) => {
   }
 };
 
-export const changePassword = async (userId, currentPassword, newPassword) => {
-  const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (!user) {
-    const err = new Error('User not found');
-    err.status = 404;
-    throw err;
-  }
-
-  const match = await bcrypt.compare(currentPassword, user.password);
-  if (!match) {
-    const err = new Error('Current password is incorrect');
-    err.status = 400;
-    throw err;
-  }
-
-  const saltRounds = 10;
-  const hashed = await bcrypt.hash(newPassword, saltRounds);
-
-  await prisma.user.update({
-    where: { id: userId },
-    data: { password: hashed },
-  });
-
+const forgotPassword = async (email) => {
   try {
-    if (user.email) {
-      await mailUtil.sendMail({
-        to: user.email,
-        subject: 'Your password has been changed',
-        text: 'Your account password was successfully changed. If this was not you, please contact support immediately.',
-      });
+    const user = await prisma.user.findFirst({
+      where: { email: email },
+    });
+
+    if (!user) {
+      return { error: "user_not_found" };
     }
-  } catch (e) {
-    console.error('Failed to send password change email', e);
+
+    // nếu user đăng ký qua OAuth
+    if (!user.passwordHash) {
+      return { error: "oauth_user" };
+    }
+
+    // Generate reset token
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    const resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        resetPasswordToken: resetToken,
+        resetPasswordTokenExpiry: resetTokenExpiry,
+      },
+    });
+
+    // Gửi email reset password
+    await mailUtil.sendForgotPasswordEmail(email, user.username, resetToken);
+
+    return {
+      success: true,
+      message: "Password reset link has been sent to your email",
+    };
+  } catch (error) {
+    console.error("Error in forgotPassword function:", error);
+    throw new Error("Failed to process forgot password request");
+  }
+};
+
+const resetPassword = async (token, newPassword) => {
+  try {
+    const user = await prisma.user.findFirst({
+      where: {
+        resetPasswordToken: token,
+        resetPasswordTokenExpiry: {
+          gt: new Date(), // Token chưa hết hạn
+        },
+      },
+    });
+
+    if (!user) {
+      return { error: "invalid_token" };
+    }
+
+    // Hash password mới
+    const hashedPassword = await hash(newPassword, 10);
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordHash: hashedPassword,
+        resetPasswordToken: null,
+        resetPasswordTokenExpiry: null,
+      },
+    });
+
+    // Gửi email xác nhận reset password thành công
+    await mailUtil.sendPasswordResetSuccessEmail(user.email, user.username);
+
+    return {
+      success: true,
+      message: "Password has been reset successfully",
+    };
+  } catch (error) {
+    console.error("Error in resetPassword function:", error);
+    throw new Error("Failed to reset password");
   }
 };
 
@@ -245,4 +267,6 @@ export default {
   signup,
   verifyEmail,
   resendVerificationEmail,
+  forgotPassword,
+  resetPassword,
 };

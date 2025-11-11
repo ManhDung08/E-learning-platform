@@ -1,6 +1,6 @@
 import { google } from "googleapis";
 import prisma from "../configs/prisma.config.js";
-import pkg from "jsonwebtoken";
+import { generateTokens } from "../utils/jwt.util.js";
 const { sign } = pkg;
 
 const oauth2Client = new google.auth.OAuth2(
@@ -63,6 +63,7 @@ const handleGoogleCallback = async (code) => {
           googleId: data.id,
           profileImageUrl: data.picture || null,
           role: "student",
+          emailVerified: true,
         },
       });
     } else if (!user.googleId) {
@@ -71,27 +72,17 @@ const handleGoogleCallback = async (code) => {
         data: {
           googleId: data.id,
           profileImageUrl: data.picture || user.profileImageUrl,
+          emailVerified: true,
         },
       });
     }
 
-    if (!process.env.JWT_SECRET) {
-      throw new Error("JWT_SECRET environment variable is not set");
-    }
+    const { accessToken, refreshToken } = generateTokens({
+      id: user.id,
+      role: user.role,
+    });
 
-    const access_token = sign(
-      { id: user.id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: "1h" }
-    );
-
-    const refresh_token = sign(
-      { id: user.id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
-
-    return { access_token, refresh_token };
+    return { accessToken, refreshToken, user };
   } catch (error) {
     console.error("Error in handleGoogleCallback:", error);
     throw new Error("Google OAuth authentication failed");
