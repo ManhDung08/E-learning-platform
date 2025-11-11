@@ -138,6 +138,54 @@ const resendVerification = async (req, res, next) => {
   }
 };
 
+const forgotPassword = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+
+    const result = await authService.forgotPassword(email);
+
+    if (result?.error === "user_not_found") {
+      return res.status(404).json({
+        message: "User not found with this email",
+      });
+    }
+
+    if (result?.error === "oauth_user") {
+      return res.status(400).json({
+        message: "This account uses OAuth login. Password reset is not available.",
+      });
+    }
+
+    return res.status(200).json({
+      message: result.message,
+    });
+  } catch (error) {
+    console.error("Forgot password error:", error);
+    next(error);
+  }
+};
+
+const resetPassword = async (req, res, next) => {
+  try {
+    const { token, newPassword } = req.body;
+
+    const result = await authService.resetPassword(token, newPassword);
+
+    if (result?.error === "invalid_token") {
+      return res.status(400).json({
+        message: "Invalid or expired reset token",
+      });
+    }
+
+    return res.status(200).json({
+      message: result.message,
+    });
+  } catch (error) {
+    console.error("Reset password error:", error);
+    next(error);
+  }
+};
+
 const logout = async (req, res, next) => {
   try {
     // Clear authentication cookies
@@ -180,23 +228,12 @@ const setAuthCookies = (res, { access_token, refresh_token }) => {
   });
 };
 
-export const changePassword = async (req, res, next) => {
-  try {
-    const userId = req.user.id;
-    const { currentPassword, newPassword } = req.body;
-
-    await authService.changePassword(userId, currentPassword, newPassword);
-
-    return res.status(200).json({ message: 'Password changed successfully' });
-  } catch (err) {
-    next(err);
-  }
-};
-
 export default {
   login,
   signup,
   verifyEmail,
   resendVerification,
+  forgotPassword,
+  resetPassword,
   logout,
 };
