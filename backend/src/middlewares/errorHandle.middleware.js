@@ -23,19 +23,6 @@ export default (err, req, res, next) => {
     });
   }
 
-  if (
-    err.name?.includes("S3") ||
-    ["NoSuchKey", "AccessDenied", "UploadFailed", "DeleteFailed"].includes(
-      err.code
-    )
-  ) {
-    const awsError = handleAwsError(err);
-    return res.status(awsError.statusCode || 400).json({
-      message: awsError.message,
-      code: awsError.code,
-    });
-  }
-
   return res.status(500).json({
     message: "Internal Server Error",
     code: "internal_error",

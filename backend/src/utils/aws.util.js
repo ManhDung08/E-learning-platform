@@ -9,6 +9,24 @@ import fs from "fs";
 import path from "path";
 import s3Client from "../configs/aws.config.js";
 import { uploadConfig } from "../configs/upload.config.js";
+import {
+  S3UploadError,
+  S3DeleteError,
+  S3FileNotFoundError,
+  S3GenerateSignedUrlError,
+  S3CopyError,
+} from "../errors/AwsError.js";
+import { BadRequestError } from "../errors/BadRequestError.js";
+
+const extractKeyFromUrl = (url) => {
+  try {
+    const urlObj = new URL(url);
+    return urlObj.pathname.substring(1);
+  } catch (error) {
+    console.error("Error extracting key from URL:", error);
+    throw new BadRequestError("Invalid URL format");
+  }
+};
 
 // upload file to S3
 export const uploadToS3 = async ({
@@ -20,11 +38,11 @@ export const uploadToS3 = async ({
 }) => {
   try {
     if (!uploadConfig.allowedMimeTypes[fileType]) {
-      throw new Error(`Invalid file type: ${fileType}`);
+      throw new BadRequestError(`Invalid file type: ${fileType}`);
     }
 
     if (!uploadConfig.allowedMimeTypes[fileType].includes(mimeType)) {
-      throw new Error(
+      throw new BadRequestError(
         `Invalid MIME type ${mimeType} for file type ${fileType}`
       );
     }
@@ -33,7 +51,7 @@ export const uploadToS3 = async ({
       ? fileBuffer.length
       : fileBuffer.size;
     if (fileSize > uploadConfig.maxFileSize[fileType]) {
-      throw new Error(
+      throw new BadRequestError(
         `File size exceeds maximum allowed size for ${fileType}`
       );
     }
@@ -56,10 +74,8 @@ export const uploadToS3 = async ({
       },
     };
 
-
     const command = new PutObjectCommand(uploadParams);
     await s3Client.send(command);
-
 
     return {
       key,
@@ -72,10 +88,9 @@ export const uploadToS3 = async ({
     };
   } catch (error) {
     console.error("Error uploading to S3:", error);
-    throw new Error(`Failed to upload file: ${error.message}`);
+    throw new S3UploadError(`Failed to upload file: ${error.message}`);
   }
 };
-
 
 // pre-signed URL for downloading file from S3
 export const getSignedUrlForDownload = async (
@@ -101,10 +116,11 @@ export const getSignedUrlForDownload = async (
     return signedUrl;
   } catch (error) {
     console.error("Error generating signed URL:", error);
-    throw new Error(`Failed to generate signed URL: ${error.message}`);
+    throw new S3GenerateSignedUrlError(
+      `Failed to generate signed URL: ${error.message}`
+    );
   }
 };
-
 
 // pre-signed URL for uploading file to S3
 export const getSignedUrlForUpload = async ({
@@ -117,11 +133,11 @@ export const getSignedUrlForUpload = async ({
   try {
     // Validate file type and MIME type
     if (!uploadConfig.allowedMimeTypes[fileType]) {
-      throw new Error(`Invalid file type: ${fileType}`);
+      throw new BadRequestError(`Invalid file type: ${fileType}`);
     }
 
     if (!uploadConfig.allowedMimeTypes[fileType].includes(mimeType)) {
-      throw new Error(
+      throw new BadRequestError(
         `Invalid MIME type ${mimeType} for file type ${fileType}`
       );
     }
@@ -155,7 +171,9 @@ export const getSignedUrlForUpload = async ({
     };
   } catch (error) {
     console.error("Error generating upload URL:", error);
-    throw new Error(`Failed to generate upload URL: ${error.message}`);
+    throw new S3GenerateSignedUrlError(
+      `Failed to generate upload URL: ${error.message}`
+    );
   }
 };
 
@@ -171,10 +189,9 @@ export const deleteFromS3 = async (key) => {
     return true;
   } catch (error) {
     console.error("Error deleting from S3:", error);
-    throw new Error(`Failed to delete file: ${error.message}`);
+    throw new S3DeleteError(`Failed to delete file: ${error.message}`);
   }
 };
-
 
 // delete multiple files from S3
 export const deleteMultipleFromS3 = async (keys) => {
@@ -215,29 +232,33 @@ export const checkFileExists = async (key) => {
     if (error.name === "NotFound") {
       return null;
     }
-    throw new Error(`Failed to check file existence: ${error.message}`);
+    throw new S3FileNotFoundError(`File not found: ${error.message}`);
   }
 };
 
 // upload local file to S3
-export const uploadLocalFileToS3 = async (filePath, fileType, metadata = {}) => {
+export const uploadLocalFileToS3 = async (
+  filePath,
+  fileType,
+  metadata = {}
+) => {
   try {
     // Read file from filesystem
     const fileBuffer = fs.readFileSync(filePath);
     const fileName = path.basename(filePath);
-    
+
     // Detect MIME type (simplified - you might want to use a library like 'mime-types')
     const ext = path.extname(fileName).toLowerCase();
     const mimeTypeMap = {
-      '.jpg': 'image/jpeg',
-      '.jpeg': 'image/jpeg',
-      '.png': 'image/png',
-      '.webp': 'image/webp',
-      '.pdf': 'application/pdf',
-      '.mp4': 'video/mp4',
-      '.webm': 'video/webm',
+      ".jpg": "image/jpeg",
+      ".jpeg": "image/jpeg",
+      ".png": "image/png",
+      ".webp": "image/webp",
+      ".pdf": "application/pdf",
+      ".mp4": "video/mp4",
+      ".webm": "video/webm",
     };
-    const mimeType = mimeTypeMap[ext] || 'application/octet-stream';
+    const mimeType = mimeTypeMap[ext] || "application/octet-stream";
 
     // Upload to S3
     return await uploadToS3({
@@ -249,15 +270,15 @@ export const uploadLocalFileToS3 = async (filePath, fileType, metadata = {}) => 
     });
   } catch (error) {
     console.error("Error uploading local file:", error);
-    throw new Error(`Failed to upload local file: ${error.message}`);
+    throw new S3UploadError(`Failed to upload local file: ${error.message}`);
   }
 };
 
 const generateFolderPath = (fileType, metadata) => {
   const folderFn = uploadConfig.folders[fileType];
-  
+
   if (!folderFn) {
-    throw new Error(`No folder configuration for file type: ${fileType}`);
+    throw new BadRequestError(`No folder configuration for file type: ${fileType}`);
   }
 
   // Call folder function with appropriate parameters based on file type
@@ -277,30 +298,28 @@ const generateFolderPath = (fileType, metadata) => {
     case "supportAttachment":
       return folderFn(metadata.ticketId, metadata.userId);
     default:
-      throw new Error(`Unknown file type: ${fileType}`);
+      throw new BadRequestError(`Unknown file type: ${fileType}`);
   }
 };
-
 
 const generateUniqueFileName = (originalFileName) => {
   const timestamp = Date.now();
   const randomString = Math.random().toString(36).substring(2, 15);
   const ext = path.extname(originalFileName);
   const nameWithoutExt = path.basename(originalFileName, ext);
-  
+
   // Sanitize filename: remove special characters
   const sanitized = nameWithoutExt
     .replace(/[^a-zA-Z0-9-_]/g, "-")
     .substring(0, 50);
-  
+
   return `${sanitized}-${timestamp}-${randomString}${ext}`;
 };
-
 
 export const validateFileSize = (fileSize, fileType) => {
   const maxSize = uploadConfig.maxFileSize[fileType];
   if (!maxSize) {
-    throw new Error(`No size limit configured for file type: ${fileType}`);
+    throw new BadRequestError(`No size limit configured for file type: ${fileType}`);
   }
   return fileSize <= maxSize;
 };
@@ -308,30 +327,33 @@ export const validateFileSize = (fileSize, fileType) => {
 export const validateMimeType = (mimeType, fileType) => {
   const allowedTypes = uploadConfig.allowedMimeTypes[fileType];
   if (!allowedTypes) {
-    throw new Error(`No MIME types configured for file type: ${fileType}`);
+    throw new BadRequestError(`No MIME types configured for file type: ${fileType}`);
   }
   return allowedTypes.includes(mimeType);
 };
 
-
-export const copyFileInS3 = async (sourceKey, destinationKey, deleteSource = false) => {
+export const copyFileInS3 = async (
+  sourceKey,
+  destinationKey,
+  deleteSource = false
+) => {
   try {
     const { CopyObjectCommand } = await import("@aws-sdk/client-s3");
-    
+
     // Copy file
     const copyCommand = new CopyObjectCommand({
       Bucket: process.env.AWS_S3_BUCKET,
       CopySource: `${process.env.AWS_S3_BUCKET}/${sourceKey}`,
       Key: destinationKey,
     });
-    
+
     await s3Client.send(copyCommand);
-    
+
     // Delete source if requested
     if (deleteSource) {
       await deleteFromS3(sourceKey);
     }
-    
+
     return {
       sourceKey,
       destinationKey,
@@ -340,11 +362,12 @@ export const copyFileInS3 = async (sourceKey, destinationKey, deleteSource = fal
     };
   } catch (error) {
     console.error("Error copying file in S3:", error);
-    throw new Error(`Failed to copy file: ${error.message}`);
+    throw new S3CopyError(`Failed to copy file: ${error.message}`);
   }
 };
 
 export default {
+  extractKeyFromUrl,
   uploadToS3,
   getSignedUrlForDownload,
   getSignedUrlForUpload,

@@ -1,51 +1,52 @@
 import express from "express";
 import userController from "../controllers/user.controller.js";
-import { changePasswordValidation, updateProfileValidation } from "../validations/user.validation.js";
+import {
+  changePasswordValidation,
+  updateProfileValidation,
+} from "../validations/user.validation.js";
 import { isAuth } from "../middlewares/auth.middleware.js";
 import { validate } from "../middlewares/validate.middleware.js";
 
 const router = express.Router();
 
-// Get current user profile
-router.get("/profile", isAuth(["student", "instructor", "admin"]), userController.getProfile);
+router.get("/me", isAuth(), userController.getMe);
 
-// Get user profile by username (public)
-router.get("/profile/:username", userController.getProfileByUsername);
-
-// Update user profile
+// Cập nhật hồ sơ cá nhân
 router.put(
-  "/profile",
-  isAuth(["student", "instructor", "admin"]),
+  "/update-profile",
+  isAuth(),
   updateProfileValidation,
   validate,
-  userController.updateProfile
+  userController.updateMyInfo
 );
 
-// Change password
-router.post(
+// Upload hoặc xóa avatar
+router.post("/upload-avatar", isAuth(), userController.updateUserAvatar);
+router.delete("/delete-avatar", isAuth(), userController.deleteUserAvatar);
+
+// Đổi mật khẩu
+router.put(
   "/change-password",
-  isAuth(["student", "instructor", "admin"]),
+  isAuth(),
   changePasswordValidation,
   validate,
   userController.changePassword
 );
 
-// Get user enrollments
-router.get("/enrollments", isAuth(["student", "instructor"]), userController.getEnrollments);
+// Set mật khẩu lần đầu (cho người đăng nhập OAuth)
+router.put("/set-password", isAuth(), userController.setPassword);
 
-// Get user notifications
-router.get("/notifications", isAuth(["student", "instructor", "admin"]), userController.getNotifications);
-
-// Mark notification as read
-router.put("/notifications/:id/read", isAuth(["student", "instructor", "admin"]), userController.markNotificationRead);
-
-// Mark all notifications as read
-router.put("/notifications/read-all", isAuth(["student", "instructor", "admin"]), userController.markAllNotificationsRead);
-
-// Deactivate account
-router.delete("/account", isAuth(["student", "instructor"]), userController.deactivateAccount);
-
-// Admin routes
-router.get("/admin/users", isAuth(["admin"]), userController.getAllUsers);
+// Quản lý người dùng (Admin)
+router.get("/", isAuth(["admin"]), userController.getAllUsers);
+router.get("/:id", isAuth(["admin"]), userController.getUserProfileById);
+router.post("/", isAuth(["admin"]), userController.createUser);
+router.put(
+  "/:id",
+  isAuth(["admin"]),
+  updateProfileValidation,
+  validate,
+  userController.updateUserInfo
+);
+router.delete("/:id", isAuth(["admin"]), userController.deleteUser);
 
 export default router;

@@ -21,6 +21,13 @@ export class S3UploadError extends AwsError {
   }
 }
 
+export class S3GenerateSignedUrlError extends AwsError {
+  constructor(message = "Failed to generate signed URL for S3 object") {
+    super(message, "s3_generate_signed_url_error");
+    this.name = "S3GenerateSignedUrlError";
+  }
+}
+
 export class S3DeleteError extends AwsError {
   constructor(message = "Failed to delete file from S3") {
     super(message, "s3_delete_error");
@@ -31,5 +38,12 @@ export class S3FileNotFoundError extends AwsError {
   constructor(message = "File not found in S3") {
     super(message, "s3_file_not_found");
     this.name = "S3FileNotFoundError";
+  }
+}
+
+export class S3CopyError extends AwsError {
+  constructor(message = "Failed to copy file in S3") {
+    super(message, "s3_copy_error");
+    this.name = "S3CopyError";
   }
 }

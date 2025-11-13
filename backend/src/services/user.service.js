@@ -1,6 +1,7 @@
 import prisma from "../configs/prisma.config";
 import crypto from "crypto";
 import {
+  extractKeyFromUrl,
   uploadToS3,
   deleteFromS3,
   getSignedUrlForDownload,
@@ -12,6 +13,8 @@ import {
 } from "../errors/ConflictError.js";
 import { compare, hash } from "bcrypt";
 import { OAuthUserError } from "../errors/AuthError.js";
+import { AuthError } from "../errors/AuthError.js";
+import { BadRequestError } from "../errors/BadRequestError.js";
 
 const getUserProfile = async (userId) => {
   const user = await prisma.user.findUnique({
@@ -46,7 +49,7 @@ const getUserProfile = async (userId) => {
 };
 
 const updateUserInfo = async (userId, updateData) => {
-  const { username } = updateData;
+  const { username, email } = updateData;
 
   if (username) {
     const existingUser = await prisma.user.findUnique({
@@ -104,6 +107,10 @@ const updateUserAvatar = async (userId, file) => {
     throw new NotFoundError("User", "user_not_found");
   }
 
+  if (!file) {
+    throw new BadRequestError("No file uploaded");
+  }
+
   if (user.profileImageUrl) {
     const oldKey = extractKeyFromUrl(user.profileImageUrl);
     await deleteFromS3(oldKey);
@@ -153,7 +160,7 @@ const deleteUserAvatar = async (userId) => {
   const key = extractKeyFromUrl(user.profileImageUrl);
   await deleteFromS3(key);
 
-  const updatedUser = await prisma.user.update({
+  await prisma.user.update({
     where: { id: userId },
     data: { profileImageUrl: null },
     select: {
@@ -163,7 +170,7 @@ const deleteUserAvatar = async (userId) => {
     },
   });
 
-  return updatedUser;
+  return { message: "Avatar deleted successfully" };
 };
 
 const changePassword = async (userId, currentPassword, newPassword) => {
@@ -189,7 +196,7 @@ const changePassword = async (userId, currentPassword, newPassword) => {
   }
 
   if (currentPassword === newPassword) {
-    throw new Error("New password must be different from current password");
+    throw new BadRequestError("New password must be different from current password");
   }
 
   const hashedPassword = await hash(newPassword, 10);
@@ -211,6 +218,7 @@ const setPassword = async (userId, newPassword) => {
     throw new NotFoundError("User", "user_not_found");
   }
   if (!user.googleId) {
+    // normal user only can change password but oauth user can set password
     throw new OAuthUserError("Password can only be set for OAuth users");
   }
 
@@ -222,7 +230,7 @@ const setPassword = async (userId, newPassword) => {
   return { message: "Password set successfully" };
 };
 
-const createUser = async (
+const createUser = async ({
   username,
   email,
   password,
@@ -231,8 +239,8 @@ const createUser = async (
   lastName,
   gender,
   dateOfBirth,
-  phoneNumber
-) => {
+  phoneNumber,
+}) => {
   const existingUser = await prisma.user.findUnique({
     where: { email: email },
   });
@@ -266,6 +274,23 @@ const createUser = async (
   return newUser;
 };
 
+const getAllUsers = async () => {
+  const users = await prisma.user.findMany({
+    select: {
+      id: true,
+      email: true,
+      username: true,
+      firstName: true,
+      lastName: true,
+      role: true,
+      isActive: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+  return users;
+};
+
 const deleteUser = async (userId) => {
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -287,6 +312,7 @@ const deleteUser = async (userId) => {
 };
 
 export default {
+  getAllUsers,
   getUserProfile,
   updateUserInfo,
   updateUserAvatar,
@@ -294,4 +320,5 @@ export default {
   changePassword,
   setPassword,
   createUser,
+  deleteUser,
 };
