@@ -6,6 +6,12 @@ export class TokenError extends AppError {
   }
 }
 
+export class InvalidTokenError extends TokenError {
+  constructor(message = "Invalid token") {
+    super(message, "invalid_token");
+  }
+}
+
 export class AccessTokenExpiredError extends TokenError {
   constructor(message = "Access token expired") {
     super(message, "access_token_expired");

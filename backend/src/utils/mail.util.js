@@ -1,4 +1,5 @@
 import { createTransporter } from "../configs/mail.config.js";
+import AppError from "../errors/AppError.js";
 
 const sendEmail = async (mailOptions) => {
   try {
@@ -11,7 +12,7 @@ const sendEmail = async (mailOptions) => {
     return { success: true, messageId: info.messageId };
   } catch (error) {
     console.error("Error sending email:", error);
-    throw new Error(`Failed to send email: ${error.message}`);
+    throw new AppError(`Failed to send email: ${error.message}`);
   }
 };
 

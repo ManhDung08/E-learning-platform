@@ -12,12 +12,6 @@ export const changePasswordValidation = [
     .withMessage("newPassword is required")
     .isLength({ min: 6 })
     .withMessage("newPassword must be at least 6 characters")
-    .custom((value, { req }) => {
-      if (value === req.body.currentPassword) {
-        throw new Error("newPassword must be different from currentPassword");
-      }
-      return true;
-    }),
 ];
 
 export const updateProfileValidation = [

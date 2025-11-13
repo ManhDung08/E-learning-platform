@@ -1,9 +1,10 @@
 import pkg from "jsonwebtoken";
+import AppError from "../errors/AppError";
 const { sign, verify } = pkg;
 
 export const generateTokens = (payload) => {
   if (!process.env.JWT_SECRET) {
-    throw new Error("JWT_SECRET is not defined");
+    throw new AppError("JWT_SECRET is not defined");
   }
 
   const accessToken = sign(payload, process.env.JWT_SECRET, {
@@ -20,7 +21,7 @@ export const generateTokens = (payload) => {
 export const decodeToken = (token) => {
   try {
     if (!process.env.JWT_SECRET) {
-      throw new Error("JWT_SECRET is not defined");
+      throw new AppError("JWT_SECRET is not defined");
     }
 
     const decoded = verify(token, process.env.JWT_SECRET);
