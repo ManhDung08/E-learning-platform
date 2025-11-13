@@ -26,25 +26,37 @@ const Login = ({ onSuccess, onToggleView }) => {
         <h2 className='text-2x1 font-semibold text-center mb-5'>Welcome Back</h2>
         <Formik onSubmit={handleSubmit} validationSchema={validationSchema} initialValues={initialValues}>
             {({ isSubmitting }) => (
-                <Form className='space-y-5'>
-                    <div>
-                        <Field as={TextField} name='username'
-                                label="Username" fullWidth sx={{'& label.Mui-focused': { color: '#97A87A' },
-                                                                '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#97A87A' }
-                                                                }}/>                    
-                        <ErrorMessage name='username' component="div" 
-                                    className=' text-sm text-red-500 mt-1' />
+                <Form>
+                    <div className='space-y-5'>
+                        <div>
+                            <Field as={TextField} name='username'
+                                    label="Username" fullWidth sx={{'& label.Mui-focused': { color: '#97A87A' },
+                                                                    '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#97A87A' }
+                                                                    }}/>                    
+                            <ErrorMessage name='username' component="div -mt-2" 
+                                        className=' text-sm text-red-500 mt-1' />
+                        </div>
+                        <div>
+                            <Field as={TextField} name='password'
+                                    label="Password" type="password"
+                                    fullWidth sx={{ '& label.Mui-focused': { color: '#97A87A' },
+                                                    '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#97A87A' }
+                                                    }}/>                    
+                            <ErrorMessage onSubmit={handleSubmit} name='password' 
+                                        component="div" className='text-sm text-red-500 mt-1' />
+                        </div>
                     </div>
-                    <div>
-                        <Field as={TextField} name='password'
-                                label="Password" type="password"
-                                fullWidth sx={{ '& label.Mui-focused': { color: '#97A87A' },
-                                                '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#97A87A' }
-                                                }}/>                    
-                        <ErrorMessage onSubmit={handleSubmit} name='password' 
-                                    component="div" className='text-sm text-red-500 mt-1' />
+                    
+
+<<<<<<< HEAD
+=======
+                    <div className='text-right mx-4 m-2'>
+                        <a href='#' className='text-sm text-blue-500 underline'>
+                            Forget password?
+                        </a>
                     </div>
 
+>>>>>>> 7d387bb (thay doi mot chut fe dangnhap/dangky)
                     <Button type='submit' variant='contained' sx={{backgroundColor: '#97AB7A', color: 'white'}}
                             fullWidth disabled={isSubmitting}>
                         Log In
