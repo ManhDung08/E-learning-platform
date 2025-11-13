@@ -47,16 +47,12 @@ const Login = ({ onSuccess, onToggleView }) => {
                         </div>
                     </div>
                     
-
-<<<<<<< HEAD
-=======
                     <div className='text-right mx-4 m-2'>
                         <a href='#' className='text-sm text-blue-500 underline'>
                             Forget password?
                         </a>
                     </div>
-
->>>>>>> 7d387bb (thay doi mot chut fe dangnhap/dangky)
+                    
                     <Button type='submit' variant='contained' sx={{backgroundColor: '#97AB7A', color: 'white'}}
                             fullWidth disabled={isSubmitting}>
                         Log In
