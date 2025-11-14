@@ -45,6 +45,7 @@ function App() {
     setVerifyModalOpen(false);
     navigate('/dashboard');
   };
+  
 
   return (
     <div>
