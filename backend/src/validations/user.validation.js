@@ -1,4 +1,4 @@
-import { body } from "express-validator";
+import { body, query } from "express-validator";
 
 export const changePasswordValidation = [
   body("currentPassword")
@@ -12,12 +12,14 @@ export const changePasswordValidation = [
     .withMessage("newPassword is required")
     .isLength({ min: 6 })
     .withMessage("newPassword must be at least 6 characters")
-    .custom((value, { req }) => {
-      if (value === req.body.currentPassword) {
-        throw new Error("newPassword must be different from currentPassword");
-      }
-      return true;
-    }),
+];
+
+export const setPasswordValidation = [
+  body("newPassword")
+    .exists()
+    .withMessage("newPassword is required")
+    .isLength({ min: 6 })
+    .withMessage("newPassword must be at least 6 characters")
 ];
 
 export const updateProfileValidation = [
@@ -63,4 +65,35 @@ export const updateProfileValidation = [
     .trim()
     .isURL()
     .withMessage("Profile image must be a valid URL"),
+];
+
+export const getAllUsersValidation = [
+  query("page")
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage("Page must be a positive integer")
+    .toInt(),
+
+  query("limit")
+    .optional()
+    .isInt({ min: 1, max: 100 })
+    .withMessage("Limit must be an integer between 1 and 100")
+    .toInt(),
+
+  query("search")
+    .optional()
+    .trim()
+    .isLength({ min: 1, max: 100 })
+    .withMessage("Search term must be between 1 and 100 characters"),
+
+  query("role")
+    .optional()
+    .isIn(["student", "instructor", "admin"])
+    .withMessage("Role must be one of: student, instructor, admin"),
+
+  query("isActive")
+    .optional()
+    .isBoolean()
+    .withMessage("isActive must be a boolean value")
+    .toBoolean(),
 ];

@@ -96,9 +96,11 @@ export const resetPasswordValidation = [
   body("confirmPassword")
     .notEmpty()
     .withMessage("Confirm password is required")
+    .isLength({ min: 6 })
+    .withMessage("Password must be at least 6 characters long")
     .custom((value, { req }) => {
       if (value !== req.body.newPassword) {
-        throw new Error("Passwords do not match");
+        throw new Error('Password confirmation does not match password');
       }
       return true;
     }),

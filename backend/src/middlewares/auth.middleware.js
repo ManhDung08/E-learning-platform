@@ -1,30 +1,33 @@
-import createHttpError from "http-errors";
 import { decodeToken } from "../utils/jwt.util.js";
 import pkg from "jsonwebtoken";
 const { sign } = pkg;
+import { PermissionError } from "../errors/PermissionError.js";
+import { TokenError, InvalidTokenError } from "../errors/TokenError.js";
+import AppError from "../errors/AppError.js";
 
-export const isAuth = (
-  rolesRequire = ["student", "instructor", "admin"]
-) =>
+export const isAuth =
+  (rolesRequire = ["student", "instructor", "admin"]) =>
   async (req, res, next) => {
     try {
       let token = req.cookies?.access_token;
       let payload = decodeToken(token);
-      console.log(payload);
+      if (process.env.NODE_ENV === "development") {
+        console.log(payload);
+      }
 
       if (!token || !payload) {
         const refreshToken = req.cookies?.refresh_token;
         if (!refreshToken) {
-          throw createHttpError(401, "Unauthorized - No token and no refresh token");
+          throw new TokenError("No access or refresh token provided");
         }
 
         const refreshPayload = decodeToken(refreshToken);
         if (!refreshPayload) {
-          throw createHttpError(401, "Unauthorized - Invalid refresh token");
+          throw new InvalidTokenError("Invalid refresh token");
         }
 
         if (!process.env.JWT_SECRET) {
-          throw new Error("JWT_SECRET is not defined");
+          throw new AppError("JWT_SECRET is not defined");
         }
 
         const newAccessToken = sign(
@@ -44,14 +47,18 @@ export const isAuth = (
         payload = decodeToken(token);
 
         if (!payload) {
-          throw createHttpError(401, "Unauthorized - Could not renew access token");
+          throw new InvalidTokenError("Could not renew access token");
         }
       }
 
-      console.log("Decoded payload:", rolesRequire, rolesRequire.includes(payload.role));
+      console.log(
+        "Decoded payload:",
+        rolesRequire,
+        rolesRequire.includes(payload.role)
+      );
 
       if (!(payload.role === "admin" || rolesRequire.includes(payload.role))) {
-        throw createHttpError(403, "Forbidden - Insufficient permissions");
+        throw new PermissionError();
       }
 
       req.user = payload;
