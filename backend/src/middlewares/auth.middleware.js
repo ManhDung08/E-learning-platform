@@ -1,8 +1,7 @@
-import createHttpError from "http-errors";
 import { decodeToken } from "../utils/jwt.util.js";
 import pkg from "jsonwebtoken";
 const { sign } = pkg;
-import PermissionError from "../errors/PermissionError.js";
+import { PermissionError } from "../errors/PermissionError.js";
 import { TokenError, InvalidTokenError } from "../errors/TokenError.js";
 import AppError from "../errors/AppError.js";
 
