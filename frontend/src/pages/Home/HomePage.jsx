@@ -18,12 +18,13 @@ const HomePage = () => {
         </Grid>
 
         {/* main content, màn bé thfi chiếm trọn 12 phần grid, to thì chiếm 7 */}
-        <Grid size={{ xs: 12, lg: 7 }} style={{display: 'flex', justifyContent: 'center', alignItems: 'center'}} bgcolor={'gray'}>    
-
-          <Routes>
-            <Route path="/" element={<MiddleHome />} />
-            <Route path="/courses" element={<MiddleHome />} />
-          </Routes>
+        <Grid size={{ xs: 12, lg: 7 }} style={{display: 'flex', justifyContent: 'center'}} sx={{bgcolor: '#F4F6F8'}}>    
+          <div style={{width: '100%', padding: '10px'}}>
+            <Routes>
+              <Route path="/" element={<MiddleHome />} />
+              <Route path="/courses" element={<MiddleHome />} />
+            </Routes>
+          </div>
         </Grid>
 
         <Grid size={{ xs: 0, lg: 2.5 }} sx={{display: { xs: 'none', lg: 'block' }}}>

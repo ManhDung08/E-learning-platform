@@ -14,7 +14,6 @@ function App() {
       <AppHeader />
       <Routes>
           <Route path='/*' element={<HomePage />}></Route>
-          <Route path='/home' element={<HomePage />}></Route>
       </Routes>
     </div>
   )

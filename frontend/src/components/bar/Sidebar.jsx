@@ -5,8 +5,8 @@ import Card from '@mui/material/Card';
 import HomeIcon from '@mui/icons-material/GridView';
 import CoursesIcon from '@mui/icons-material/WorkOutline';
 import LiveIcon from '@mui/icons-material/LiveTv';
-import AssignmentsIcon from '@mui/icons-material/Assignment';
-import SavedIcon from '@mui/icons-material/Bookmarks';
+import AssignmentsIcon from '@mui/icons-material/Checklist';
+import SavedIcon from '@mui/icons-material/BookmarkBorder';
 import { Divider } from '@mui/material';
 import HelpCenterCard from './HelpCenterCard';
 
@@ -50,7 +50,7 @@ const Sidebar = () => {
     return (
         <Card elevation={0} className='card h-screen w-[80%] flex flex-col justify-between bg-white shadow-lg rounded-2xl' sx={{overflowX: 'hidden'}}>
             <div>
-                <div className='space-y-2 pt-3 px-3 flex flex-col'>
+                <div className='space-y-2 pt-10 px-3 flex flex-col'>
                     {navigateMenu.map((item) => {
                         const active = location.pathname === item.path;
                         return (
