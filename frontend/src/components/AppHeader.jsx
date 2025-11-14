@@ -4,8 +4,8 @@ import AuthControl from './controlAuth/AuthControl';
 
 const AppHeader = () => {
   return (
-    <AppBar>
-        <Toolbar sx={{backgroundColor: '#dadecd'}}>
+    <AppBar elevation={0}>
+        <Toolbar sx={{backgroundColor: 'white'}}>
             <Typography variant='h6' component={"div"}
                         sx={{ flexGrow: 1, fontWeight: 'bold', color: '#97A87A' }}>
                 E Learning
