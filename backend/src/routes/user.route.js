@@ -20,7 +20,7 @@ const router = express.Router();
 
 /**
  * @swagger
- * /api/users/me:
+ * /users/me:
  *   get:
  *     summary: Get current user profile
  *     tags: [User Management]

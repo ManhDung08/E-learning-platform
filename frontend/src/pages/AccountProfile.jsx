@@ -1,11 +1,36 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User, Mail, Phone, Calendar, Users, BookOpen, Award, Lock, Check, Edit2, Save, X } from 'lucide-react';
+import axios from 'axios';
 
 function AccountProfile() {
-  const [activeTab, setActiveTab] = useState(0);
-  const [isEditing, setIsEditing] = useState(false);
-  const [showAlert, setShowAlert] = useState(false);
-  
+  const [activeTab, setActiveTab] = useState(0); // 0: Thông tin cá nhân, 1: Khóa học của tôi, 2: Chứng chỉ, 3: Bảo mật
+  const [isEditing, setIsEditing] = useState(false); // trạng thái chỉnh sửa thông tin cá nhân
+  const [showAlert, setShowAlert] = useState(false); // thông báo cập nhật profile thành công thôi!
+
+
+  // const [profile, setProfile] = useState(null); // ban đầu null, chờ dữ liệu từ API
+  // const [loading, setLoading] = useState(true);
+  // const [error, setError] = useState(null);
+
+  // useEffect(() => {
+  //   const fetchProfile = async () => {
+  //     try {
+  //       setLoading(true);
+  //       const response = await axios.get('http://localhost:3000/api/users/me');
+  //       setProfile(response.data);
+  //     } catch (err) {
+  //       console.error(err);
+  //       setError('Không thể load thông tin người dùng');
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
+
+  //   fetchProfile();
+  // }, []);
+
+
+
   const [profile, setProfile] = useState({
     firstName: 'Nguyễn',
     lastName: 'Văn An',
@@ -135,9 +160,8 @@ function AccountProfile() {
             value={value}
             onChange={(e) => onChange(e.target.value)}
             disabled={disabled}
-            className={`w-full ${Icon ? 'pl-10' : 'pl-3'} pr-3 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${
-              disabled ? 'bg-gray-50 text-gray-600' : 'bg-white'
-            }`}
+            className={`w-full ${Icon ? 'pl-10' : 'pl-3'} pr-3 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${disabled ? 'bg-gray-50 text-gray-600' : 'bg-white'
+              }`}
           >
             {options.map(opt => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -149,9 +173,8 @@ function AccountProfile() {
             value={value}
             onChange={(e) => onChange(e.target.value)}
             disabled={disabled}
-            className={`w-full ${Icon ? 'pl-10' : 'pl-3'} pr-3 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${
-              disabled ? 'bg-gray-50 text-gray-600' : 'bg-white'
-            }`}
+            className={`w-full ${Icon ? 'pl-10' : 'pl-3'} pr-3 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${disabled ? 'bg-gray-50 text-gray-600' : 'bg-white'
+              }`}
           />
         )}
       </div>
@@ -161,14 +184,12 @@ function AccountProfile() {
   const ToggleSwitch = ({ enabled, onToggle }) => (
     <button
       onClick={onToggle}
-      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-        enabled ? 'bg-blue-600' : 'bg-gray-300'
-      }`}
+      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${enabled ? 'bg-blue-600' : 'bg-gray-300'
+        }`}
     >
       <span
-        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-          enabled ? 'translate-x-6' : 'translate-x-1'
-        }`}
+        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${enabled ? 'translate-x-6' : 'translate-x-1'
+          }`}
       />
     </button>
   );
@@ -176,7 +197,7 @@ function AccountProfile() {
   return (
     <div className="min-h-screen bg-gray-50 py-4 sm:py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-       
+
         {showAlert && (
           <div className="mb-4 sm:mb-6 bg-green-50 border border-green-200 rounded-lg p-3 sm:p-4 flex items-center gap-3">
             <Check className="h-5 w-5 text-green-600 flex-shrink-0" />
@@ -184,10 +205,10 @@ function AccountProfile() {
           </div>
         )}
 
-        
+
         <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 md:p-8 mb-4 sm:mb-6">
           <div className="flex flex-col items-center text-center sm:flex-row sm:items-start sm:text-left gap-4 sm:gap-6">
-            // AVATAR
+            {/* AVATAR */}
             <div className="flex-shrink-0">
               <div className="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white text-3xl sm:text-4xl font-bold shadow-lg">
                 {getInitials()}
@@ -211,7 +232,7 @@ function AccountProfile() {
               </div>
             </div>
 
-            
+
             <div className="flex gap-2 w-full sm:w-auto">
               {!isEditing ? (
                 <button
@@ -243,9 +264,9 @@ function AccountProfile() {
           </div>
         </div>
 
-     
+
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-         
+
           <div className="border-b border-gray-200 bg-gray-50">
             <div className="flex overflow-x-auto scrollbar-hide">
               {tabs.map((tab) => {
@@ -254,11 +275,10 @@ function AccountProfile() {
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`flex items-center gap-2 px-4 sm:px-6 py-3 sm:py-4 font-medium whitespace-nowrap transition-all border-b-2 text-sm sm:text-base ${
-                      activeTab === tab.id
-                        ? 'border-blue-600 text-blue-600 bg-white'
-                        : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                    }`}
+                    className={`flex items-center gap-2 px-4 sm:px-6 py-3 sm:py-4 font-medium whitespace-nowrap transition-all border-b-2 text-sm sm:text-base ${activeTab === tab.id
+                      ? 'border-blue-600 text-blue-600 bg-white'
+                      : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                      }`}
                   >
                     <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
                     <span className="hidden sm:inline">{tab.label}</span>
@@ -269,16 +289,16 @@ function AccountProfile() {
             </div>
           </div>
 
-          // Các tab
+          {/* // Các tab */}
 
           <div className="p-4 sm:p-6 md:p-8">
-            // thông tin cá nhân
+            {/* thông tin cá nhân */}
             {activeTab === 0 && (
               <div className="space-y-6 sm:space-y-8">
                 <div>
                   <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-1">Thông tin cơ bản</h2>
                   <div className="h-1 w-16 bg-blue-600 rounded-full mb-4 sm:mb-6"></div>
-                  
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                     <InputField
                       label="Họ"
@@ -333,29 +353,15 @@ function AccountProfile() {
                   </div>
                 </div>
 
-                <div>
-                  <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-1">Giới thiệu</h2>
-                  <div className="h-1 w-16 bg-blue-600 rounded-full mb-4 sm:mb-6"></div>
-                  
-                  <textarea
-                    value={isEditing ? editedProfile.bio : profile.bio}
-                    onChange={(e) => handleChange('bio', e.target.value)}
-                    disabled={!isEditing}
-                    rows={4}
-                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${
-                      !isEditing ? 'bg-gray-50 text-gray-600' : 'bg-white'
-                    }`}
-                  />
-                </div>
               </div>
             )}
 
-            // kHÓA HỌC CỦA TUI
+            {/* // kHÓA HỌC CỦA TUI */}
             {activeTab === 1 && (
               <div>
                 <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-1">Khóa học đang học ({courses.length})</h2>
                 <div className="h-1 w-16 bg-blue-600 rounded-full mb-4 sm:mb-6"></div>
-                
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                   {courses.map((course) => (
                     <div
@@ -371,7 +377,7 @@ function AccountProfile() {
                         <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-2">{course.title}</h3>
                         <p className="text-sm text-gray-600 mb-1">Giảng viên: {course.instructor}</p>
                         <p className="text-xs text-gray-500 mb-3 sm:mb-4">Đăng ký: {formatDate(course.enrolledAt)}</p>
-                        
+
                         <div>
                           <div className="flex justify-between items-center mb-2">
                             <span className="text-sm font-semibold text-gray-700">Tiến độ</span>
@@ -390,13 +396,12 @@ function AccountProfile() {
                 </div>
               </div>
             )}
-
-            // CHỨNG CHỈ
+            {/* CHỨNG CHỈ */}
             {activeTab === 2 && (
               <div>
                 <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-1">Chứng chỉ đã đạt được ({certificates.length})</h2>
                 <div className="h-1 w-16 bg-blue-600 rounded-full mb-4 sm:mb-6"></div>
-                
+
                 <div className="space-y-4">
                   {certificates.map((cert) => (
                     <div
@@ -421,7 +426,7 @@ function AccountProfile() {
               </div>
             )}
 
-            // bảo mật
+            {/* bảo mật */}
             {activeTab === 3 && (
               <div className="space-y-4 sm:space-y-6">
                 <div className="border border-gray-200 rounded-xl p-4 sm:p-6">
@@ -431,21 +436,21 @@ function AccountProfile() {
                       label="Mật khẩu hiện tại"
                       type="password"
                       value=""
-                      onChange={() => {}}
+                      onChange={() => { }}
                       icon={Lock}
                     />
                     <InputField
                       label="Mật khẩu mới"
                       type="password"
                       value=""
-                      onChange={() => {}}
+                      onChange={() => { }}
                       icon={Lock}
                     />
                     <InputField
                       label="Xác nhận mật khẩu mới"
                       type="password"
                       value=""
-                      onChange={() => {}}
+                      onChange={() => { }}
                       icon={Lock}
                     />
                     <button className="w-full sm:w-auto px-4 sm:px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm sm:text-base">
@@ -467,7 +472,7 @@ function AccountProfile() {
                         onToggle={() => toggleNotification('emailNotifications')}
                       />
                     </div>
-                    
+
                     <div className="flex items-center justify-between py-3 border-b border-gray-100">
                       <div className="flex-1 mr-4">
                         <p className="font-medium text-gray-900 text-sm sm:text-base">Cập nhật khóa học</p>
@@ -478,7 +483,7 @@ function AccountProfile() {
                         onToggle={() => toggleNotification('courseUpdates')}
                       />
                     </div>
-                    
+
                     <div className="flex items-center justify-between py-3">
                       <div className="flex-1 mr-4">
                         <p className="font-medium text-gray-900 text-sm sm:text-base">Bình luận mới</p>
