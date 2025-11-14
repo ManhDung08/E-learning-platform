@@ -4,7 +4,7 @@ import AuthControl from './controlAuth/AuthControl';
 
 const AppHeader = () => {
   return (
-    <AppBar elevation={0}>
+    <AppBar elevation={0} position='static'>
         <Toolbar sx={{backgroundColor: 'white'}}>
             <Typography variant='h6' component={"div"}
                         sx={{ flexGrow: 1, fontWeight: 'bold', color: '#97A87A' }}>

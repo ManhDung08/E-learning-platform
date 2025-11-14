@@ -8,7 +8,7 @@ const HelpCenterCard = () => {
         console.log('help center zone');
     }
   return (
-    <Card elevation={0} className='relative m-5 rounded-2xl text-center' sx={{ backgroundColor: '#2D3748', color: 'white', overflow: 'visible'}}>
+    <Card elevation={0} className='relative m-2 mx-4 rounded-2xl text-center' sx={{ backgroundColor: '#2D3748', color: 'white', overflow: 'visible'}}>
             <Avatar sx={{bgcolor: '#2D3748', color: 'white', width: 60, height: 60, border: '2px solid white', position: 'absolute', top: 0, left: '50%', transform: 'translate(-50%, -50%)'}}>
                 <HelpIcon sx={{ height: 60, width: 60 }} />
             </Avatar>

@@ -32,6 +32,10 @@ const MiddleHome = () => {
           </div>
         </Card>
       </div>
+
+      <div className='p-4 pt-2 flex'>
+        
+      </div>
     </div>
   )
 }

@@ -48,9 +48,9 @@ const Sidebar = () => {
     }
     
     return (
-        <Card elevation={0} className='card h-screen w-[80%] flex flex-col justify-between bg-white shadow-lg rounded-2xl' sx={{overflowX: 'hidden'}}>
+        <Card elevation={0} className='card w-[85%] flex flex-col justify-between bg-white shadow-lg rounded-2xl' sx={{overflowX: 'hidden', height: 'calc(100vh - 65px)'}}>
             <div>
-                <div className='space-y-2 pt-10 px-3 flex flex-col'>
+                <div className='space-y-2 px-3 flex flex-col'>
                     {navigateMenu.map((item) => {
                         const active = location.pathname === item.path;
                         return (
