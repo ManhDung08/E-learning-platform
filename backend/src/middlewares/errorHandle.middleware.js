@@ -1,7 +1,5 @@
 import AppError from "../errors/AppError.js";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library.js";
-import handleAwsError from "../errors/handleAwsError.js";
-import handlePrismaError from "../errors/handlePrismaError.js";
 
 export default (err, req, res, next) => {
   console.error("Error caught:", err);

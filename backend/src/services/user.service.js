@@ -1,5 +1,4 @@
-import prisma from "../configs/prisma.config";
-import crypto from "crypto";
+import prisma from "../configs/prisma.config.js";
 import {
   extractKeyFromUrl,
   uploadToS3,
@@ -196,7 +195,9 @@ const changePassword = async (userId, currentPassword, newPassword) => {
   }
 
   if (currentPassword === newPassword) {
-    throw new BadRequestError("New password must be different from current password");
+    throw new BadRequestError(
+      "New password must be different from current password"
+    );
   }
 
   const hashedPassword = await hash(newPassword, 10);

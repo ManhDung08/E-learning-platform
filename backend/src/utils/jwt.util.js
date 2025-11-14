@@ -1,5 +1,5 @@
 import pkg from "jsonwebtoken";
-import AppError from "../errors/AppError";
+import AppError from "../errors/AppError.js";
 const { sign, verify } = pkg;
 
 export const generateTokens = (payload) => {
