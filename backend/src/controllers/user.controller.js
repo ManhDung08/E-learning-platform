@@ -166,8 +166,26 @@ const createUser = async (req, res, next) => {
 
 const getAllUsers = async (req, res, next) => {
   try {
-    const result = await userService.getAllUsers();
-    return res.status(200).json({ success: true, data: result });
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+
+    // Extract optional filters
+    const filters = {
+      role: req.query.role,
+      isActive:
+        req.query.isActive !== undefined
+          ? req.query.isActive === "true"
+          : undefined,
+      search: req.query.search,
+    };
+
+    const result = await userService.getAllUsers(page, limit, filters);
+
+    return res.status(200).json({
+      success: true,
+      data: result.users,
+      pagination: result.pagination,
+    });
   } catch (error) {
     console.error("Get all users error:", error);
     next(error);

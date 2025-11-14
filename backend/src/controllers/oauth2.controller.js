@@ -1,9 +1,9 @@
-import oauthService from "../services/oath2.service.js";
+import oauth2Service from "../services/oauth2.service.js";
 import AppError from "../errors/AppError.js";
 
 const googleAuth = (req, res, next) => {
   try {
-    const authUrl = oauthService.getGoogleAuthUrl();
+    const authUrl = oauth2Service.getGoogleAuthUrl();
     return res.redirect(authUrl);
   } catch (error) {
     console.error("Error generating Google auth URL:", error);
@@ -19,7 +19,7 @@ const googleCallback = async (req, res, next) => {
       return res.status(400).json({ message: "Authorization code is missing" });
     }
 
-    const result = await oauthService.handleGoogleCallback(code);
+    const result = await oauth2Service.handleGoogleCallback(code);
 
     const isProd = process.env.NODE_ENV === "production";
 

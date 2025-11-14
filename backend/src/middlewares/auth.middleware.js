@@ -11,7 +11,9 @@ export const isAuth =
     try {
       let token = req.cookies?.access_token;
       let payload = decodeToken(token);
-      console.log(payload);
+      if (process.env.NODE_ENV === "development") {
+        console.log(payload);
+      }
 
       if (!token || !payload) {
         const refreshToken = req.cookies?.refresh_token;
