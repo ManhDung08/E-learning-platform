@@ -1,23 +1,25 @@
-import { Router } from 'express';
-import path from 'path';
-import fs from 'fs';
-import { pathToFileURL } from 'url';
+import { Router } from "express";
+import path from "path";
+import fs from "fs";
+import { pathToFileURL } from "url";
 
 const routerConfig = Router();
-const BASE_SRC_DIR = path.resolve(process.cwd(), 'src');
-const BASE_ROUTE_DIR = path.resolve(BASE_SRC_DIR, 'routes');
+const BASE_SRC_DIR = path.resolve(process.cwd(), "src");
+const BASE_ROUTE_DIR = path.resolve(BASE_SRC_DIR, "routes");
 
 const collectFromModule = async (modulePathAbsolute) => {
   try {
-    if (!modulePathAbsolute.endsWith('.route.ts') && !modulePathAbsolute.endsWith('.route.js')) return;
+    if (!modulePathAbsolute.endsWith(".route.js")) return;
 
     console.log(`Attempting to import route: ${modulePathAbsolute}`);
 
     const routeModule = await import(pathToFileURL(modulePathAbsolute).href);
 
     if (routeModule && routeModule.default) {
-      const routeName = path.basename(modulePathAbsolute).replace(/\.route\.(ts|js)$/, '');
-      const routePath = routeName === 'index' ? '/' : `/${routeName}`;
+      const routeName = path
+        .basename(modulePathAbsolute)
+        .replace(/\.route\.js$/, "");
+      const routePath = routeName === "index" ? "/" : `/${routeName}`;
 
       routerConfig.use(routePath, routeModule.default);
       console.log(`Route loaded: ${routePath}`);
@@ -39,7 +41,7 @@ const collectFromDir = async (dirPathAbsolute) => {
 
       if (stats.isDirectory()) {
         await collectFromDir(itemPathAbsolute);
-      } else if (stats.isFile() && (item.endsWith('.route.ts') || item.endsWith('.route.js'))) {
+      } else if (stats.isFile() && item.endsWith(".route.js")) {
         await collectFromModule(itemPathAbsolute);
       }
     }

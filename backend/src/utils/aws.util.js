@@ -17,6 +17,7 @@ import {
   S3CopyError,
 } from "../errors/AwsError.js";
 import { BadRequestError } from "../errors/BadRequestError.js";
+import AppError from "../errors/AppError.js";
 
 export const extractKeyFromUrl = (url) => {
   try {
@@ -317,7 +318,7 @@ const generateUniqueFileName = (originalFileName) => {
 export const validateFileSize = (fileSize, fileType) => {
   const maxSize = uploadConfig.maxFileSize[fileType];
   if (!maxSize) {
-    throw new BadRequestError(
+    throw new AppError(
       `No size limit configured for file type: ${fileType}`
     );
   }

@@ -80,7 +80,13 @@ Use the `/api/oauth2/google` endpoint to initiate Google OAuth2 flow.
 
 #### Admin Only Endpoints
 
-- `GET /` - Get all users
+- `GET /` - Get all users with pagination, filtering, and search
+  - Query parameters:
+    - `page` (integer, default: 1) - Page number for pagination
+    - `limit` (integer, default: 10, max: 100) - Number of users per page
+    - `search` (string) - Search term for username, email, firstName, or lastName
+    - `role` (string) - Filter by user role (student, instructor, admin)
+    - `isActive` (boolean) - Filter by active status
 - `GET /:id` - Get user by ID
 - `POST /` - Create new user
 - `PUT /:id` - Update user
@@ -93,14 +99,27 @@ Use the `/api/oauth2/google` endpoint to initiate Google OAuth2 flow.
 
 ## Error Handling
 
-The API uses standard HTTP status codes and returns error responses in the following format:
+The API uses standard HTTP status codes and returns consistent response formats:
 
+**Success Response Format:**
+```json
+{
+  "success": true,
+  "message": "Success message",
+  "data": {
+    // Response data (optional)
+  }
+}
+```
+
+**Error Response Format:**
 ```json
 {
   "success": false,
   "message": "Error description",
   "error": {
-    // Additional error details
+    "code": "error_code",
+    "field": "field_name" // Optional
   }
 }
 ```
@@ -122,19 +141,52 @@ The API uses standard HTTP status codes and returns error responses in the follo
 
 ```json
 {
-  "id": "uuid",
+  "id": "integer",
   "email": "string",
-  "firstName": "string",
-  "lastName": "string",
-  "isVerified": "boolean",
-  "profilePictureUrl": "string|null",
-  "bio": "string|null",
-  "phoneNumber": "string|null",
+  "username": "string", 
+  "firstName": "string|null",
+  "lastName": "string|null",
+  "gender": "string|null",
   "dateOfBirth": "date|null",
+  "phoneNumber": "string|null",
+  "profileImageUrl": "string|null",
+  "role": "string",
+  "emailVerified": "boolean",
+  "isActive": "boolean",
   "createdAt": "datetime",
   "updatedAt": "datetime"
 }
 ```
+
+### Pagination Response
+
+For endpoints that support pagination (like `GET /api/users`), the response includes pagination metadata:
+
+```json
+{
+  "success": true,
+  "data": [
+    // Array of items (e.g., users)
+  ],
+  "pagination": {
+    "currentPage": 1,
+    "totalPages": 5,
+    "totalCount": 50,
+    "limit": 10,
+    "hasNextPage": true,
+    "hasPreviousPage": false
+  }
+}
+```
+
+#### Pagination Fields
+
+- `currentPage` - Current page number
+- `totalPages` - Total number of pages available
+- `totalCount` - Total number of items across all pages
+- `limit` - Number of items per page
+- `hasNextPage` - Boolean indicating if there's a next page
+- `hasPreviousPage` - Boolean indicating if there's a previous page
 
 ## File Uploads
 
