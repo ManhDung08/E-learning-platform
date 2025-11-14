@@ -18,7 +18,7 @@ import {
 } from "../errors/AwsError.js";
 import { BadRequestError } from "../errors/BadRequestError.js";
 
-const extractKeyFromUrl = (url) => {
+export const extractKeyFromUrl = (url) => {
   try {
     const urlObj = new URL(url);
     return urlObj.pathname.substring(1);
@@ -237,11 +237,7 @@ export const checkFileExists = async (key) => {
 };
 
 // upload local file to S3
-export const uploadLocalFileToS3 = async (
-  filePath,
-  fileType,
-  metadata = {}
-) => {
+export const uploadLocalFileToS3 = async (filePath, fileType, metadata = {}) => {
   try {
     // Read file from filesystem
     const fileBuffer = fs.readFileSync(filePath);
@@ -278,7 +274,9 @@ const generateFolderPath = (fileType, metadata) => {
   const folderFn = uploadConfig.folders[fileType];
 
   if (!folderFn) {
-    throw new BadRequestError(`No folder configuration for file type: ${fileType}`);
+    throw new BadRequestError(
+      `No folder configuration for file type: ${fileType}`
+    );
   }
 
   // Call folder function with appropriate parameters based on file type
@@ -319,7 +317,9 @@ const generateUniqueFileName = (originalFileName) => {
 export const validateFileSize = (fileSize, fileType) => {
   const maxSize = uploadConfig.maxFileSize[fileType];
   if (!maxSize) {
-    throw new BadRequestError(`No size limit configured for file type: ${fileType}`);
+    throw new BadRequestError(
+      `No size limit configured for file type: ${fileType}`
+    );
   }
   return fileSize <= maxSize;
 };
@@ -327,7 +327,9 @@ export const validateFileSize = (fileSize, fileType) => {
 export const validateMimeType = (mimeType, fileType) => {
   const allowedTypes = uploadConfig.allowedMimeTypes[fileType];
   if (!allowedTypes) {
-    throw new BadRequestError(`No MIME types configured for file type: ${fileType}`);
+    throw new BadRequestError(
+      `No MIME types configured for file type: ${fileType}`
+    );
   }
   return allowedTypes.includes(mimeType);
 };
@@ -364,18 +366,4 @@ export const copyFileInS3 = async (
     console.error("Error copying file in S3:", error);
     throw new S3CopyError(`Failed to copy file: ${error.message}`);
   }
-};
-
-export default {
-  extractKeyFromUrl,
-  uploadToS3,
-  getSignedUrlForDownload,
-  getSignedUrlForUpload,
-  deleteFromS3,
-  deleteMultipleFromS3,
-  checkFileExists,
-  uploadLocalFileToS3,
-  validateFileSize,
-  validateMimeType,
-  copyFileInS3,
 };

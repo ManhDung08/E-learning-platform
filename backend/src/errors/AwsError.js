@@ -1,6 +1,6 @@
-import AppError from "./AppError";
+import AppError from "./AppError.js";
 
-export default class AwsError extends AppError {
+export class AwsError extends AppError {
   constructor(message, code) {
     super(message, code);
     this.name = "AwsError";
