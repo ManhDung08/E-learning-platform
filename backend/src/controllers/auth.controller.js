@@ -7,7 +7,10 @@ const login = async (req, res, next) => {
 
     setAuthCookies(res, result);
 
-    return res.status(200).json({ message: "Login successful" });
+    return res.status(200).json({ 
+      success: true,
+      message: "Login successful" 
+    });
   } catch (err) {
     console.error("Login error:", err);
     next(err);
@@ -41,7 +44,11 @@ const signup = async (req, res, next) => {
     );
     return res
       .status(201)
-      .json({ message: result.message, userId: result.userId });
+      .json({ 
+        success: true,
+        message: result.message, 
+        data: { userId: result.userId }
+      });
   } catch (error) {
     console.error("Signup error:", error);
     next(error);
@@ -54,13 +61,17 @@ const verifyEmail = async (req, res, next) => {
 
     if (!token) {
       return res.status(400).json({
+        success: false,
         message: "Verification token is required",
       });
     }
 
     const result = await authService.verifyEmail(token);
     setAuthCookies(res, result);
-    return res.status(200).json({ message: result.message });
+    return res.status(200).json({ 
+      success: true,
+      message: result.message 
+    });
   } catch (error) {
     console.error("Verify email error:", error);
     next(error);
@@ -73,12 +84,16 @@ const resendVerification = async (req, res, next) => {
 
     if (!email) {
       return res.status(400).json({
+        success: false,
         message: "Email is required",
       });
     }
 
     const result = await authService.resendVerificationEmail(email);
-    return res.status(200).json({ message: result.message });
+    return res.status(200).json({ 
+      success: true,
+      message: result.message 
+    });
   } catch (error) {
     console.error("Resend verification error:", error);
     next(error);
@@ -90,7 +105,10 @@ const forgotPassword = async (req, res, next) => {
     const { email } = req.body;
 
     const result = await authService.forgotPassword(email);
-    return res.status(200).json({ message: result.message });
+    return res.status(200).json({ 
+      success: true,
+      message: result.message 
+    });
   } catch (error) {
     console.error("Forgot password error:", error);
     next(error);
@@ -102,7 +120,10 @@ const resetPassword = async (req, res, next) => {
     const { token, newPassword } = req.body;
 
     const result = await authService.resetPassword(token, newPassword);
-    return res.status(200).json({ message: result.message });
+    return res.status(200).json({ 
+      success: true,
+      message: result.message 
+    });
   } catch (error) {
     console.error("Reset password error:", error);
     next(error);
@@ -125,6 +146,7 @@ const logout = async (req, res, next) => {
     });
 
     return res.status(200).json({
+      success: true,
       message: "Logout successful",
     });
   } catch (error) {

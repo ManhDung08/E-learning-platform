@@ -35,7 +35,7 @@ const router = Router();
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/MessageResponse'
+ *               $ref: '#/components/schemas/AuthResponse'
  *         headers:
  *           Set-Cookie:
  *             schema:
@@ -78,14 +78,7 @@ router.post("/login", loginValidation, validate, authController.login);
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "User registered successfully"
- *                 userId:
- *                   type: integer
- *                   example: 1
+ *               $ref: '#/components/schemas/AuthResponse'
  *       400:
  *         description: Bad request - validation error
  *         content:
@@ -120,7 +113,7 @@ router.post("/signup", signupValidation, validate, authController.signup);
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/MessageResponse'
+ *               $ref: '#/components/schemas/AuthResponse'
  *         headers:
  *           Set-Cookie:
  *             schema:
@@ -157,7 +150,7 @@ router.get("/verify-email", authController.verifyEmail);
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/MessageResponse'
+ *               $ref: '#/components/schemas/AuthResponse'
  *       400:
  *         description: Bad request
  *         content:
@@ -185,7 +178,7 @@ router.post("/resend-verification", authController.resendVerification);
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/MessageResponse'
+ *               $ref: '#/components/schemas/AuthResponse'
  *       404:
  *         description: User not found
  *         content:
@@ -218,7 +211,7 @@ router.post(
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/MessageResponse'
+ *               $ref: '#/components/schemas/AuthResponse'
  *       400:
  *         description: Invalid or expired token
  *         content:
@@ -247,7 +240,7 @@ router.post(
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/MessageResponse'
+ *               $ref: '#/components/schemas/AuthResponse'
  *         headers:
  *           Set-Cookie:
  *             schema:

@@ -14,6 +14,8 @@ import { compare, hash } from "bcrypt";
 import { OAuthUserError } from "../errors/AuthError.js";
 import { AuthError } from "../errors/AuthError.js";
 import { BadRequestError } from "../errors/BadRequestError.js";
+import { validateFileSize, validateMimeType } from "../utils/aws.util.js";
+import { uploadConfig } from "../configs/upload.config.js";
 
 const getUserProfile = async (userId) => {
   const user = await prisma.user.findUnique({
@@ -57,7 +59,7 @@ const updateUserInfo = async (userId, updateData) => {
       },
     });
 
-    if (existingUser) {
+    if (existingUser && existingUser.id !== userId) {
       throw new UsernameAlreadyExistsError();
     }
   }
@@ -69,7 +71,7 @@ const updateUserInfo = async (userId, updateData) => {
       },
     });
 
-    if (existingUser) {
+    if (existingUser && existingUser.id !== userId) {
       throw new EmailAlreadyExistsError();
     }
   }
@@ -110,12 +112,30 @@ const updateUserAvatar = async (userId, file) => {
     throw new BadRequestError("No file uploaded");
   }
 
-  if (user.profileImageUrl) {
-    const oldKey = extractKeyFromUrl(user.profileImageUrl);
-    await deleteFromS3(oldKey);
+  if (!validateMimeType(file.mimetype, "avatar")) {
+    throw new BadRequestError(
+      `Invalid file type. Allowed types: ${uploadConfig.allowedMimeTypes.avatar.join(
+        ", "
+      )}`,
+      "file",
+      "invalid_mime_type"
+    );
   }
 
-  // Upload new avatar to S3
+  if (!validateFileSize(file.size, "avatar")) {
+    throw new BadRequestError(
+      `File too large. Max size: ${
+        uploadConfig.maxFileSize.avatar / 1024 / 1024
+      } MB`,
+      "file",
+      "file_too_large"
+    );
+  }
+
+  const oldKey = user.profileImageUrl
+    ? extractKeyFromUrl(user.profileImageUrl)
+    : null;
+
   const uploadResult = await uploadToS3({
     fileBuffer: file.buffer,
     fileName: file.originalname,
@@ -124,16 +144,28 @@ const updateUserAvatar = async (userId, file) => {
     metadata: { userId: userId.toString() },
   });
 
-  // Update user in database
-  const updatedUser = await prisma.user.update({
-    where: { id: userId },
-    data: { profileImageUrl: uploadResult.url },
-    select: {
-      id: true,
-      username: true,
-      profileImageUrl: true,
-    },
-  });
+  let updatedUser;
+
+  try {
+    updatedUser = await prisma.$transaction(async (tx) => {
+      return await tx.user.update({
+        where: { id: userId },
+        data: { profileImageUrl: uploadResult.url },
+        select: { id: true, username: true, profileImageUrl: true },
+      });
+    });
+  } catch (err) {
+    await deleteFromS3(uploadResult.key).catch((e) => {
+      console.error("Failed to rollback S3 upload:", e);
+    });
+    throw err;
+  }
+
+  if (oldKey) {
+    await deleteFromS3(oldKey).catch((err) =>
+      console.error("Failed to delete old avatar from S3:", err)
+    );
+  }
 
   return {
     ...updatedUser,
@@ -175,7 +207,7 @@ const deleteUserAvatar = async (userId) => {
 const changePassword = async (userId, currentPassword, newPassword) => {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true, passwordHash: true, googleId: true },
+    select: { passwordHash: true, googleId: true },
   });
 
   if (!user) {
@@ -275,21 +307,53 @@ const createUser = async ({
   return newUser;
 };
 
-const getAllUsers = async () => {
-  const users = await prisma.user.findMany({
-    select: {
-      id: true,
-      email: true,
-      username: true,
-      firstName: true,
-      lastName: true,
-      role: true,
-      isActive: true,
-      createdAt: true,
-      updatedAt: true,
+const getAllUsers = async (page = 1, limit = 10, filters = {}) => {
+  const skip = (page - 1) * limit;
+
+  const where = {};
+  if (filters.role) where.role = filters.role;
+  if (filters.isActive !== undefined) where.isActive = filters.isActive;
+  if (filters.search) {
+    where.OR = [
+      { username: { contains: filters.search, mode: "insensitive" } },
+      { email: { contains: filters.search, mode: "insensitive" } },
+      { firstName: { contains: filters.search, mode: "insensitive" } },
+      { lastName: { contains: filters.search, mode: "insensitive" } },
+    ];
+  }
+
+  const [users, totalCount] = await Promise.all([
+    prisma.user.findMany({
+      where,
+      skip,
+      take: limit,
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.user.count({ where }),
+  ]);
+
+  return {
+    users,
+    pagination: {
+      currentPage: page,
+      totalPages: Math.ceil(totalCount / limit),
+      totalCount,
+      limit,
+      hasNextPage: page < Math.ceil(totalCount / limit),
+      hasPreviousPage: page > 1,
     },
-  });
-  return users;
+  };
 };
 
 const deleteUser = async (userId) => {

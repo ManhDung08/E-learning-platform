@@ -1,8 +1,10 @@
 import express from "express";
 import userController from "../controllers/user.controller.js";
 import {
+  setPasswordValidation,
   changePasswordValidation,
   updateProfileValidation,
+  getAllUsersValidation,
 } from "../validations/user.validation.js";
 import { isAuth } from "../middlewares/auth.middleware.js";
 import { validate } from "../middlewares/validate.middleware.js";
@@ -275,13 +277,19 @@ router.put(
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.put("/set-password", isAuth(), userController.setPassword);
+router.put(
+  "/set-password", 
+  isAuth(), 
+  setPasswordValidation,
+  validate,
+  userController.setPassword
+);
 
 /**
  * @swagger
  * /api/users:
  *   get:
- *     summary: Get all users (Admin only)
+ *     summary: Get all users with pagination, filtering, and search (Admin only)
  *     tags: [User Management]
  *     security:
  *       - bearerAuth: []
@@ -294,6 +302,7 @@ router.put("/set-password", isAuth(), userController.setPassword);
  *           minimum: 1
  *           default: 1
  *         description: Page number for pagination
+ *         example: 1
  *       - in: query
  *         name: limit
  *         schema:
@@ -301,43 +310,82 @@ router.put("/set-password", isAuth(), userController.setPassword);
  *           minimum: 1
  *           maximum: 100
  *           default: 10
- *         description: Number of users per page
+ *         description: Number of users per page (max 100)
+ *         example: 10
  *       - in: query
  *         name: search
  *         schema:
  *           type: string
- *         description: Search term for filtering users
+ *         description: Search term for filtering users by username, email, firstName, or lastName
+ *         example: "john"
+ *       - in: query
+ *         name: role
+ *         schema:
+ *           type: string
+ *           enum: [student, instructor, admin]
+ *         description: Filter users by role
+ *         example: "student"
+ *       - in: query
+ *         name: isActive
+ *         schema:
+ *           type: boolean
+ *         description: Filter users by active status
+ *         example: true
  *     responses:
  *       200:
- *         description: Users retrieved successfully
+ *         description: Users retrieved successfully with pagination information
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 data:
- *                   type: object
- *                   properties:
- *                     users:
- *                       type: array
- *                       items:
- *                         $ref: '#/components/schemas/User'
- *                     pagination:
- *                       type: object
- *                       properties:
- *                         currentPage:
- *                           type: integer
- *                         totalPages:
- *                           type: integer
- *                         totalUsers:
- *                           type: integer
- *                         hasNextPage:
- *                           type: boolean
- *                         hasPreviousPage:
- *                           type: boolean
+ *               $ref: '#/components/schemas/UsersListResponse'
+ *             examples:
+ *               success:
+ *                 summary: Successful response with users and pagination
+ *                 value:
+ *                   success: true
+ *                   data:
+ *                     - id: 1
+ *                       email: "john@example.com"
+ *                       username: "john_doe"
+ *                       firstName: "John"
+ *                       lastName: "Doe"
+ *                       role: "student"
+ *                       isActive: true
+ *                       createdAt: "2023-01-15T08:30:00Z"
+ *                       updatedAt: "2023-01-15T08:30:00Z"
+ *                     - id: 2
+ *                       email: "jane@example.com"
+ *                       username: "jane_smith"
+ *                       firstName: "Jane"
+ *                       lastName: "Smith"
+ *                       role: "instructor"
+ *                       isActive: true
+ *                       createdAt: "2023-01-16T10:15:00Z"
+ *                       updatedAt: "2023-01-16T10:15:00Z"
+ *                   pagination:
+ *                     currentPage: 1
+ *                     totalPages: 5
+ *                     totalCount: 50
+ *                     limit: 10
+ *                     hasNextPage: true
+ *                     hasPreviousPage: false
+ *       400:
+ *         description: Bad request - invalid query parameters
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *             examples:
+ *               invalidPage:
+ *                 summary: Invalid page number
+ *                 value:
+ *                   success: false
+ *                   message: "Page number must be at least 1"
+ *               invalidLimit:
+ *                 summary: Invalid limit
+ *                 value:
+ *                   success: false
+ *                   message: "Limit must be between 1 and 100"
  *       401:
  *         description: Unauthorized
  *         content:
@@ -351,7 +399,13 @@ router.put("/set-password", isAuth(), userController.setPassword);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get("/", isAuth(["admin"]), userController.getAllUsers);
+router.get(
+  "/",
+  isAuth(["admin"]),
+  getAllUsersValidation,
+  validate,
+  userController.getAllUsers
+);
 
 /**
  * @swagger

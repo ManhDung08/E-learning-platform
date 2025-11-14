@@ -16,7 +16,7 @@ const getSwaggerSpecs = () => {
       },
       servers: [
         {
-          url: `${process.env.HOST}:${process.env.PORT}`,
+          url: `${process.env.HOST}:${process.env.PORT}/api`,
           description: "Development server",
         },
         {
@@ -40,82 +40,135 @@ const getSwaggerSpecs = () => {
         schemas: {
           Error: {
             type: "object",
+            description: "Error response format",
             properties: {
               success: {
                 type: "boolean",
                 example: false,
+                description: "Always false for error responses",
               },
               message: {
                 type: "string",
-                example: "Error message",
+                example: "Validation error",
+                description: "Human-readable error message",
               },
               error: {
                 type: "object",
+                properties: {
+                  code: {
+                    type: "string",
+                    example: "validation_error",
+                    description: "Machine-readable error code",
+                  },
+                  field: {
+                    type: "string",
+                    example: "email",
+                    description: "Field that caused the error (if applicable)",
+                    nullable: true,
+                  },
+                },
+                description: "Additional error details",
               },
             },
+            required: ["success", "message"],
           },
           User: {
             type: "object",
+            description: "Complete user object with all profile fields",
             properties: {
               id: {
                 type: "integer",
                 example: 1,
+                description: "User ID",
               },
               email: {
                 type: "string",
                 format: "email",
+                example: "user@example.com",
+                description: "User's email address",
               },
               username: {
                 type: "string",
+                example: "john_doe",
+                description: "User's username",
               },
               firstName: {
                 type: "string",
                 nullable: true,
+                example: "John",
+                description: "User's first name",
               },
               lastName: {
                 type: "string",
                 nullable: true,
+                example: "Doe",
+                description: "User's last name",
               },
               gender: {
                 type: "string",
                 enum: ["male", "female", "other"],
                 nullable: true,
+                example: "male",
+                description: "User's gender",
               },
               dateOfBirth: {
                 type: "string",
                 format: "date",
                 nullable: true,
+                example: "1990-01-15",
+                description: "User's date of birth",
               },
               phoneNumber: {
                 type: "string",
                 nullable: true,
+                example: "+1234567890",
+                description: "User's phone number",
               },
               profileImageUrl: {
                 type: "string",
                 nullable: true,
+                example: "https://example.com/avatar.jpg",
+                description: "URL to user's profile image",
               },
               role: {
                 type: "string",
                 enum: ["student", "instructor", "admin"],
-                default: "student",
+                example: "student",
+                description: "User's role in the system",
               },
               emailVerified: {
                 type: "boolean",
-                default: false,
+                example: true,
+                description: "Whether the user's email is verified",
               },
               isActive: {
                 type: "boolean",
-                default: true,
+                example: true,
+                description: "Whether the user account is active",
               },
               createdAt: {
                 type: "string",
                 format: "date-time",
+                example: "2023-01-15T08:30:00Z",
+                description: "Account creation timestamp",
               },
               updatedAt: {
                 type: "string",
                 format: "date-time",
+                example: "2023-01-15T08:30:00Z",
+                description: "Last update timestamp",
               },
             },
+            required: [
+              "id",
+              "email",
+              "username",
+              "role",
+              "emailVerified",
+              "isActive",
+              "createdAt",
+              "updatedAt",
+            ],
           },
           LoginRequest: {
             type: "object",
@@ -194,16 +247,32 @@ const getSwaggerSpecs = () => {
           },
           AuthResponse: {
             type: "object",
+            description: "Authentication response format",
             properties: {
+              success: {
+                type: "boolean",
+                example: true,
+                description: "Indicates if the operation was successful"
+              },
               message: {
                 type: "string",
                 example: "Login successful",
+                description: "Human-readable success message"
               },
-              userId: {
-                type: "integer",
-                example: 1,
-              },
+              data: {
+                type: "object",
+                properties: {
+                  userId: {
+                    type: "integer",
+                    example: 1,
+                    description: "User ID (for signup responses)"
+                  }
+                },
+                description: "Additional response data (optional)",
+                nullable: true
+              }
             },
+            required: ["success", "message"]
           },
           UserResponse: {
             type: "object",
@@ -211,6 +280,10 @@ const getSwaggerSpecs = () => {
               success: {
                 type: "boolean",
                 example: true,
+              },
+              message: {
+                type: "string",
+                example: "Profile retrieved successfully",
               },
               data: {
                 type: "object",
@@ -376,10 +449,174 @@ const getSwaggerSpecs = () => {
           },
           MessageResponse: {
             type: "object",
+            description: "Simple success response with message",
             properties: {
+              success: {
+                type: "boolean",
+                example: true,
+                description: "Indicates if the operation was successful"
+              },
               message: {
                 type: "string",
                 example: "Operation completed successfully",
+                description: "Human-readable success message"
+              },
+            },
+            required: ["success", "message"]
+          },
+          PaginationInfo: {
+            type: "object",
+            properties: {
+              currentPage: {
+                type: "integer",
+                example: 1,
+                description: "Current page number",
+              },
+              totalPages: {
+                type: "integer",
+                example: 5,
+                description: "Total number of pages",
+              },
+              totalCount: {
+                type: "integer",
+                example: 50,
+                description: "Total number of items",
+              },
+              limit: {
+                type: "integer",
+                example: 10,
+                description: "Number of items per page",
+              },
+              hasNextPage: {
+                type: "boolean",
+                example: true,
+                description: "Whether there is a next page",
+              },
+              hasPreviousPage: {
+                type: "boolean",
+                example: false,
+                description: "Whether there is a previous page",
+              },
+            },
+          },
+          UsersListResponse: {
+            type: "object",
+            properties: {
+              success: {
+                type: "boolean",
+                example: true,
+              },
+              data: {
+                type: "array",
+                items: {
+                  $ref: "#/components/schemas/UserListItem",
+                },
+              },
+              pagination: {
+                $ref: "#/components/schemas/PaginationInfo",
+              },
+            },
+          },
+          UserListItem: {
+            type: "object",
+            description: "User object as returned by the getAllUsers endpoint",
+            properties: {
+              id: {
+                type: "integer",
+                example: 1,
+                description: "User ID",
+              },
+              email: {
+                type: "string",
+                format: "email",
+                example: "user@example.com",
+                description: "User's email address",
+              },
+              username: {
+                type: "string",
+                example: "john_doe",
+                description: "User's username",
+              },
+              firstName: {
+                type: "string",
+                nullable: true,
+                example: "John",
+                description: "User's first name",
+              },
+              lastName: {
+                type: "string",
+                nullable: true,
+                example: "Doe",
+                description: "User's last name",
+              },
+              role: {
+                type: "string",
+                enum: ["student", "instructor", "admin"],
+                example: "student",
+                description: "User's role in the system",
+              },
+              isActive: {
+                type: "boolean",
+                example: true,
+                description: "Whether the user account is active",
+              },
+              createdAt: {
+                type: "string",
+                format: "date-time",
+                example: "2023-01-15T08:30:00Z",
+                description: "Account creation timestamp",
+              },
+              updatedAt: {
+                type: "string",
+                format: "date-time",
+                example: "2023-01-15T08:30:00Z",
+                description: "Last update timestamp",
+              },
+            },
+            required: [
+              "id",
+              "email",
+              "username",
+              "role",
+              "isActive",
+              "createdAt",
+              "updatedAt",
+            ],
+          },
+          UserQueryParams: {
+            type: "object",
+            properties: {
+              page: {
+                type: "integer",
+                minimum: 1,
+                default: 1,
+                description: "Page number for pagination",
+                example: 1,
+              },
+              limit: {
+                type: "integer",
+                minimum: 1,
+                maximum: 100,
+                default: 10,
+                description: "Number of items per page",
+                example: 10,
+              },
+              search: {
+                type: "string",
+                description:
+                  "Search term for filtering users by username, email, firstName, or lastName",
+                example: "john",
+              },
+              role: {
+                type: "string",
+                enum: ["student", "instructor", "admin"],
+                description: "Filter users by role",
+                example: "student",
+              },
+              isActive: {
+                type: "boolean",
+                description: "Filter users by active status",
+                example: true,
               },
             },
           },
@@ -394,7 +631,7 @@ const getSwaggerSpecs = () => {
         },
       ],
     },
-    apis: ["./src/routes/*.js"],
+    apis: ["src/routes/*.js"],
   };
 
   return swaggerJSDoc(options);

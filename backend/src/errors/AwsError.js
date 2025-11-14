@@ -1,8 +1,8 @@
 import AppError from "./AppError.js";
 
 export class AwsError extends AppError {
-  constructor(message, code) {
-    super(message, code);
+  constructor(message, code = "aws_error") {
+    super(message, 500, code);
     this.name = "AwsError";
   }
 }
