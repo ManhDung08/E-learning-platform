@@ -11,6 +11,8 @@ const VerifyEmailModal = ({ open, token, onClose, onSuccess }) => {
     const { loading, error, isAuthenticated } = useSelector((state) => state.auth);
     const [verificationAttempted, setVerificationAttempted] = useState(false);
 
+    const [isRedirecting, setIsRedirecting] = useState(false);
+
     useEffect(() => {
         if (open && token && !verificationAttempted) {
             console.log("verifying email with token:", token);
@@ -22,13 +24,16 @@ const VerifyEmailModal = ({ open, token, onClose, onSuccess }) => {
 
     //redirect sau khi verify thành công
     useEffect(() => {
-        if (isAuthenticated && verificationAttempted) {
+        if (isAuthenticated && verificationAttempted && !isRedirecting) {
             console.log("Email verified successfully");
+            
+            setIsRedirecting(true);
+
             setTimeout(() => {
                 if (onSuccess) onSuccess();
             }, 3000); // chờ 3 giây để người dùng đọc
         }
-    }, [isAuthenticated, verificationAttempted, onSuccess]);
+    }, [isAuthenticated, verificationAttempted, onSuccess, isRedirecting]);
 
     const handleResendVerification = () => {
 

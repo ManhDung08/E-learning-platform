@@ -102,28 +102,7 @@ const Register = ({ onSuccess, onToggleView }) => {
     <>  
         <h2 className='text-2xl font-semibold text-center mb-5'>Create Account</h2>
 
-        {registrationSuccess && verificationMessage && (
-            <>
-                <Alert severity='success' sx={{mb: 2}}>
-                    {verificationMessage}
-                </Alert>
-                <div className='bg-blue-50 border border-blue-200 rounded-lg mb-4'>
-                    <p className='text-sm text-gray-700 mb-2'>
-                        We've sent a verification link to:
-                    </p>
-                    <p className='font-semibold text-center mb-2'>{registeredEmail}</p>
-                    <p className='text-xs text-gray-600'>
-                        Please check your email and click the verification link.
-                    </p>
-                </div>
-            </>
-        )}
-
-        {error && (
-            <Alert severity='error' sx={{mb: 2}} onClose={() => dispatch(clearErrorAction())}>
-                {getErrorMessage()}
-            </Alert>
-        )}
+        
 
         <Formik onSubmit={handleSubmit} validationSchema={validationSchema} initialValues={initialValues}>
             {({isSubmitting}) => (
@@ -298,6 +277,29 @@ const Register = ({ onSuccess, onToggleView }) => {
                         className="text-sm text-red-500 mt-1"
                     />
                 </div>
+
+                {registrationSuccess && verificationMessage && (
+                    <>
+                        <Alert severity='success' sx={{mb: 2}}>
+                            {verificationMessage}
+                        </Alert>
+                        <div className='rounded-lg mb-4'>
+                            <p className='text-sm text-gray-700 mb-2'>
+                                We've sent a verification link to:
+                            </p>
+                            <p className='font-semibold text-center mb-2'>{registeredEmail}</p>
+                            <p className='text-xs text-gray-600'>
+                                Please check your email and click the verification link.
+                            </p>
+                        </div>
+                    </>
+                )}
+
+                {error && (
+                    <Alert severity='error' sx={{mb: 2}} onClose={() => dispatch(clearErrorAction())}>
+                        {getErrorMessage()}
+                    </Alert>
+                )}
 
                 <Button
                     type="submit"
