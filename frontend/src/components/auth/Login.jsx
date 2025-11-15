@@ -1,11 +1,14 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
-import { Button, TextField } from '@mui/material';
+import { Button, TextField, Alert } from '@mui/material';
+import { useDispatch, useSelector } from 'react-redux';
+import { loginUserAction, clearErrorAction } from '../../Redux/Auth/auth.action';
+import { useNavigate } from 'react-router-dom';
 
-const initialValues = { username: "", password: "" };
+const initialValues = { usernameOrEmail: "", password: "" };
 const validationSchema = Yup.object({
-  username: Yup.string().required("* Username is required"),
+  usernameOrEmail: Yup.string().required("* Username or Email is required"),
   password: Yup.string().min(8, "* Password must be at least 8 characters").required("* Password is required")
 });
 
@@ -13,27 +16,75 @@ const validationSchema = Yup.object({
 
 const Login = ({ onSuccess, onToggleView }) => {
 
+    const dispatch = useDispatch();
+    const navigate = useNavigate();
+
+    const { loading, error, isAuthenticated } = useSelector((state) => state.auth);
+
+    //clear error khi component mount
+    useEffect(() => {
+        dispatch(clearErrorAction());
+    }, [dispatch]);
+
+    //chạy khi log in thành công
+    useEffect(() => {
+        if (isAuthenticated) {
+            if (onSuccess) {
+                onSuccess();
+            } else {
+                navigate('/')
+            }
+        }
+    }, [isAuthenticated, navigate, onSuccess]);
+
     const handleSubmit = (values) => {
         console.log("handle submit login", values);
 
-        if (onSuccess) {
-            onSuccess();
-        }
+        dispatch(loginUserAction({
+            usernameOrEmail: values.usernameOrEmail,
+            password: values.password
+        }));
     };
+
+    const getErrorMessage = () => {
+        if (!error) return null;
+
+        //xử lý code bên backend
+        if (error.code === 'invalid_credentials' || error.code === 'invalid_password') {
+            return 'Username/Email or password is incorrect!';
+        }
+        if (error.code === 'email_not_verified') {
+            return 'Please verify your email before logging in';
+        }
+        if (error.code === 'account_deactivated') {
+            return 'Your account has been deactivated';
+        }
+        if (error.code === 'oauth_user') {
+            return 'This account was created with Google. Please use Google login';
+        }
+        
+        return error.message || 'Please try again'
+    }
   
     return (
     <div >
-        <h2 className='text-2x1 font-semibold text-center mb-5'>Welcome Back</h2>
+        <h2 className='text-2xl font-semibold text-center mb-5'>Welcome Back</h2>
+        {error && (
+            <Alert severity='error' sx={{mb: 2}} onClose={() => dispatch(clearErrorAction())}>
+                {getErrorMessage()}
+            </Alert>
+        )}
+        
         <Formik onSubmit={handleSubmit} validationSchema={validationSchema} initialValues={initialValues}>
             {({ isSubmitting }) => (
                 <Form>
                     <div className='space-y-5'>
                         <div>
-                            <Field as={TextField} name='username'
-                                    label="Username" fullWidth sx={{'& label.Mui-focused': { color: '#97A87A' },
+                            <Field as={TextField} name='usernameOrEmail'
+                                    label="Username or Email" fullWidth sx={{'& label.Mui-focused': { color: '#97A87A' },
                                                                     '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#97A87A' }
                                                                     }}/>                    
-                            <ErrorMessage name='username' component="div -mt-2" 
+                            <ErrorMessage name='username' component="div" 
                                         className=' text-sm text-red-500 mt-1' />
                         </div>
                         <div>
@@ -42,20 +93,20 @@ const Login = ({ onSuccess, onToggleView }) => {
                                     fullWidth sx={{ '& label.Mui-focused': { color: '#97A87A' },
                                                     '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#97A87A' }
                                                     }}/>                    
-                            <ErrorMessage onSubmit={handleSubmit} name='password' 
+                            <ErrorMessage name='password' 
                                         component="div" className='text-sm text-red-500 mt-1' />
                         </div>
                     </div>
                     
                     <div className='text-right mx-4 m-2'>
-                        <a href='#' className='text-sm text-blue-500 underline'>
-                            Forget password?
+                        <a href='/forgot-password' className='text-sm text-blue-500 underline'>
+                            Forgot password?
                         </a>
                     </div>
                     
                     <Button type='submit' variant='contained' sx={{backgroundColor: '#97AB7A', color: 'white'}}
-                            fullWidth disabled={isSubmitting}>
-                        Log In
+                            fullWidth disabled={isSubmitting || loading}>
+                        {loading ? 'Logging in...' : 'Log In'}
                     </Button>
             </Form>
             )} 
