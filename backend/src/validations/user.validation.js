@@ -61,7 +61,7 @@ export const updateProfileValidation = [
     .withMessage("Invalid phone number format"),
 
   body("profileImageUrl")
-    .optional()
+    .optional({ nullable: true })
     .trim()
     .isURL()
     .withMessage("Profile image must be a valid URL"),
