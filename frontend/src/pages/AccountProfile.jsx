@@ -1,5 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { User, Mail, Phone, Calendar, Users, BookOpen, Award, Lock, Check, Edit2, Save, X } from 'lucide-react';
+import InputField from '../components/InputField';
+
+
+
+
+const ToggleSwitch = ({ enabled, onToggle }) => (
+  <button
+    onClick={onToggle}
+    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${enabled ? 'bg-blue-600' : 'bg-gray-300'}`}
+  >
+    <span
+      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${enabled ? 'translate-x-6' : 'translate-x-1'}`}
+    />
+  </button>
+);
 
 function AccountProfile() {
   const [activeTab, setActiveTab] = useState(0);
@@ -21,24 +36,23 @@ function AccountProfile() {
     const fetchProfile = async () => {
       try {
         setLoading(true);
-        
+
         const response = await fetch('http://localhost:3000/api/user/me', {
           method: 'GET',
-          credentials: 'include', //  gửi cookie đi cùng request
+          credentials: 'include',
           headers: {
             'Content-Type': 'application/json'
           }
         });
-        
+
         if (!response.ok) {
           if (response.status === 401) {
             throw new Error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
           }
           throw new Error('Không thể tải thông tin người dùng');
         }
-        
+
         const result = await response.json();
-        // API trả về { success, message, data }, cần lấy data bên trong
         const data = result.data;
         setProfile(data);
         setEditedProfile(data);
@@ -102,26 +116,27 @@ function AccountProfile() {
 
   const handleSave = async () => {
     try {
-      const response = await fetch('http://localhost:3000/api/user/me', {
+      const response = await fetch('http://localhost:3000/api/user/update-profile', {
         method: 'PUT',
-        credentials: 'include', // Gửi cookie đi cùng request
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(editedProfile)
       });
-      
+
       if (!response.ok) {
         if (response.status === 401) {
           throw new Error('Phiên đăng nhập đã hết hạn');
         }
         throw new Error('Không thể cập nhật thông tin');
       }
-      
+
       const result = await response.json();
-      const updatedData = result.data; // Lấy data từ response
-      setProfile(updatedData);
-      setEditedProfile(updatedData);
+      const updatedData = result.data;
+      setProfile(prev => ({ ...prev, ...updatedData }));
+      setEditedProfile(prev => ({ ...prev, ...updatedData }));
+
       setIsEditing(false);
       setShowAlert(true);
       setTimeout(() => setShowAlert(false), 3000);
@@ -160,12 +175,9 @@ function AccountProfile() {
 
   const formatDateForInput = (dateString) => {
     if (!dateString) return '';
-    // Xử lý cả ISO string và date string thông thường
-    // Lấy phần YYYY-MM-DD từ ISO string để tránh timezone issue
     if (dateString.includes('T')) {
       return dateString.split('T')[0];
     }
-    // Nếu là format khác, parse bình thường
     const date = new Date(dateString);
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -189,59 +201,6 @@ function AccountProfile() {
     { id: 3, label: 'Bảo mật', icon: Lock }
   ];
 
-  const InputField = ({ label, value, onChange, disabled, icon: Icon, type = 'text', select, options }) => (
-    <div className="space-y-2">
-      <label className="block text-sm font-medium text-gray-700">{label}</label>
-      <div className="relative">
-        {Icon && (
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Icon className="h-5 w-5 text-gray-400" />
-          </div>
-        )}
-        {select ? (
-          <select
-            value={value || ''}
-            onChange={(e) => onChange(e.target.value)}
-            disabled={disabled}
-            className={`w-full ${Icon ? 'pl-10' : 'pl-3'} pr-3 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${
-              disabled ? 'bg-gray-50 text-gray-600' : 'bg-white'
-            }`}
-          >
-            {options.map(opt => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
-        ) : (
-          <input
-            type={type}
-            value={value || ''}
-            onChange={(e) => onChange(e.target.value)}
-            disabled={disabled}
-            className={`w-full ${Icon ? 'pl-10' : 'pl-3'} pr-3 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${
-              disabled ? 'bg-gray-50 text-gray-600' : 'bg-white'
-            }`}
-          />
-        )}
-      </div>
-    </div>
-  );
-
-  const ToggleSwitch = ({ enabled, onToggle }) => (
-    <button
-      onClick={onToggle}
-      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-        enabled ? 'bg-blue-600' : 'bg-gray-300'
-      }`}
-    >
-      <span
-        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-          enabled ? 'translate-x-6' : 'translate-x-1'
-        }`}
-      />
-    </button>
-  );
-
-  // Loading state
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -253,7 +212,6 @@ function AccountProfile() {
     );
   }
 
-  // Error state
   if (error || !profile) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -263,8 +221,8 @@ function AccountProfile() {
           </div>
           <h2 className="text-xl font-bold text-gray-900 mb-2">Có lỗi xảy ra</h2>
           <p className="text-red-600 mb-6">{error || 'Không thể tải thông tin'}</p>
-          <button 
-            onClick={() => window.location.reload()} 
+          <button
+            onClick={() => window.location.reload()}
             className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
           >
             Thử lại
@@ -309,34 +267,36 @@ function AccountProfile() {
               </div>
             </div>
 
-            <div className="flex gap-2 w-full sm:w-auto">
-              {!isEditing ? (
-                <button
-                  onClick={handleEdit}
-                  className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm font-medium"
-                >
-                  <Edit2 className="h-4 w-4" />
-                  Chỉnh sửa
-                </button>
-              ) : (
-                <>
+            {activeTab === 0 && (
+              <div className="flex gap-2 w-full sm:w-auto">
+                {!isEditing ? (
                   <button
-                    onClick={handleSave}
+                    onClick={handleEdit}
                     className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm font-medium"
                   >
-                    <Save className="h-4 w-4" />
-                    Lưu
+                    <Edit2 className="h-4 w-4" />
+                    Chỉnh sửa
                   </button>
-                  <button
-                    onClick={handleCancel}
-                    className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
-                  >
-                    <X className="h-4 w-4" />
-                    Hủy
-                  </button>
-                </>
-              )}
-            </div>
+                ) : (
+                  <>
+                    <button
+                      onClick={handleSave}
+                      className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm font-medium"
+                    >
+                      <Save className="h-4 w-4" />
+                      Lưu
+                    </button>
+                    <button
+                      onClick={handleCancel}
+                      className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+                    >
+                      <X className="h-4 w-4" />
+                      Hủy
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -349,11 +309,7 @@ function AccountProfile() {
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`flex items-center gap-2 px-4 sm:px-6 py-3 sm:py-4 font-medium whitespace-nowrap transition-all border-b-2 text-sm sm:text-base ${
-                      activeTab === tab.id
-                        ? 'border-blue-600 text-blue-600 bg-white'
-                        : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                    }`}
+                    className={`flex items-center gap-2 px-4 sm:px-6 py-3 sm:py-4 font-medium whitespace-nowrap transition-all border-b-2 text-sm sm:text-base ${activeTab === tab.id ? 'border-blue-600 text-blue-600 bg-white' : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-100'}`}
                   >
                     <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
                     <span className="hidden sm:inline">{tab.label}</span>
@@ -365,7 +321,7 @@ function AccountProfile() {
           </div>
 
           <div className="p-4 sm:p-6 md:p-8">
-            {activeTab === 0 && editedProfile && (
+            {activeTab === 0 && (
               <div className="space-y-6 sm:space-y-8">
                 <div>
                   <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-1">Thông tin cơ bản</h2>
