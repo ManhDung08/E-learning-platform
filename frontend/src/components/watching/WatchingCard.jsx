@@ -15,7 +15,7 @@ const WatchingCard = ({ progress, total, title }) => {
         <div style={{ width: '50px', height: '50px', borderRadius: '50%', backgroundColor: '#E8F0FF',
                     display: 'flex', alignItems: 'center', justifyContent: 'center'
          }}>
-            <Bell size={24} color='#5B8DEF'/>
+            <Bell size={24} color='#608f4d'/>
         </div>
 
         <div style={{ flex: 1 }}>
@@ -28,7 +28,7 @@ const WatchingCard = ({ progress, total, title }) => {
             <div style={{ width: '100%', height: '4px', backgroundColor: '#E0E0E0',
                         borderRadius: '10px', marginTop: '8px', overflow: 'hidden'
              }}>
-                <div style={{ width: `${progressPercentage}%`, height: '100%', backgroundColor: '#5B8DEF', borderRadius: '10px' }} />
+                <div style={{ width: `${progressPercentage}%`, height: '100%', backgroundColor: '#608f4d', borderRadius: '10px' }} />
             </div>
         </div>
         

@@ -16,7 +16,7 @@ const CourseCard = ({course}) => {
         </div>
 
         <div style={{ padding: '12px' }}>
-            <span style={{backgroundColor: 'E3F2FD', color: '#1976D2', fontSize: '11px', fontWeight: '700', padding: '4px 12px', letterSpacing: '0.5px'}}>
+            <span style={{backgroundColor: 'E3F2FD', color: '#608f4d', fontSize: '11px', fontWeight: '700', padding: '4px 12px', letterSpacing: '0.5px'}}>
                 {course.category}
             </span>
             <h3 style={{fontSize: '15px', fontWeight: '600', margin: '12px 0', lineHeight: '1.4',
@@ -34,7 +34,7 @@ const CourseCard = ({course}) => {
                     </div>
 
                     <div style={{ width: '100%', height: '6px', backgroundColor: '#E0E0E0', borderRadius: '10px', overflow: 'hidden' }}>
-                        <div style={{ width: `${progressPercentage}%`, height: '100%', backgroundColor: '#5B8DEF', borderRadius: '10px', transition: 'width 0.3s ease' }} />
+                        <div style={{ width: `${progressPercentage}%`, height: '100%', backgroundColor: '#608f4d', borderRadius: '10px', transition: 'width 0.3s ease' }} />
                     </div>
                 </div>
 

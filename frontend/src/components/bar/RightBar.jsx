@@ -59,7 +59,7 @@ const RightBar = () => {
         <Box sx={{bgcolor: 'white', borderRadius: 2, p: 2}}>
             <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1}>
                 <Typography variant='h8' fontWeight='600' color='#525252'>
-                    Your Mentor
+                    Your Instructor
                 </Typography>
                 <IconButton size='small' sx={{'&:hover': {backgroundColor: 'white'}}}>
                     <Typography sx={{ fontSize: 20, fontWeight: 'bold' }}>+</Typography>
