@@ -7,7 +7,6 @@ import CoursesIcon from '@mui/icons-material/WorkOutline';
 import LiveIcon from '@mui/icons-material/LiveTv';
 import AssignmentsIcon from '@mui/icons-material/Checklist';
 import SavedIcon from '@mui/icons-material/BookmarkBorder';
-import { Divider } from '@mui/material';
 import HelpCenterCard from './HelpCenterCard';
 
 const navigateMenu = [
