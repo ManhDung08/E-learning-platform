@@ -252,12 +252,12 @@ const getSwaggerSpecs = () => {
               success: {
                 type: "boolean",
                 example: true,
-                description: "Indicates if the operation was successful"
+                description: "Indicates if the operation was successful",
               },
               message: {
                 type: "string",
                 example: "Login successful",
-                description: "Human-readable success message"
+                description: "Human-readable success message",
               },
               data: {
                 type: "object",
@@ -265,14 +265,14 @@ const getSwaggerSpecs = () => {
                   userId: {
                     type: "integer",
                     example: 1,
-                    description: "User ID (for signup responses)"
-                  }
+                    description: "User ID (for signup responses)",
+                  },
                 },
                 description: "Additional response data (optional)",
-                nullable: true
-              }
+                nullable: true,
+              },
             },
-            required: ["success", "message"]
+            required: ["success", "message"],
           },
           UserResponse: {
             type: "object",
@@ -454,15 +454,15 @@ const getSwaggerSpecs = () => {
               success: {
                 type: "boolean",
                 example: true,
-                description: "Indicates if the operation was successful"
+                description: "Indicates if the operation was successful",
               },
               message: {
                 type: "string",
                 example: "Operation completed successfully",
-                description: "Human-readable success message"
+                description: "Human-readable success message",
               },
             },
-            required: ["success", "message"]
+            required: ["success", "message"],
           },
           PaginationInfo: {
             type: "object",
@@ -619,6 +619,399 @@ const getSwaggerSpecs = () => {
                 example: true,
               },
             },
+          },
+          Course: {
+            type: "object",
+            description: "Course object with complete information",
+            properties: {
+              id: {
+                type: "integer",
+                example: 1,
+                description: "Course ID",
+              },
+              title: {
+                type: "string",
+                example: "Introduction to Web Development",
+                description: "Course title",
+              },
+              slug: {
+                type: "string",
+                example: "introduction-to-web-development",
+                description: "Course URL slug",
+              },
+              description: {
+                type: "string",
+                example: "Learn the fundamentals of web development",
+                description: "Course description",
+              },
+              image: {
+                type: "string",
+                nullable: true,
+                example: "https://example.com/course-image.jpg",
+                description: "Course thumbnail image URL",
+              },
+              priceCents: {
+                type: "integer",
+                example: 4999,
+                description: "Course price in cents",
+              },
+              isPublished: {
+                type: "boolean",
+                example: true,
+                description: "Whether the course is published",
+              },
+              instructorId: {
+                type: "integer",
+                example: 2,
+                description: "ID of the course instructor",
+              },
+              enrollmentCount: {
+                type: "integer",
+                example: 150,
+                description: "Number of enrolled students",
+              },
+              averageRating: {
+                type: "string",
+                example: "4.5",
+                description: "Average course rating",
+              },
+              totalLessons: {
+                type: "integer",
+                example: 25,
+                description: "Total number of lessons",
+              },
+              totalDuration: {
+                type: "integer",
+                example: 7200,
+                description: "Total course duration in seconds",
+              },
+              createdAt: {
+                type: "string",
+                format: "date-time",
+                example: "2023-01-15T08:30:00Z",
+                description: "Course creation timestamp",
+              },
+              updatedAt: {
+                type: "string",
+                format: "date-time",
+                example: "2023-01-15T08:30:00Z",
+                description: "Last update timestamp",
+              },
+              instructor: {
+                type: "object",
+                description: "Course instructor information",
+                properties: {
+                  id: {
+                    type: "integer",
+                    example: 2,
+                  },
+                  username: {
+                    type: "string",
+                    example: "instructor_john",
+                  },
+                  firstName: {
+                    type: "string",
+                    nullable: true,
+                    example: "John",
+                  },
+                  lastName: {
+                    type: "string",
+                    nullable: true,
+                    example: "Smith",
+                  },
+                  profileImageUrl: {
+                    type: "string",
+                    nullable: true,
+                    example: "https://example.com/instructor-avatar.jpg",
+                  },
+                },
+              },
+              modules: {
+                type: "array",
+                description: "Course modules with lessons",
+                items: {
+                  type: "object",
+                  properties: {
+                    id: {
+                      type: "integer",
+                      example: 1,
+                    },
+                    title: {
+                      type: "string",
+                      example: "Getting Started",
+                    },
+                    order: {
+                      type: "integer",
+                      example: 1,
+                    },
+                    lessons: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          id: {
+                            type: "integer",
+                            example: 1,
+                          },
+                          title: {
+                            type: "string",
+                            example: "Course Introduction",
+                          },
+                          durationSeconds: {
+                            type: "integer",
+                            nullable: true,
+                            example: 300,
+                          },
+                          order: {
+                            type: "integer",
+                            example: 1,
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            required: [
+              "id",
+              "title",
+              "slug",
+              "description",
+              "priceCents",
+              "isPublished",
+              "instructorId",
+              "createdAt",
+              "updatedAt",
+            ],
+          },
+          CreateCourseRequest: {
+            type: "object",
+            required: ["title", "description", "priceCents"],
+            properties: {
+              title: {
+                type: "string",
+                minLength: 3,
+                maxLength: 200,
+                example: "Introduction to Web Development",
+                description: "Course title",
+              },
+              description: {
+                type: "string",
+                minLength: 10,
+                maxLength: 2000,
+                example:
+                  "Learn the fundamentals of web development including HTML, CSS, and JavaScript",
+                description: "Course description",
+              },
+              priceCents: {
+                type: "integer",
+                minimum: 0,
+                maximum: 100000000,
+                example: 4999,
+                description: "Course price in cents (e.g., 4999 = $49.99)",
+              },
+              image: {
+                type: "string",
+                nullable: true,
+                format: "uri",
+                example: "https://example.com/course-thumbnail.jpg",
+                description: "Course thumbnail image URL",
+              },
+            },
+          },
+          UpdateCourseRequest: {
+            type: "object",
+            properties: {
+              title: {
+                type: "string",
+                minLength: 3,
+                maxLength: 200,
+                example: "Advanced Web Development",
+                description: "Course title",
+              },
+              description: {
+                type: "string",
+                minLength: 10,
+                maxLength: 2000,
+                example: "Advanced concepts in web development",
+                description: "Course description",
+              },
+              priceCents: {
+                type: "integer",
+                minimum: 0,
+                maximum: 100000000,
+                example: 6999,
+                description: "Course price in cents",
+              },
+              image: {
+                type: "string",
+                nullable: true,
+                format: "uri",
+                example: "https://example.com/new-course-image.jpg",
+                description: "Course thumbnail image URL",
+              },
+              isPublished: {
+                type: "boolean",
+                example: true,
+                description: "Whether to publish the course",
+              },
+            },
+          },
+          CourseResponse: {
+            type: "object",
+            properties: {
+              success: {
+                type: "boolean",
+                example: true,
+              },
+              message: {
+                type: "string",
+                example: "Course retrieved successfully",
+              },
+              data: {
+                $ref: "#/components/schemas/Course",
+              },
+            },
+            required: ["success", "message", "data"],
+          },
+          CoursesResponse: {
+            type: "object",
+            properties: {
+              success: {
+                type: "boolean",
+                example: true,
+              },
+              message: {
+                type: "string",
+                example: "Courses retrieved successfully",
+              },
+              data: {
+                type: "object",
+                properties: {
+                  courses: {
+                    type: "array",
+                    items: {
+                      $ref: "#/components/schemas/Course",
+                    },
+                  },
+                  pagination: {
+                    $ref: "#/components/schemas/PaginationInfo",
+                  },
+                },
+              },
+            },
+            required: ["success", "message", "data"],
+          },
+          Enrollment: {
+            type: "object",
+            description: "Course enrollment information",
+            properties: {
+              id: {
+                type: "integer",
+                example: 1,
+                description: "Enrollment ID",
+              },
+              userId: {
+                type: "integer",
+                example: 5,
+                description: "Student ID",
+              },
+              courseId: {
+                type: "integer",
+                example: 3,
+                description: "Course ID",
+              },
+              enrolledAt: {
+                type: "string",
+                format: "date-time",
+                example: "2023-01-15T08:30:00Z",
+                description: "Enrollment timestamp",
+              },
+              course: {
+                type: "object",
+                description: "Basic course information",
+                properties: {
+                  id: {
+                    type: "integer",
+                    example: 3,
+                  },
+                  title: {
+                    type: "string",
+                    example: "JavaScript Fundamentals",
+                  },
+                  description: {
+                    type: "string",
+                    example: "Learn JavaScript basics",
+                  },
+                  image: {
+                    type: "string",
+                    nullable: true,
+                    example: "https://example.com/js-course.jpg",
+                  },
+                  progress: {
+                    type: "integer",
+                    example: 45,
+                    description: "Course completion percentage",
+                  },
+                  totalLessons: {
+                    type: "integer",
+                    example: 20,
+                    description: "Total number of lessons",
+                  },
+                  completedLessons: {
+                    type: "integer",
+                    example: 9,
+                    description: "Number of completed lessons",
+                  },
+                },
+              },
+            },
+          },
+          EnrollmentResponse: {
+            type: "object",
+            properties: {
+              success: {
+                type: "boolean",
+                example: true,
+              },
+              message: {
+                type: "string",
+                example: "Successfully enrolled in course",
+              },
+              data: {
+                $ref: "#/components/schemas/Enrollment",
+              },
+            },
+            required: ["success", "message", "data"],
+          },
+          EnrollmentsResponse: {
+            type: "object",
+            properties: {
+              success: {
+                type: "boolean",
+                example: true,
+              },
+              message: {
+                type: "string",
+                example: "User enrollments retrieved successfully",
+              },
+              data: {
+                type: "object",
+                properties: {
+                  enrollments: {
+                    type: "array",
+                    items: {
+                      $ref: "#/components/schemas/Enrollment",
+                    },
+                  },
+                  pagination: {
+                    $ref: "#/components/schemas/PaginationInfo",
+                  },
+                },
+              },
+            },
+            required: ["success", "message", "data"],
           },
         },
       },
