@@ -90,7 +90,7 @@ export const registerUserAction = (registerData) => async (dispatch) => {
             payload: data
         });
 
-        dispatch(getProfileAction());
+        // dispatch(getProfileAction());
 
     } catch (error) {
         console.log("Register failure:", error);
@@ -101,12 +101,11 @@ export const registerUserAction = (registerData) => async (dispatch) => {
     }
 };
 
-//chưa chạy??
 export const getProfileAction = () => async (dispatch) => {
     dispatch({ type: GET_PROFILE_REQUEST });
     
     try {
-        const { data } = await api.get('/users/me');
+        const { data } = await api.get('/user/me');
         
         console.log("Get profile success:", data);
         dispatch({type: GET_PROFILE_SUCCESS, payload: data.data})

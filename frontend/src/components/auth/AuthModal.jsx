@@ -30,7 +30,7 @@ const AuthModal = ({open, onClose, initialView = 'login' }) => {
                 <Login onSuccess={handleClose}
                 onToggleView={() => setView('register')}/>
             ) : (
-                <Register onSuccess={handleClose}
+                <Register
                 onToggleView={() => setView('login')}/>
             )}
         </DialogContent>

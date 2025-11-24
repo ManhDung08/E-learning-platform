@@ -2,14 +2,14 @@ import { useEffect, useState } from 'react'
 import reactLogo from './assets/react.svg'
 import viteLogo from '/vite.svg'
 import './App.css'
-import HomePage from './pages/Home/HomePage'
-import { Route, Routes, useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import AppHeader from './components/AppHeader'
 import AppRoutes from './routes/AppRoutes';
 
 
 
 import VerifyEmailModal from './components/auth/VerifyEmailModal'
+import AppRoutes from './routes/AppRoutes'
 
 function App() {
 
