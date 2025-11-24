@@ -5,7 +5,6 @@ import './App.css'
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import AppHeader from './components/AppHeader'
 import VerifyEmailModal from './components/auth/VerifyEmailModal'
-import AppRoutes from './routes/AppRoutes'
 
 import { useDispatch, useSelector } from 'react-redux';
 import { getProfileAction } from './Redux/Auth/auth.action';
