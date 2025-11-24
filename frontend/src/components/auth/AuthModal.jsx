@@ -1,15 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, IconButton } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import Login from './Login';
 import Register from './Register';
 
-const AuthModal = ({open, onClose}) => {
+const AuthModal = ({open, onClose, initialView = 'login' }) => {
     const [view, setView] = useState('login');
 
     const handleClose = () => {
+        setView(initialView);
         onClose();
     };
+
+    useEffect(() => {
+        if (open) {
+            setView(initialView);
+        }
+    }, [initialView, open]);
 
   return (
     <Dialog open={open} onClose={handleClose} fullWidth maxWidth="xs">
@@ -23,7 +30,7 @@ const AuthModal = ({open, onClose}) => {
                 <Login onSuccess={handleClose}
                 onToggleView={() => setView('register')}/>
             ) : (
-                <Register onSuccess={handleClose}
+                <Register
                 onToggleView={() => setView('login')}/>
             )}
         </DialogContent>
