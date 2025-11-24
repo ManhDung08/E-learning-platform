@@ -2,9 +2,41 @@ import React, { useState, useEffect } from 'react';
 import { User, Mail, Phone, Calendar, Users, BookOpen, Award, Lock, Check, Edit2, Save, X } from 'lucide-react';
 import InputField from '../components/InputField';
 
+// Di chuyển InputField ra ngoài để tránh re-create mỗi lần render
+// const InputField = ({ label, value, onChange, disabled, icon: Icon, type = 'text', select, options }) => (
+//   <div className="space-y-2">
+//     <label className="block text-sm font-medium text-gray-700">{label}</label>
+//     <div className="relative">
+//       {Icon && (
+//         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+//           <Icon className="h-5 w-5 text-gray-400" />
+//         </div>
+//       )}
+//       {select ? (
+//         <select
+//           value={value || ''}
+//           onChange={(e) => onChange(e.target.value)}
+//           disabled={disabled}
+//           className={`w-full ${Icon ? 'pl-10' : 'pl-3'} pr-3 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${disabled ? 'bg-gray-50 text-gray-600' : 'bg-white'}`}
+//         >
+//           {options.map(opt => (
+//             <option key={opt.value} value={opt.value}>{opt.label}</option>
+//           ))}
+//         </select>
+//       ) : (
+//         <input
+//           type={type}
+//           value={value || ''}
+//           onChange={(e) => onChange(e.target.value)}
+//           disabled={disabled}
+//           className={`w-full ${Icon ? 'pl-10' : 'pl-3'} pr-3 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${disabled ? 'bg-gray-50 text-gray-600' : 'bg-white'}`}
+//         />
+//       )}
+//     </div>
+//   </div>
+// );
 
-
-
+// Di chuyển ToggleSwitch ra ngoài
 const ToggleSwitch = ({ enabled, onToggle }) => (
   <button
     onClick={onToggle}
@@ -21,10 +53,18 @@ function AccountProfile() {
   const [isEditing, setIsEditing] = useState(false);
   const [showAlert, setShowAlert] = useState(false);
 
+  // Tab thong tin ca nhan
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [editedProfile, setEditedProfile] = useState(null);
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState(null);
+
+  // Tab bao mat
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   const [notifications, setNotifications] = useState({
     emailNotifications: true,
@@ -112,17 +152,62 @@ function AccountProfile() {
   const handleEdit = () => {
     setIsEditing(true);
     setEditedProfile(profile);
+    setAvatarFile(null);
+    setAvatarPreview(null);
+  };
+
+  const handleAvatarChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        alert('Kích thước ảnh không được vượt quá 5MB');
+        return;
+      }
+      if (!file.type.startsWith('image/')) {
+        alert('Vui lòng chọn file ảnh');
+        return;
+      }
+      setAvatarFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAvatarPreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleSave = async () => {
     try {
+      let uploadedImageUrl = profile.profileImageUrl;
+
+      if (avatarFile) {
+        const formData = new FormData();
+        formData.append('avatar', avatarFile);
+
+        const uploadResponse = await fetch('http://localhost:3000/api/user/upload-avatar', {
+          method: 'POST',
+          credentials: 'include',
+          body: formData
+        });
+
+        if (!uploadResponse.ok) {
+          throw new Error('Không thể tải lên ảnh đại diện');
+        }
+
+        const uploadResult = await uploadResponse.json();
+        uploadedImageUrl = uploadResult.data.profileImageUrl;
+      }
+
       const response = await fetch('http://localhost:3000/api/user/update-profile', {
         method: 'PUT',
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(editedProfile)
+        body: JSON.stringify({
+          ...editedProfile,
+          profileImageUrl: uploadedImageUrl
+        })
       });
 
       if (!response.ok) {
@@ -138,6 +223,8 @@ function AccountProfile() {
       setEditedProfile(prev => ({ ...prev, ...updatedData }));
 
       setIsEditing(false);
+      setAvatarFile(null);
+      setAvatarPreview(null);
       setShowAlert(true);
       setTimeout(() => setShowAlert(false), 3000);
     } catch (err) {
@@ -149,10 +236,57 @@ function AccountProfile() {
   const handleCancel = () => {
     setIsEditing(false);
     setEditedProfile(profile);
+    setAvatarFile(null);
+    setAvatarPreview(null);
   };
 
   const handleChange = (field, value) => {
     setEditedProfile({ ...editedProfile, [field]: value });
+  };
+  const handleChangePassword = async () => {
+    if (newPassword !== confirmPassword) {
+      alert("Mật khẩu mới và xác nhận mật khẩu không khớp!");
+      return;
+    }
+    if (newPassword.length < 6) {
+      alert("Mật khẩu mới phải có ít nhất 6 ký tự!");
+      return;
+    }
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      alert("Vui lòng nhập đầy đủ thông tin");
+      return;
+    }
+    if (newPassword === currentPassword) {
+      alert("Mật khẩu mới không được trùng với mật khẩu hiện tại!");
+      return;
+    }
+    
+    try{
+      const response = await fetch('http://localhost:3000/api/user/change-password', {
+        method: 'PUT',
+        credentials: 'include',
+        headers:{
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          currentPassword,
+          newPassword
+        })
+
+      });
+      const data = await response.json();
+      if(!response.ok){
+        alert(data.message || "Đổi mật khẩu thất bại");
+        return;
+      }
+      alert("Đổi mật khẩu thành công!");
+    } catch (err) {
+      console.error('Lỗi khi đổi mật khẩu:', err);
+      alert("Đổi mật khẩu thất bại. Vui lòng thử lại!");
+    }
+
+
+    
   };
 
   const toggleNotification = (key) => {
@@ -244,10 +378,27 @@ function AccountProfile() {
 
         <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 md:p-8 mb-4 sm:mb-6">
           <div className="flex flex-col items-center text-center sm:flex-row sm:items-start sm:text-left gap-4 sm:gap-6">
-            <div className="flex-shrink-0">
-              <div className="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white text-3xl sm:text-4xl font-bold shadow-lg">
-                {getInitials()}
+            <div className="flex-shrink-0 relative">
+              <div className="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white text-3xl sm:text-4xl font-bold shadow-lg overflow-hidden">
+                {avatarPreview ? (
+                  <img src={avatarPreview} alt="Avatar preview" className="w-full h-full object-cover" />
+                ) : profile.profileImageUrl ? (
+                  <img src={profile.profileImageUrl} alt={`${profile.firstName} ${profile.lastName}`} className="w-full h-full object-cover" />
+                ) : (
+                  getInitials()
+                )}
               </div>
+              {isEditing && (
+                <label className="absolute bottom-0 right-0 bg-blue-600 text-white p-2 rounded-full cursor-pointer hover:bg-blue-700 transition-colors shadow-lg">
+                  <Edit2 className="h-4 w-4" />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarChange}
+                    className="hidden"
+                  />
+                </label>
+              )}
             </div>
 
             <div className="flex-1 w-full sm:w-auto">
@@ -460,25 +611,23 @@ function AccountProfile() {
                     <InputField
                       label="Mật khẩu hiện tại"
                       type="password"
-                      value=""
-                      onChange={() => {}}
+                      onChange={setCurrentPassword}
                       icon={Lock}
                     />
                     <InputField
                       label="Mật khẩu mới"
                       type="password"
-                      value=""
-                      onChange={() => {}}
+                      onChange={setNewPassword}
                       icon={Lock}
                     />
                     <InputField
                       label="Xác nhận mật khẩu mới"
                       type="password"
-                      value=""
-                      onChange={() => {}}
+                      onChange={setConfirmPassword}
                       icon={Lock}
                     />
-                    <button className="w-full sm:w-auto px-4 sm:px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm sm:text-base">
+                    <button className="w-full sm:w-auto px-4 sm:px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm sm:text-base"
+                      onClick={handleChangePassword}>
                       Cập nhật mật khẩu
                     </button>
                   </div>
