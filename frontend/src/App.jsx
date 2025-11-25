@@ -4,8 +4,11 @@ import viteLogo from '/vite.svg'
 import './App.css'
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import AppHeader from './components/AppHeader'
+import AppRoutes from './routes/AppRoutes';
+
+
+
 import VerifyEmailModal from './components/auth/VerifyEmailModal'
-import AppRoutes from './routes/AppRoutes'
 
 function App() {
 

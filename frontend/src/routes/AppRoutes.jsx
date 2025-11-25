@@ -1,11 +1,25 @@
 import React from "react";
-import { Route, Routes } from 'react-router-dom';
-import HomePage from '../pages/Home/HomePage';
+
+import { Routes, Route } from "react-router-dom";
+import HomePage from "../pages/Home/HomePage";
+import AccountProfile from "../pages/AccountProfile";
+
 
 function AppRoutes() {
-    return(
+
+
+
+
+    return (
         <Routes>
+
+
             <Route path='/*' element={<HomePage />}></Route>
+
+
+            <Route path='/profile' element={<AccountProfile />}></Route>
+
+
         </Routes>
     );
 }
