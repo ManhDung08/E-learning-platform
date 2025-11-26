@@ -92,12 +92,14 @@ const updateCourse = async (req, res, next) => {
     const { courseId } = req.params;
     const courseData = req.body;
     const userId = req.user.id;
+    const userRole = req.user.role;
     const imageFile = req.file;
 
     const course = await courseService.updateCourse(
       courseId,
       courseData,
       userId,
+      userRole,
       imageFile
     );
     return res.status(200).json({
@@ -115,8 +117,9 @@ const deleteCourse = async (req, res, next) => {
   try {
     const { courseId } = req.params;
     const userId = req.user.id;
+    const userRole = req.user.role;
 
-    const result = await courseService.deleteCourse(courseId, userId);
+    const result = await courseService.deleteCourse(courseId, userId, userRole);
     return res.status(200).json({
       success: true,
       message: result.message,

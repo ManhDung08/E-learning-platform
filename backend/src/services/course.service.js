@@ -841,7 +841,13 @@ const createCourse = async (courseData, userId, userRole, imageFile = null) => {
   return responseData;
 };
 
-const updateCourse = async (courseId, courseData, userId, imageFile) => {
+const updateCourse = async (
+  courseId,
+  courseData,
+  userId,
+  userRole,
+  imageFile
+) => {
   const course = await prisma.course.findUnique({
     where: { id: parseInt(courseId) },
     include: {
@@ -857,7 +863,8 @@ const updateCourse = async (courseId, courseData, userId, imageFile) => {
     throw new NotFoundError("Course", "course_not_found");
   }
 
-  if (course.instructorId !== userId) {
+  // Check permissions: admin can update any course, instructor can update own courses
+  if (userRole !== "admin" && course.instructorId !== userId) {
     throw new PermissionError(
       "You don't have permission to update this course",
       "unauthorized_update"
@@ -981,7 +988,7 @@ const updateCourse = async (courseId, courseData, userId, imageFile) => {
   };
 };
 
-const deleteCourse = async (courseId, userId) => {
+const deleteCourse = async (courseId, userId, userRole) => {
   const course = await prisma.course.findUnique({
     where: { id: parseInt(courseId) },
     include: {
@@ -993,7 +1000,8 @@ const deleteCourse = async (courseId, userId) => {
     throw new NotFoundError("Course", "course_not_found");
   }
 
-  if (course.instructorId !== userId) {
+  // Check permissions: admin can delete any course, instructor can delete own courses
+  if (userRole !== "admin" && course.instructorId !== userId) {
     throw new PermissionError(
       "You don't have permission to delete this course",
       "unauthorized_delete"
