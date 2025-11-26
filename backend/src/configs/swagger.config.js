@@ -650,10 +650,10 @@ const getSwaggerSpecs = () => {
                 example: "https://example.com/course-image.jpg",
                 description: "Course thumbnail image URL",
               },
-              priceCents: {
+              priceVND: {
                 type: "integer",
-                example: 4999,
-                description: "Course price in cents",
+                example: 500000,
+                description: "Course price in Vietnamese Dong",
               },
               isPublished: {
                 type: "boolean",
@@ -778,7 +778,7 @@ const getSwaggerSpecs = () => {
               "title",
               "slug",
               "description",
-              "priceCents",
+              "priceVND",
               "isPublished",
               "instructorId",
               "createdAt",
@@ -787,7 +787,7 @@ const getSwaggerSpecs = () => {
           },
           CreateCourseRequest: {
             type: "object",
-            required: ["title", "description", "priceCents"],
+            required: ["title", "description", "priceVND"],
             properties: {
               title: {
                 type: "string",
@@ -804,12 +804,12 @@ const getSwaggerSpecs = () => {
                   "Learn the fundamentals of web development including HTML, CSS, and JavaScript",
                 description: "Course description",
               },
-              priceCents: {
+              priceVND: {
                 type: "integer",
                 minimum: 0,
-                maximum: 100000000,
-                example: 4999,
-                description: "Course price in cents (e.g., 4999 = $49.99)",
+                maximum: 1000000000,
+                example: 500000,
+                description: "Course price in Vietnamese Dong (e.g., 500000 = 500,000 VND)",
               },
               image: {
                 type: "string",
@@ -837,12 +837,12 @@ const getSwaggerSpecs = () => {
                 example: "Advanced concepts in web development",
                 description: "Course description",
               },
-              priceCents: {
+              priceVND: {
                 type: "integer",
                 minimum: 0,
-                maximum: 100000000,
-                example: 6999,
-                description: "Course price in cents",
+                maximum: 1000000000,
+                example: 750000,
+                description: "Course price in Vietnamese Dong",
               },
               image: {
                 type: "string",

@@ -15,24 +15,24 @@ export const createCourseValidation = [
     .isLength({ min: 10, max: 2000 })
     .withMessage("Description must be between 10 and 2000 characters"),
 
-  body("priceCents")
+  body("priceVND")
     .notEmpty()
     .withMessage("Price is required")
     .isInt({ min: 0 })
     .withMessage("Price must be a non-negative integer")
     .custom((value) => {
-      if (value > 100000000) {
-        // $1,000,000 in cents
-        throw new Error("Price cannot exceed $1,000,000");
+      if (value > 1000000000) {
+        // 1 billion VND
+        throw new Error("Price cannot exceed 1,000,000,000 VND");
       }
       return true;
     }),
 
-  body("image")
+  // For admin creating course for specific instructor
+  body("instructorId")
     .optional()
-    .trim()
-    .isURL()
-    .withMessage("Image must be a valid URL"),
+    .isInt({ min: 1 })
+    .withMessage("Instructor ID must be a positive integer"),
 ];
 
 export const updateCourseValidation = [
@@ -48,23 +48,17 @@ export const updateCourseValidation = [
     .isLength({ min: 10, max: 2000 })
     .withMessage("Description must be between 10 and 2000 characters"),
 
-  body("priceCents")
+  body("priceVND")
     .optional()
     .isInt({ min: 0 })
     .withMessage("Price must be a non-negative integer")
     .custom((value) => {
-      if (value && value > 100000000) {
-        // $1,000,000 in cents
-        throw new Error("Price cannot exceed $1,000,000");
+      if (value && value > 1000000000) {
+        // 1 billion VND
+        throw new Error("Price cannot exceed 1,000,000,000 VND");
       }
       return true;
     }),
-
-  body("image")
-    .optional()
-    .trim()
-    .isURL()
-    .withMessage("Image must be a valid URL"),
 
   body("isPublished")
     .optional()
@@ -96,32 +90,13 @@ export const courseQueryValidation = [
 
   query("sortBy")
     .optional()
-    .isIn(["createdAt", "updatedAt", "title", "priceCents"])
+    .isIn(["createdAt", "updatedAt", "title", "priceVND"])
     .withMessage(
-      "sortBy must be one of: createdAt, updatedAt, title, priceCents"
+      "sortBy must be one of: createdAt, updatedAt, title, priceVND"
     ),
 
   query("sortOrder")
     .optional()
     .isIn(["asc", "desc"])
     .withMessage("sortOrder must be 'asc' or 'desc'"),
-];
-
-export const courseIdValidation = [
-  body("courseId")
-    .optional()
-    .isInt({ min: 1 })
-    .withMessage("Course ID must be a positive integer"),
-];
-
-export const slugValidation = [
-  body("slug")
-    .optional()
-    .trim()
-    .isLength({ min: 3, max: 100 })
-    .withMessage("Slug must be between 3 and 100 characters")
-    .matches(/^[a-z0-9-]+$/)
-    .withMessage(
-      "Slug can only contain lowercase letters, numbers, and hyphens"
-    ),
 ];

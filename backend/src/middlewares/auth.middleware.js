@@ -67,3 +67,42 @@ export const isAuth =
       return next(error);
     }
   };
+
+export const optionalAuth = async (req, res, next) => {
+  try {
+    let token = req.cookies?.access_token;
+    let payload = decodeToken(token);
+
+    if (!token || !payload) {
+      const refreshToken = req.cookies?.refresh_token;
+      if (refreshToken) {
+        const refreshPayload = decodeToken(refreshToken);
+        if (refreshPayload && process.env.JWT_SECRET) {
+          const newAccessToken = sign(
+            { id: refreshPayload.id, role: refreshPayload.role },
+            process.env.JWT_SECRET,
+            { expiresIn: "1h" }
+          );
+
+          res.cookie("access_token", newAccessToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "strict",
+            maxAge: 3600000,
+          });
+
+          token = newAccessToken;
+          payload = decodeToken(token);
+        }
+      }
+    }
+
+    // Set user if token is valid, otherwise leave req.user as undefined
+    req.user = payload || null;
+    return next();
+  } catch (error) {
+    // On any error, just continue without user context
+    req.user = null;
+    return next();
+  }
+};
