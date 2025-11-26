@@ -809,7 +809,8 @@ const getSwaggerSpecs = () => {
                 minimum: 0,
                 maximum: 1000000000,
                 example: 500000,
-                description: "Course price in Vietnamese Dong (e.g., 500000 = 500,000 VND)",
+                description:
+                  "Course price in Vietnamese Dong (e.g., 500000 = 500,000 VND)",
               },
               image: {
                 type: "string",
@@ -1012,6 +1013,197 @@ const getSwaggerSpecs = () => {
               },
             },
             required: ["success", "message", "data"],
+          },
+          // Module Schemas
+          Module: {
+            type: "object",
+            description: "Module information",
+            properties: {
+              id: {
+                type: "integer",
+                example: 1,
+                description: "Module ID",
+              },
+              courseId: {
+                type: "integer",
+                example: 1,
+                description: "Course ID",
+              },
+              title: {
+                type: "string",
+                example: "Introduction to JavaScript",
+                description: "Module title",
+              },
+              order: {
+                type: "integer",
+                example: 1,
+                description: "Module order within course",
+              },
+            },
+            required: ["id", "courseId", "title", "order"],
+          },
+          ModuleWithLessons: {
+            type: "object",
+            description: "Module with lessons and statistics",
+            allOf: [
+              {
+                $ref: "#/components/schemas/Module",
+              },
+              {
+                type: "object",
+                properties: {
+                  lessons: {
+                    type: "array",
+                    description: "Module lessons",
+                    items: {
+                      type: "object",
+                      properties: {
+                        id: {
+                          type: "integer",
+                          example: 1,
+                        },
+                        title: {
+                          type: "string",
+                          example: "Variables and Data Types",
+                        },
+                        durationSeconds: {
+                          type: "integer",
+                          nullable: true,
+                          example: 600,
+                          description: "Lesson duration in seconds",
+                        },
+                        order: {
+                          type: "integer",
+                          example: 1,
+                        },
+                        lessonProgress: {
+                          type: "array",
+                          description: "Progress for enrolled users only",
+                          items: {
+                            type: "object",
+                            properties: {
+                              isCompleted: {
+                                type: "boolean",
+                                example: false,
+                              },
+                              lastAccessedAt: {
+                                type: "string",
+                                format: "date-time",
+                                nullable: true,
+                              },
+                              watchedSeconds: {
+                                type: "integer",
+                                nullable: true,
+                                example: 300,
+                              },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                  totalLessons: {
+                    type: "integer",
+                    example: 5,
+                    description: "Total number of lessons in module",
+                  },
+                  totalDuration: {
+                    type: "integer",
+                    example: 3000,
+                    description: "Total duration in seconds",
+                  },
+                  course: {
+                    type: "object",
+                    description: "Basic course information",
+                    properties: {
+                      id: {
+                        type: "integer",
+                        example: 1,
+                      },
+                      title: {
+                        type: "string",
+                        example: "JavaScript Fundamentals",
+                      },
+                      instructorId: {
+                        type: "integer",
+                        example: 2,
+                      },
+                    },
+                  },
+                },
+              },
+            ],
+          },
+          CreateModuleRequest: {
+            type: "object",
+            description: "Request body for creating a module",
+            properties: {
+              title: {
+                type: "string",
+                minLength: 3,
+                maxLength: 100,
+                example: "Introduction to JavaScript",
+                description: "Module title",
+              },
+              order: {
+                type: "integer",
+                minimum: 1,
+                example: 1,
+                description:
+                  "Module order (optional - auto-assigned if not provided)",
+              },
+            },
+            required: ["title"],
+          },
+          UpdateModuleRequest: {
+            type: "object",
+            description: "Request body for updating a module",
+            properties: {
+              title: {
+                type: "string",
+                minLength: 3,
+                maxLength: 100,
+                example: "Advanced JavaScript Concepts",
+                description: "Module title",
+              },
+              order: {
+                type: "integer",
+                minimum: 1,
+                example: 2,
+                description: "Module order within course",
+              },
+            },
+          },
+          ReorderModulesRequest: {
+            type: "object",
+            description: "Request body for reordering modules",
+            properties: {
+              moduleOrders: {
+                type: "array",
+                description: "Array of module IDs with their new orders",
+                items: {
+                  type: "object",
+                  properties: {
+                    moduleId: {
+                      type: "integer",
+                      example: 1,
+                      description: "Module ID",
+                    },
+                    order: {
+                      type: "integer",
+                      example: 1,
+                      description: "New order position",
+                    },
+                  },
+                  required: ["moduleId", "order"],
+                },
+                example: [
+                  { moduleId: 1, order: 2 },
+                  { moduleId: 2, order: 1 },
+                ],
+              },
+            },
+            required: ["moduleOrders"],
           },
         },
       },
