@@ -8,6 +8,7 @@ import {
 } from "../validations/user.validation.js";
 import { isAuth } from "../middlewares/auth.middleware.js";
 import { validate } from "../middlewares/validate.middleware.js";
+import { uploadAvatar } from "../middlewares/upload.middleware.js";
 
 const router = express.Router();
 
@@ -165,7 +166,7 @@ router.put(
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post("/upload-avatar", isAuth(), userController.updateUserAvatar);
+router.post("/upload-avatar", isAuth(), ...uploadAvatar, userController.updateUserAvatar);
 
 /**
  * @swagger
