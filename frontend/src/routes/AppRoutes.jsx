@@ -18,7 +18,7 @@ function AppRoutes() {
 
 
             <Route path='/profile' element={<AccountProfile />}></Route>
-
+            
 
         </Routes>
     );
