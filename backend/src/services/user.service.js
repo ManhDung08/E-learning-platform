@@ -14,8 +14,6 @@ import { compare, hash } from "bcrypt";
 import { OAuthUserError } from "../errors/AuthError.js";
 import { AuthError } from "../errors/AuthError.js";
 import { BadRequestError } from "../errors/BadRequestError.js";
-import { validateFileSize, validateMimeType } from "../utils/aws.util.js";
-import { uploadConfig } from "../configs/upload.config.js";
 
 const getUserProfile = async (userId) => {
   const user = await prisma.user.findUnique({
@@ -110,26 +108,6 @@ const updateUserAvatar = async (userId, file) => {
 
   if (!file) {
     throw new BadRequestError("No file uploaded");
-  }
-
-  if (!validateMimeType(file.mimetype, "avatar")) {
-    throw new BadRequestError(
-      `Invalid file type. Allowed types: ${uploadConfig.allowedMimeTypes.avatar.join(
-        ", "
-      )}`,
-      "file",
-      "invalid_mime_type"
-    );
-  }
-
-  if (!validateFileSize(file.size, "avatar")) {
-    throw new BadRequestError(
-      `File too large. Max size: ${
-        uploadConfig.maxFileSize.avatar / 1024 / 1024
-      } MB`,
-      "file",
-      "file_too_large"
-    );
   }
 
   const oldKey = user.profileImageUrl

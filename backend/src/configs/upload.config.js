@@ -50,7 +50,7 @@ export const uploadConfig = {
    * Gắn chặt với các bảng trong DB: User, Course, Lesson, Certificate, SupportTicket, ...
    */
   folders: {
-    avatars: (userId) => `users/${userId}/avatar`,
+    avatar: (userId) => `users/${userId}/avatar`,
     courseImage: (courseId) => `courses/${courseId}/thumbnail`,
     lessonVideo: (courseId, moduleId, lessonId) =>
       `courses/${courseId}/modules/${moduleId}/lessons/${lessonId}/video`,

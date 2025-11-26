@@ -1,12 +1,13 @@
 import { Router } from "express";
 import courseController from "../controllers/course.controller.js";
 import { validate } from "../middlewares/validate.middleware.js";
-import { isAuth } from "../middlewares/auth.middleware.js";
+import { isAuth, optionalAuth } from "../middlewares/auth.middleware.js";
 import {
   createCourseValidation,
   updateCourseValidation,
   courseQueryValidation,
 } from "../validations/course.validation.js";
+import { optionalUploadCourseImage } from "../middlewares/upload.middleware.js";
 
 const router = Router();
 
@@ -56,7 +57,7 @@ const router = Router();
  *         name: sortBy
  *         schema:
  *           type: string
- *           enum: [createdAt, updatedAt, title, priceCents]
+ *           enum: [createdAt, updatedAt, title, priceVND]
  *           default: createdAt
  *         description: Field to sort by
  *       - in: query
@@ -91,8 +92,10 @@ router.get(
  * @swagger
  * /api/courses/{courseId}:
  *   get:
- *     summary: Get course by ID
+ *     summary: Get detailed course information (admin only - sees everything)
  *     tags: [Courses]
+ *     security:
+ *       - cookieAuth: []
  *     parameters:
  *       - in: path
  *         name: courseId
@@ -102,11 +105,23 @@ router.get(
  *         description: Course ID
  *     responses:
  *       200:
- *         description: Course retrieved successfully
+ *         description: Course details retrieved successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/CourseResponse'
+ *               $ref: '#/components/schemas/CourseDetailResponse'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Forbidden - admin access required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  *       404:
  *         description: Course not found
  *         content:
@@ -114,13 +129,24 @@ router.get(
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get("/:courseId", courseController.getCourseById);
+router.get(
+  "/:courseId", 
+  isAuth(["admin"]), 
+  courseController.getCourseById
+);
 
 /**
  * @swagger
  * /api/courses/slug/{slug}:
  *   get:
- *     summary: Get course by slug
+ *     summary: Get course by slug (dynamic access based on user type)
+ *     description: |
+ *       Returns different data based on user access level:
+ *       - Public users: Basic info + limited preview
+ *       - Students (not enrolled): Basic info + first lesson preview
+ *       - Students (enrolled): Full course access
+ *       - Course instructor: Full access + enrollment statistics
+ *       Authentication is optional - passes user context if available
  *     tags: [Courses]
  *     parameters:
  *       - in: path
@@ -131,19 +157,19 @@ router.get("/:courseId", courseController.getCourseById);
  *         description: Course slug
  *     responses:
  *       200:
- *         description: Course retrieved successfully
+ *         description: Course retrieved successfully (data varies by access level)
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/CourseResponse'
+ *               $ref: '#/components/schemas/DynamicCourseResponse'
  *       404:
- *         description: Course not found
+ *         description: Course not found or not published (for non-owners)
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get("/slug/:slug", courseController.getCourseBySlug);
+router.get("/slug/:slug", optionalAuth, courseController.getCourseBySlug);
 
 /**
  * @swagger
@@ -156,9 +182,37 @@ router.get("/slug/:slug", courseController.getCourseBySlug);
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
- *             $ref: '#/components/schemas/CreateCourseRequest'
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 minLength: 3
+ *                 maxLength: 200
+ *                 description: Course title
+ *               description:
+ *                 type: string
+ *                 minLength: 10
+ *                 maxLength: 2000
+ *                 description: Course description
+ *               priceVND:
+ *                 type: integer
+ *                 minimum: 0
+ *                 maximum: 1000000000
+ *                 description: Course price in Vietnamese Dong
+ *               instructorId:
+ *                 type: integer
+ *                 minimum: 1
+ *                 description: Target instructor ID (admin only)
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *                 description: Course thumbnail image (optional)
+ *             required:
+ *               - title
+ *               - description
+ *               - priceVND
  *     responses:
  *       201:
  *         description: Course created successfully
@@ -194,6 +248,7 @@ router.get("/slug/:slug", courseController.getCourseBySlug);
 router.post(
   "/",
   isAuth(["instructor", "admin"]),
+  ...optionalUploadCourseImage,
   createCourseValidation,
   validate,
   courseController.createCourse
@@ -217,6 +272,30 @@ router.post(
  *     requestBody:
  *       required: true
  *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 description: Course title (slug remains unchanged)
+ *                 example: "Advanced JavaScript Programming"
+ *               description:
+ *                 type: string
+ *                 description: Course description
+ *                 example: "Learn advanced JavaScript concepts and patterns"
+ *               priceVND:
+ *                 type: integer
+ *                 description: Course price in Vietnamese Dong
+ *                 example: 1500000
+ *               isPublished:
+ *                 type: boolean
+ *                 description: Course publication status (requires minimum content to publish)
+ *                 example: false
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *                 description: Course thumbnail image (optional)
  *         application/json:
  *           schema:
  *             $ref: '#/components/schemas/UpdateCourseRequest'
@@ -228,7 +307,7 @@ router.post(
  *             schema:
  *               $ref: '#/components/schemas/CourseResponse'
  *       400:
- *         description: Bad request - validation error
+ *         description: Bad request - validation error or publishing requirements not met
  *         content:
  *           application/json:
  *             schema:
@@ -251,8 +330,6 @@ router.post(
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
- *       409:
- *         description: Conflict - course title already exists
  *         content:
  *           application/json:
  *             schema:
@@ -261,6 +338,7 @@ router.post(
 router.put(
   "/:courseId",
   isAuth(["instructor", "admin"]),
+  optionalUploadCourseImage,
   updateCourseValidation,
   validate,
   courseController.updateCourse
