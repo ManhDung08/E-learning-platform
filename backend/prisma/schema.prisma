@@ -50,7 +50,7 @@ model Course {
   image        String?
   slug         String        @unique
   description  String
-  priceCents   Int
+  priceVND     Int
   isPublished  Boolean       @default(false)
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
@@ -214,7 +214,7 @@ model Payment {
   provider    String
   status      PaymentStatus @default(pending)
   createdAt   DateTime      @default(now())
-  amountCents Int
+  amountVND   Int
   course      Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
   user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 

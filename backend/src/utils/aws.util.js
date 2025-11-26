@@ -8,7 +8,6 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import fs from "fs";
 import path from "path";
 import s3Client from "../configs/aws.config.js";
-import { uploadConfig } from "../configs/upload.config.js";
 import {
   S3UploadError,
   S3DeleteError,
@@ -313,26 +312,6 @@ const generateUniqueFileName = (originalFileName) => {
     .substring(0, 50);
 
   return `${sanitized}-${timestamp}-${randomString}${ext}`;
-};
-
-export const validateFileSize = (fileSize, fileType) => {
-  const maxSize = uploadConfig.maxFileSize[fileType];
-  if (!maxSize) {
-    throw new AppError(
-      `No size limit configured for file type: ${fileType}`
-    );
-  }
-  return fileSize <= maxSize;
-};
-
-export const validateMimeType = (mimeType, fileType) => {
-  const allowedTypes = uploadConfig.allowedMimeTypes[fileType];
-  if (!allowedTypes) {
-    throw new BadRequestError(
-      `No MIME types configured for file type: ${fileType}`
-    );
-  }
-  return allowedTypes.includes(mimeType);
 };
 
 export const copyFileInS3 = async (
