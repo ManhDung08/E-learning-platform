@@ -3,6 +3,7 @@ import { NotFoundError } from "../errors/NotFoundError.js";
 import { PermissionError } from "../errors/PermissionError.js";
 import { BadRequestError } from "../errors/BadRequestError.js";
 import { ConflictError } from "../errors/ConflictError.js";
+import { deleteFromS3 } from "../utils/aws.util.js";
 
 const getModulesByCourseId = async (courseId, userId, userRole) => {
   const parsedCourseId = parseInt(courseId);
@@ -14,16 +15,10 @@ const getModulesByCourseId = async (courseId, userId, userRole) => {
   // Check course exists and access permissions
   const course = await prisma.course.findUnique({
     where: { id: parsedCourseId },
-    select: {
-      id: true,
-      isPublished: true,
-      instructorId: true,
-      _count: {
-        select: {
-          enrollments: {
-            where: userId ? { userId } : { userId: -1 },
-          },
-        },
+    include: {
+      enrollments: {
+        where: userId ? { userId } : undefined,
+        select: { id: true },
       },
     },
   });
@@ -34,7 +29,7 @@ const getModulesByCourseId = async (courseId, userId, userRole) => {
 
   const isInstructor = userId && course.instructorId === userId;
   const isAdmin = userRole === "admin";
-  const isEnrolled = userId && course._count.enrollments > 0;
+  const isEnrolled = userId && course.enrollments.length > 0;
 
   // Allow public access to published courses, restrict unpublished to enrolled/instructor/admin
   if (!course.isPublished && !isAdmin && !isInstructor && !isEnrolled) {
@@ -129,17 +124,10 @@ const getModuleById = async (moduleId, userId, userRole) => {
     where: { id: parsedModuleId },
     include: {
       course: {
-        select: {
-          id: true,
-          title: true,
-          isPublished: true,
-          instructorId: true,
-          _count: {
-            select: {
-              enrollments: {
-                where: userId ? { userId } : { userId: -1 },
-              },
-            },
+        include: {
+          enrollments: {
+            where: userId ? { userId } : undefined,
+            select: { id: true },
           },
         },
       },
@@ -165,7 +153,7 @@ const getModuleById = async (moduleId, userId, userRole) => {
 
   const isInstructor = userId && module.course.instructorId === userId;
   const isAdmin = userRole === "admin";
-  const isEnrolled = userId && module.course._count.enrollments > 0;
+  const isEnrolled = userId && module.course.enrollments.length > 0;
 
   // Allow public access to published courses, restrict unpublished to enrolled/instructor/admin
   if (!module.course.isPublished && !isAdmin && !isInstructor && !isEnrolled) {
@@ -494,24 +482,19 @@ const deleteModule = async (moduleId, userId, userRole) => {
     );
   }
 
-  const hasLessons = module._count.lessons > 0;
-
-  if (hasLessons) {
-    throw new BadRequestError(
-      `Cannot delete module with ${module._count.lessons} existing lesson(s). ` +
-        `Please delete all lessons first.`,
-      "module_has_lessons",
-      {
-        lessonsCount: module._count.lessons,
-      }
-    );
-  }
+  // Get all lessons with video keys for S3 cleanup before cascade delete
+  const lessonsWithVideos = await prisma.lesson.findMany({
+    where: { moduleId: parsedModuleId },
+    select: { videoKey: true },
+  });
 
   await prisma.$transaction(async (tx) => {
+    // Delete module - this will cascade delete all lessons, quizzes, progress, etc.
     await tx.module.delete({
       where: { id: parsedModuleId },
     });
 
+    // Update remaining module orders
     await tx.module.updateMany({
       where: {
         courseId: module.courseId,
@@ -520,6 +503,15 @@ const deleteModule = async (moduleId, userId, userRole) => {
       data: { order: { decrement: 1 } },
     });
   });
+
+  // Clean up S3 videos after successful database deletion
+  for (const lesson of lessonsWithVideos) {
+    if (lesson.videoKey) {
+      await deleteFromS3(lesson.videoKey).catch((err) =>
+        console.error("Failed to delete lesson video from S3:", err)
+      );
+    }
+  }
 
   return {
     success: true,
@@ -618,17 +610,10 @@ const reorderModules = async (courseId, moduleOrders, userId, userRole) => {
   }
 
   await prisma.$transaction(async (tx) => {
-    for (let i = 0; i < moduleOrders.length; i++) {
+    for (const orderItem of moduleOrders) {
       await tx.module.update({
-        where: { id: moduleIds[i] },
-        data: { order: -(i + 1) },
-      });
-    }
-
-    for (let i = 0; i < moduleOrders.length; i++) {
-      await tx.module.update({
-        where: { id: moduleIds[i] },
-        data: { order: moduleOrders[i].order },
+        where: { id: parseInt(orderItem.moduleId) },
+        data: { order: orderItem.order },
       });
     }
   });
