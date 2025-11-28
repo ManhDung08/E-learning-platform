@@ -129,11 +129,7 @@ router.get(
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get(
-  "/:courseId", 
-  isAuth(["admin"]), 
-  courseController.getCourseById
-);
+router.get("/:courseId", isAuth(["admin"]), courseController.getCourseById);
 
 /**
  * @swagger
@@ -326,10 +322,6 @@ router.post(
  *               $ref: '#/components/schemas/Error'
  *       404:
  *         description: Course not found
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
  *         content:
  *           application/json:
  *             schema:
