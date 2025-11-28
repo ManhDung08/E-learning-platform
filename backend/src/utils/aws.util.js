@@ -8,6 +8,7 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import fs from "fs";
 import path from "path";
 import s3Client from "../configs/aws.config.js";
+import { uploadConfig } from "../configs/upload.config.js";
 import {
   S3UploadError,
   S3DeleteError,
@@ -237,7 +238,11 @@ export const checkFileExists = async (key) => {
 };
 
 // upload local file to S3
-export const uploadLocalFileToS3 = async (filePath, fileType, metadata = {}) => {
+export const uploadLocalFileToS3 = async (
+  filePath,
+  fileType,
+  metadata = {}
+) => {
   try {
     // Read file from filesystem
     const fileBuffer = fs.readFileSync(filePath);

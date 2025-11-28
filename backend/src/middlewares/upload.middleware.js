@@ -65,6 +65,19 @@ export const uploadLessonVideo = [
   validateFile("lessonVideo"),
 ];
 
+// Optional video upload middleware (doesn't require video file)
+export const optionalUploadLessonVideo = [
+  upload.single("video"),
+  (req, res, next) => {
+    // If no file, continue without validation
+    if (!req.file) {
+      return next();
+    }
+    // If file exists, validate it
+    validateFile("lessonVideo")(req, res, next);
+  },
+];
+
 export const uploadMaterial = [
   upload.single("material"),
   validateFile("material"),
@@ -102,6 +115,7 @@ export default {
   uploadAvatar,
   uploadCourseImage,
   uploadLessonVideo,
+  optionalUploadLessonVideo,
   uploadMaterial,
   uploadAssignment,
   uploadCertificate,

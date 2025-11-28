@@ -1205,6 +1205,283 @@ const getSwaggerSpecs = () => {
             },
             required: ["moduleOrders"],
           },
+          // Lesson Schemas
+          Lesson: {
+            type: "object",
+            description: "Lesson information",
+            properties: {
+              id: {
+                type: "integer",
+                example: 1,
+                description: "Lesson ID",
+              },
+              moduleId: {
+                type: "integer",
+                example: 1,
+                description: "Module ID",
+              },
+              title: {
+                type: "string",
+                example: "Introduction to Variables",
+                description: "Lesson title",
+              },
+              content: {
+                type: "string",
+                example: "In this lesson, we'll learn about variables...",
+                description: "Lesson content",
+              },
+              videoKey: {
+                type: "string",
+                nullable: true,
+                example: "lessons/course1/module1/lesson1.mp4",
+                description: "Video file key in storage",
+              },
+              durationSeconds: {
+                type: "integer",
+                nullable: true,
+                example: 600,
+                description: "Lesson duration in seconds",
+              },
+              order: {
+                type: "integer",
+                example: 1,
+                description: "Lesson order within module",
+              },
+              createdAt: {
+                type: "string",
+                format: "date-time",
+                description: "Creation timestamp",
+              },
+              updatedAt: {
+                type: "string",
+                format: "date-time",
+                description: "Last update timestamp",
+              },
+            },
+          },
+          LessonProgress: {
+            type: "object",
+            description: "Student lesson progress",
+            properties: {
+              id: {
+                type: "integer",
+                example: 1,
+                description: "Progress record ID",
+              },
+              isCompleted: {
+                type: "boolean",
+                example: true,
+                description: "Whether lesson is completed",
+              },
+              lastAccessedAt: {
+                type: "string",
+                format: "date-time",
+                nullable: true,
+                description: "Last access timestamp",
+              },
+              watchedSeconds: {
+                type: "integer",
+                nullable: true,
+                example: 450,
+                description: "Seconds watched of video content",
+              },
+            },
+          },
+          LessonWithProgress: {
+            allOf: [
+              {
+                $ref: "#/components/schemas/Lesson",
+              },
+              {
+                type: "object",
+                properties: {
+                  module: {
+                    type: "object",
+                    description: "Module and course context",
+                    properties: {
+                      id: {
+                        type: "integer",
+                        example: 1,
+                      },
+                      title: {
+                        type: "string",
+                        example: "JavaScript Basics",
+                      },
+                      courseId: {
+                        type: "integer",
+                        example: 1,
+                      },
+                      course: {
+                        type: "object",
+                        properties: {
+                          id: {
+                            type: "integer",
+                            example: 1,
+                          },
+                          title: {
+                            type: "string",
+                            example: "Complete JavaScript Course",
+                          },
+                          isPublished: {
+                            type: "boolean",
+                            example: true,
+                          },
+                        },
+                      },
+                    },
+                  },
+                  quizzes: {
+                    type: "array",
+                    description: "Associated quizzes",
+                    items: {
+                      type: "object",
+                      properties: {
+                        id: {
+                          type: "integer",
+                          example: 1,
+                        },
+                        title: {
+                          type: "string",
+                          example: "Variables Quiz",
+                        },
+                      },
+                    },
+                  },
+                  progress: {
+                    $ref: "#/components/schemas/LessonProgress",
+                    description:
+                      "Student progress (only for enrolled students)",
+                  },
+                },
+              },
+            ],
+          },
+          CreateLessonRequest: {
+            type: "object",
+            description: "Request body for creating a lesson",
+            properties: {
+              title: {
+                type: "string",
+                minLength: 3,
+                maxLength: 200,
+                example: "Introduction to Variables",
+                description: "Lesson title",
+              },
+              content: {
+                type: "string",
+                minLength: 10,
+                example:
+                  "In this lesson, we will explore the concept of variables...",
+                description: "Lesson content",
+              },
+              videoKey: {
+                type: "string",
+                example: "lessons/course1/module1/lesson1.mp4",
+                description: "Video file key in storage (optional)",
+              },
+              durationSeconds: {
+                type: "integer",
+                minimum: 0,
+                example: 600,
+                description: "Lesson duration in seconds (optional)",
+              },
+              order: {
+                type: "integer",
+                minimum: 1,
+                example: 1,
+                description:
+                  "Lesson order (optional - auto-assigned if not provided)",
+              },
+            },
+            required: ["title", "content"],
+          },
+          UpdateLessonRequest: {
+            type: "object",
+            description: "Request body for updating a lesson",
+            properties: {
+              title: {
+                type: "string",
+                minLength: 3,
+                maxLength: 200,
+                example: "Advanced Variables",
+                description: "Lesson title",
+              },
+              content: {
+                type: "string",
+                minLength: 10,
+                example:
+                  "In this updated lesson, we will dive deeper into variables...",
+                description: "Lesson content",
+              },
+              videoKey: {
+                type: "string",
+                nullable: true,
+                example: "lessons/course1/module1/lesson1_updated.mp4",
+                description: "Video file key in storage",
+              },
+              durationSeconds: {
+                type: "integer",
+                minimum: 0,
+                nullable: true,
+                example: 720,
+                description: "Lesson duration in seconds",
+              },
+              order: {
+                type: "integer",
+                minimum: 1,
+                example: 2,
+                description: "Lesson order within module",
+              },
+            },
+          },
+          ReorderLessonsRequest: {
+            type: "object",
+            description: "Request body for reordering lessons",
+            properties: {
+              lessonOrders: {
+                type: "array",
+                description: "Array of lesson IDs with their new orders",
+                items: {
+                  type: "object",
+                  properties: {
+                    lessonId: {
+                      type: "integer",
+                      example: 1,
+                      description: "Lesson ID",
+                    },
+                    order: {
+                      type: "integer",
+                      example: 1,
+                      description: "New order position",
+                    },
+                  },
+                  required: ["lessonId", "order"],
+                },
+                example: [
+                  { lessonId: 1, order: 2 },
+                  { lessonId: 2, order: 1 },
+                ],
+              },
+            },
+            required: ["lessonOrders"],
+          },
+          UpdateLessonProgressRequest: {
+            type: "object",
+            description: "Request body for updating lesson progress",
+            properties: {
+              isCompleted: {
+                type: "boolean",
+                example: true,
+                description: "Whether the lesson is completed",
+              },
+              watchedSeconds: {
+                type: "integer",
+                minimum: 0,
+                example: 450,
+                description: "Number of seconds watched",
+              },
+            },
+          },
         },
       },
       security: [
