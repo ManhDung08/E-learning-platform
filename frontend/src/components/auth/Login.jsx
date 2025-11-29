@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
-import { Button, TextField, Alert } from '@mui/material';
+import { Button, TextField, Alert, CircularProgress } from '@mui/material';
 import { useDispatch, useSelector } from 'react-redux';
 import { loginUserAction, clearErrorAction } from '../../Redux/Auth/auth.action';
 import { useNavigate } from 'react-router-dom';
@@ -37,10 +37,10 @@ const Login = ({ onSuccess, onToggleView }) => {
         }
     }, [isAuthenticated, navigate, onSuccess]);
 
-    const handleSubmit = (values) => {
+    const handleSubmit = async (values) => {
         console.log("handle submit login", values);
 
-        dispatch(loginUserAction({
+        await dispatch(loginUserAction({
             usernameOrEmail: values.usernameOrEmail,
             password: values.password
         }));

@@ -8,6 +8,7 @@ import LiveIcon from '@mui/icons-material/LiveTv';
 import AssignmentsIcon from '@mui/icons-material/Checklist';
 import SavedIcon from '@mui/icons-material/BookmarkBorder';
 import HelpCenterCard from './HelpCenterCard';
+import SchoolIcon from '@mui/icons-material/Group';
 
 const navigateMenu = [
   {
@@ -34,7 +35,12 @@ const navigateMenu = [
     title: "Saved",
     icon: <SavedIcon/>,
     path: "/saved"
-  }  
+  },
+  {
+    title: "Our Mentors",
+    icon: <SchoolIcon />,
+    path: "/instructors"
+  }
 ];
 
 
