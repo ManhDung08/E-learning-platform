@@ -15,9 +15,14 @@ import {
     LOG_OUT, CLEAR_ERROR
 } from "./auth.actionType";
 
-export const loginUserAction = (loginData) => async (dispatch) => {
+export const loginUserAction = (loginData, minDelay = 2000) => async (dispatch) => {
     console.log("Starting login action...", loginData);
     dispatch({ type: LOGIN_REQUEST });
+
+    const startTime = Date.now();
+    let success = false;
+    let responseData = null;
+    let failurePayload = null;
 
     try {
         const identifier = loginData.usernameOrEmail?.trim();
@@ -39,30 +44,42 @@ export const loginUserAction = (loginData) => async (dispatch) => {
         const { data } = await api.post('/auth/login', payload);
 
         console.log("Login success", data);
-
-        dispatch({
-            type: LOGIN_SUCCESS,
-            payload: data
-        });
-
-        dispatch(getProfileAction());
+        responseData = data;
+        success = true;
 
     } catch (error) {
         console.log("Login failure");
 
         let errorMessage = "login failed, try again";
+        let errorCode = null;
 
         if (error.response) {
             console.log("Error:", error.response.data);
+            failurePayload = error.response.data;
             errorMessage = error.response.data?.message || errorMessage;
+            errorCode = error.response.data?.code || null;
         } else if (error.message) {
             errorMessage = error.message;
         }
 
-        dispatch({
-            type: LOGIN_FAILURE,
-            payload: { message: errorMessage }
-        });
+        failurePayload = failurePayload || { message: errorMessage, code: errorCode };
+        success = false;
+
+    } finally {
+        const elapsedTime = Date.now() - startTime;
+        const remainingDelay = minDelay - elapsedTime;
+
+        if (remainingDelay > 0) {
+            console.log('delay dispatch login');
+            await new Promise(resolve => setTimeout(resolve, remainingDelay));
+        }
+
+        if (success) {
+            dispatch({ type: LOGIN_SUCCESS, payload: responseData });
+            dispatch(getProfileAction());
+        } else {
+            dispatch({ type: LOGIN_FAILURE, payload: failurePayload });
+        }
     }
 };
 
@@ -316,14 +333,24 @@ export const resetPasswordAction = (token, newPassword) => async (dispatch) => {
     }
 };
 
-export const logoutUserAction = () => async (dispatch) => {
+export const logoutUserAction = (minDelay = 2000) => async (dispatch) => {
     
+    const startTime = Date.now();
+
     try {
         await api.post('/auth/logout');
         console.log("Logout success");
     } catch (error) {
         console.log("Logout error:", error);
     } finally {
+        const elapsedTime = Date.now() - startTime;
+        const remainingDelay = minDelay - elapsedTime;
+
+        if(remainingDelay > 0) {
+            console.log('delay log out');
+            await new Promise(resolve => setTimeout(resolve, remainingDelay));
+        }
+
         dispatch({type: LOG_OUT});
         console.log("Logout action dispatched");
     }

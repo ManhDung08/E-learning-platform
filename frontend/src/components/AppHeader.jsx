@@ -1,8 +1,16 @@
 import React from 'react';
 import { AppBar, Toolbar, Typography } from '@mui/material';
 import AuthControl from './controlAuth/AuthControl';
+import { useSelector } from 'react-redux';
+
+
 
 const AppHeader = () => {
+
+  const { isAuthenticated, loading } = useSelector((store => store.auth));
+
+  const isLoggedIn = isAuthenticated;
+
   return (
     <AppBar elevation={0} position='static'>
         <Toolbar sx={{backgroundColor: 'white'}}>
@@ -11,7 +19,8 @@ const AppHeader = () => {
                 E Learning
             </Typography>
 
-            <AuthControl />
+            {!isLoggedIn && (<AuthControl />)}
+            
 
         </Toolbar>
     </AppBar>
