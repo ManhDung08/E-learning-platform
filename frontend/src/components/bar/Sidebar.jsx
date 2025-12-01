@@ -14,7 +14,7 @@ const navigateMenu = [
   {
     title: "Dashboard",
     icon: <HomeIcon/>,
-    path: "/"
+    path: "/dashboard"
   },
   {
     title: "My Courses",

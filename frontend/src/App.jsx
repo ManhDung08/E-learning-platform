@@ -7,12 +7,24 @@ import AppHeader from './components/AppHeader'
 import VerifyEmailModal from './components/auth/VerifyEmailModal'
 import AppRoutes from './routes/AppRoutes'
 
+import { useDispatch, useSelector } from 'react-redux';
+import { getProfileAction } from './Redux/Auth/auth.action';
+
+
 function App() {
 
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+
+  const { user } = useSelector(state => state.auth);
+
   const [searchParams] = useSearchParams();
   const [verifyModalOpen, setVerifyModalOpen] = useState(false);
   const [verifyToken, setVerifyToken] = useState(null);
+
+  useEffect(() => {
+    dispatch(getProfileAction());
+  }, [dispatch]);
 
   useEffect(() => {
     if (window.location.pathname === '/verify-email') {
@@ -26,12 +38,12 @@ function App() {
 
   const handleVerifySuccess = () => {
     setVerifyModalOpen(false);
-    navigate('/');
+    navigate('/dashboard');
   };
 
   const handleVerifyClose = () => {
     setVerifyModalOpen(false);
-    navigate('/');
+    navigate('/dashboard');
   };
 
   return (

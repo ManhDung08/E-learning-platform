@@ -1,7 +1,7 @@
-import {React, useState } from 'react'
+import {React, useState, useEffect, useRef } from 'react'
 import Register from '../../components/auth/Register'
 import { Grid } from '@mui/material'
-import { Route, Routes, useNavigate } from 'react-router-dom';
+import { Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from '../../components/bar/Sidebar';
 import MiddleHome from './MiddleHome';
 import RightBar from '../../components/bar/RightBar';
@@ -18,6 +18,9 @@ const HomePage = () => {
   const [isRightBarOpen, setIsRightBarOpen] = useState(true);
   const leftSidebarSize = 2;
 
+  const scrollRef = useRef(null);
+  const { pathname } = useLocation();
+
   let rightBarSize = 0;
 
   if (isLoggedIn) {
@@ -26,6 +29,11 @@ const HomePage = () => {
 
   const mainContentGridSize = 12 - leftSidebarSize - rightBarSize;
 
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = 0;
+    }
+  }, [pathname]);
 
   return (
     <>
@@ -40,10 +48,11 @@ const HomePage = () => {
 
         {/* main content, màn bé thfi chiếm trọn 12 phần grid, to thì chiếm 7 */}
         <Grid size={{ xs: 12, lg: mainContentGridSize }} style={{display: 'flex', justifyContent: 'center'}} 
-              sx={{bgcolor: '#F4F6F8', height: '100%', overflowY: 'auto', position: 'relative', overflowX: 'hidden', zIndex: 2}}>    
+              sx={{bgcolor: '#F4F6F8', height: '100%', overflowY: 'auto', position: 'relative', overflowX: 'hidden', zIndex: 2}} ref={scrollRef}>    
           <div style={{width: '100%', padding: '10px',  minHeight: '100%', display: 'flex', flexDirection: 'column'}}>
             <Routes>
               <Route path="/" element={<MiddleHome />} />
+              <Route path="/dashboard" element={<MiddleHome />} />
               <Route path="/courses" element={<MiddleHome />} />
               <Route path="/instructors" element={<InstructorsList />} />
               <Route path="/instructors/:id" element={<InstructorDetail />} />

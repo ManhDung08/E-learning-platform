@@ -14,8 +14,12 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
+      if (orginnalRequest && originalRequest.url.includes("/user/me")) {
+        return Promise.reject(error.response?.data || error);
+      }
+
       localStorage.removeItem("token");
-      window.location.href = "/";
+      window.location.href = "/dashboard";
     }
     return Promise.reject(error.response?.data || error);
   }

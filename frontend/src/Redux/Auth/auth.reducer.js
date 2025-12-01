@@ -11,7 +11,7 @@ import {
     RESEND_VERIFICATION_REQUEST, RESEND_VERIFICATION_SUCCESS, RESEND_VERIFICATION_FAILURE,
     FORGOT_PASSWORD_REQUEST, FORGOT_PASSWORD_SUCCESS, FORGOT_PASSWORD_FAILURE,
     RESET_PASSWORD_REQUEST, RESET_PASSWORD_SUCCESS, RESET_PASSWORD_FAILURE,
-    LOG_OUT, CLEAR_ERROR
+    LOG_OUT, CLEAR_ERROR, GOOGLE_AUTH_REQUEST, GOOGLE_AUTH_SUCCESS, GOOGLE_AUTH_FAILURE
 } from "./auth.actionType";
 
 const initialState = {
@@ -50,6 +50,13 @@ export const authReducer = (state = initialState, action) => {
                 passwordChangeMessage: null,
                 avatarUploadSuccess: false
             };
+
+        case GET_PROFILE_REQUEST:
+            return {
+                ...state,
+                loading: true,
+                error: null
+            }
 
         case LOGIN_SUCCESS:
             return {
@@ -170,6 +177,13 @@ export const authReducer = (state = initialState, action) => {
                 ...state,
                 error: null
             };
+
+        case GOOGLE_AUTH_FAILURE: 
+            return {
+                ...state,
+                loading: false,
+                error: action.payload
+            }
 
         default:
             return state;
