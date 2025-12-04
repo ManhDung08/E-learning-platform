@@ -1,4 +1,5 @@
 import AppError from "../errors/AppError.js";
+import { VNPayError } from "../errors/VNPayError.js";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library.js";
 
 const handlePrismaError = (error) => {
@@ -42,6 +43,18 @@ const handlePrismaError = (error) => {
 
 export default (err, req, res, next) => {
   console.error("Error caught:", err);
+
+  if (err instanceof VNPayError) {
+    return res.status(400).json({
+      success: false,
+      message: err.message,
+      error: {
+        code: "payment_error",
+        responseCode: err.responseCode,
+        field: undefined,
+      },
+    });
+  }
 
   if (err instanceof AppError) {
     return res.status(err.statusCode).json({
