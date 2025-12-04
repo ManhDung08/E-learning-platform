@@ -1072,6 +1072,24 @@ const enrollInCourse = async (courseId, userId) => {
     );
   }
 
+  // For paid courses, check if payment exists and is successful
+  if (course.priceVND > 0) {
+    const successfulPayment = await prisma.payment.findFirst({
+      where: {
+        userId: parseInt(userId),
+        courseId: parseInt(courseId),
+        status: "success",
+      },
+    });
+
+    if (!successfulPayment) {
+      throw new BadRequestError(
+        "Payment required for this course. Please complete payment before enrollment.",
+        "payment_required"
+      );
+    }
+  }
+
   const enrollment = await prisma.enrollment.create({
     data: {
       userId: parseInt(userId),
@@ -1352,6 +1370,44 @@ const getInstructorCourses = async (
   };
 };
 
+// Check if user has paid for the course
+const checkPaymentForCourse = async (courseId, userId) => {
+  try {
+    // Check if course exists
+    const course = await prisma.course.findUnique({
+      where: { id: courseId },
+      select: { priceVND: true },
+    });
+
+    if (!course) {
+      throw new NotFoundError("Course not found");
+    }
+
+    // If course is free, no payment needed
+    if (course.priceVND === 0) {
+      return { hasPaid: true, paymentRequired: false };
+    }
+
+    // Check for successful payment
+    const payment = await prisma.payment.findFirst({
+      where: {
+        courseId: courseId,
+        userId: userId,
+        status: "success",
+      },
+    });
+
+    return {
+      hasPaid: !!payment,
+      paymentRequired: true,
+      payment: payment || null,
+    };
+  } catch (error) {
+    console.error("Error checking payment for course:", error);
+    throw error;
+  }
+};
+
 export default {
   getAllCourses,
   getCourseById,
@@ -1363,4 +1419,5 @@ export default {
   unenrollFromCourse,
   getUserEnrollments,
   getInstructorCourses,
+  checkPaymentForCourse,
 };

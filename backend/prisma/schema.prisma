@@ -208,19 +208,21 @@ model QuizAttempt {
 }
 
 model Payment {
-  id          Int           @id @default(autoincrement())
-  userId      Int
-  courseId    Int
-  provider    String
-  status      PaymentStatus @default(pending)
-  createdAt   DateTime      @default(now())
-  amountVND   Int
-  course      Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id             Int           @id @default(autoincrement())
+  userId         Int
+  courseId       Int
+  provider       String
+  status         PaymentStatus @default(pending)
+  createdAt      DateTime      @default(now())
+  amountVND      Int
+  transactionRef String        @unique
+  course         Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([courseId])
   @@index([status])
+  @@index([transactionRef])
 }
 
 model Notification {
