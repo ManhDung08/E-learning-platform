@@ -3,8 +3,14 @@ import reactLogo from './assets/react.svg'
 import viteLogo from '/vite.svg'
 import './App.css'
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import AppHeader from './components/AppHeader'
-import VerifyEmailModal from './components/auth/VerifyEmailModal'
+
+import AppHeader from './components/AppHeader';
+import AppRoutes from './routes/AppRoutes';
+import { getProfileAction } from './Redux/Auth/auth.action';
+import { CircularProgress, Box } from '@mui/material';
+
+import VerifyEmailModal from './components/auth/VerifyEmailModal';
+import { useDispatch, useSelector } from 'react-redux';
 
 import { useDispatch, useSelector } from 'react-redux';
 import { getProfileAction } from './Redux/Auth/auth.action';
@@ -20,6 +26,13 @@ function App() {
   const [searchParams] = useSearchParams();
   const [verifyModalOpen, setVerifyModalOpen] = useState(false);
   const [verifyToken, setVerifyToken] = useState(null);
+  const dispatch = useDispatch();
+
+  const { isAuthChecked } = useSelector(state => state.auth);
+
+  useEffect(() => {
+    dispatch(getProfileAction());
+  }, [dispatch]);
 
   useEffect(() => {
     dispatch(getProfileAction());
@@ -45,6 +58,14 @@ function App() {
     navigate('/dashboard');
   };
   
+
+  if (!isAuthChecked) {
+      return (
+          <Box sx={{ height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+              <CircularProgress /> 
+          </Box>
+      );
+  }
 
   return (
     <div>

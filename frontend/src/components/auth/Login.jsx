@@ -10,7 +10,7 @@ import { GOOGLE_AUTH_FAILURE } from '../../Redux/Auth/auth.actionType';
 const initialValues = { usernameOrEmail: "", password: "" };
 const validationSchema = Yup.object({
   usernameOrEmail: Yup.string().required("* Username or Email is required"),
-  password: Yup.string().min(8, "* Password must be at least 8 characters").required("* Password is required")
+  password: Yup.string().min(6, "* Password must be at least 6 characters").required("* Password is required")
 });
 
 // const API_URL = 'http://localhost:8080/api/auth/login'

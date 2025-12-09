@@ -14,6 +14,7 @@ const getMe = async (req, res, next) => {
       gender,
       dateOfBirth,
       phoneNumber,
+      role,
     } = user;
 
     return res.status(200).json({
@@ -27,6 +28,7 @@ const getMe = async (req, res, next) => {
         gender,
         dateOfBirth,
         phoneNumber,
+        role,
       },
     });
   } catch (error) {
