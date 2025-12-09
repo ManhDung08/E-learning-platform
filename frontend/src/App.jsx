@@ -12,9 +12,6 @@ import { CircularProgress, Box } from '@mui/material';
 import VerifyEmailModal from './components/auth/VerifyEmailModal';
 import { useDispatch, useSelector } from 'react-redux';
 
-import { useDispatch, useSelector } from 'react-redux';
-import { getProfileAction } from './Redux/Auth/auth.action';
-
 
 function App() {
 
@@ -26,7 +23,6 @@ function App() {
   const [searchParams] = useSearchParams();
   const [verifyModalOpen, setVerifyModalOpen] = useState(false);
   const [verifyToken, setVerifyToken] = useState(null);
-  const dispatch = useDispatch();
 
   const { isAuthChecked } = useSelector(state => state.auth);
 
