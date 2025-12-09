@@ -12,10 +12,6 @@ import { CircularProgress, Box } from '@mui/material';
 import VerifyEmailModal from './components/auth/VerifyEmailModal';
 import { useDispatch, useSelector } from 'react-redux';
 
-import { useDispatch, useSelector } from 'react-redux';
-import { getProfileAction } from './Redux/Auth/auth.action';
-
-
 function App() {
 
   const navigate = useNavigate();
@@ -68,7 +64,7 @@ function App() {
 
   return (
     <div>
-      {/* <AppHeader /> */}
+      <AppHeader />
       <AppRoutes />
 
       <VerifyEmailModal 
