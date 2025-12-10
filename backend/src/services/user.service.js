@@ -334,6 +334,72 @@ const getAllUsers = async (page = 1, limit = 10, filters = {}) => {
   };
 };
 
+const signAvatarUrls = async (users) => {
+  return Promise.all(
+    users.map(async (user) => {
+      if (!user.profileImageUrl) return user;
+
+      const key = extractKeyFromUrl(user.profileImageUrl);
+      const signedUrl = await getSignedUrlForDownload(key, "avatar", 3600);
+
+      return {
+        ...user,
+        profileImageUrl: signedUrl,
+      };
+    })
+  );
+};
+
+const getPublicInstructors = async (page = 1, limit = 10, search) => {
+  const skip = (page - 1) * limit;
+
+  const where = {
+    role: "instructor",
+    isActive: true,
+  };
+
+  if (search) {
+    where.OR = [
+      { username: { contains: search, mode: "insensitive" } },
+      { firstName: { contains: search, mode: "insensitive" } },
+      { lastName: { contains: search, mode: "insensitive" } },
+    ];
+  }
+
+  const [instructors, totalCount] = await Promise.all([
+    prisma.user.findMany({
+      where,
+      skip,
+      take: limit,
+      select: {
+        id: true,
+        username: true,
+        firstName: true,
+        lastName: true,
+        profileImageUrl: true,
+        role: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.user.count({ where }),
+  ]);
+
+  const instructorsWithAvatars = await signAvatarUrls(instructors);
+
+  return {
+    instructors: instructorsWithAvatars,
+    pagination: {
+      currentPage: page,
+      totalPages: Math.ceil(totalCount / limit),
+      totalCount,
+      limit,
+      hasNextPage: page < Math.ceil(totalCount / limit),
+      hasPreviousPage: page > 1,
+    },
+  };
+};
+
 const deleteUser = async (userId) => {
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -364,4 +430,5 @@ export default {
   setPassword,
   createUser,
   deleteUser,
+  getPublicInstructors,
 };
