@@ -11,7 +11,7 @@ export const changePasswordValidation = [
     .exists()
     .withMessage("newPassword is required")
     .isLength({ min: 6 })
-    .withMessage("newPassword must be at least 6 characters")
+    .withMessage("newPassword must be at least 6 characters"),
 ];
 
 export const setPasswordValidation = [
@@ -19,7 +19,7 @@ export const setPasswordValidation = [
     .exists()
     .withMessage("newPassword is required")
     .isLength({ min: 6 })
-    .withMessage("newPassword must be at least 6 characters")
+    .withMessage("newPassword must be at least 6 characters"),
 ];
 
 export const updateProfileValidation = [
@@ -96,4 +96,24 @@ export const getAllUsersValidation = [
     .isBoolean()
     .withMessage("isActive must be a boolean value")
     .toBoolean(),
+];
+
+export const getPublicInstructorsValidation = [
+  query("page")
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage("Page must be a positive integer")
+    .toInt(),
+
+  query("limit")
+    .optional()
+    .isInt({ min: 1, max: 100 })
+    .withMessage("Limit must be an integer between 1 and 100")
+    .toInt(),
+
+  query("search")
+    .optional()
+    .trim()
+    .isLength({ min: 1, max: 100 })
+    .withMessage("Search term must be between 1 and 100 characters"),
 ];
