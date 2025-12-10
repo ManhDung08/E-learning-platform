@@ -73,11 +73,6 @@ const instructorMenu = [
     title: "Earnings",
     icon: <AttachMoneyIcon />,
     path: "/instructor/revenue"
-  },
-  {
-    title: "Settings",
-    icon: <SettingsIcon />,
-    path: "instructor/settings"
   }
 ];
 

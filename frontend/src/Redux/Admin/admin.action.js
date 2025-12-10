@@ -5,7 +5,7 @@ import {
     GET_USER_BY_ID_REQUEST, GET_USER_BY_ID_SUCCESS, GET_USER_BY_ID_FAILURE,
     UPDATE_USER_REQUEST, UPDATE_USER_SUCCESS, UPDATE_USER_FAILURE,
     DELETE_USER_REQUEST, DELETE_USER_SUCCESS, DELETE_USER_FAILURE,
-    CLEAR_ADMIN_ERROR, CLEAR_ADMIN_MESSAGE
+    CLEAR_ADMIN_ERROR, CLEAR_ADMIN_MESSAGE, GET_INSTRUCTORS_SUCCESS
 } from "./admin.actionType";
 
 export const getAllUsersAction = (page = 1, limit = 10, search = "", role = "", isActive = null) => async (dispatch) => {
@@ -120,6 +120,21 @@ export const getUserByIdAction = (userId) => async (dispatch) => {
             type: GET_USER_BY_ID_FAILURE,
             payload: error.response?.data?.message || "Failed to fetch user detail"
         });
+    }
+};
+
+export const getInstructorsForDropdownAction = () => async (dispatch) => {
+    try {
+        const { data } = await api.get('/user', { 
+            params: { page: 1, limit: 100, role: 'instructor' } 
+        });
+
+        dispatch({
+            type: GET_INSTRUCTORS_SUCCESS,
+            payload: data.users || data.data
+        });
+    } catch (error) {
+        console.error("Failed to fetch instructors list", error);
     }
 };
 

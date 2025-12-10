@@ -1,60 +1,78 @@
 import React from 'react'
 import { Card, Typography, Avatar } from '@mui/material'
 
+const formatPrice = (price) => {
+        if (price === 0) return 'Free';
+        return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
+    };
+
 const CourseCard = ({course}) => {
 
-    const progressPercentage = (course.progress / course.total) * 100;
-
   return (
-    <div style={{ backgroundColor: 'white', borderRadius: '16px', overflow: 'hidden', minWidth: '280px',
-        maxWidth: '280px', cursor: 'pointer', transition: 'transform 0.2s', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', margin: '5px'
-     }} onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-4px)'}
-        onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}>
-        <div style={{position: 'relative', paddingTop: '50%', backgroundColor: '#f0f0f0' }}>
-            <img src={course.thumbnail} alt={course.title} style={{ position: 'absolute',
-                 top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
-        </div>
+        <div style={{
+            backgroundColor: 'white', borderRadius: '16px', overflow: 'hidden',
+            width: '280px', cursor: 'pointer', transition: 'all 0.3s ease',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.08)', margin: '10px',
+            display: 'flex', flexDirection: 'column', height: '360px'
+        }}
+            onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-4px)';
+                e.currentTarget.style.boxShadow = '0 12px 20px rgba(0,0,0,0.12)';
+            }}
+            onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
+            }}
+        >
+            <div style={{ position: 'relative', paddingTop: '56.25%', backgroundColor: '#f0f0f0' }}>
+                <img
+                    src={course.image || 'https://via.placeholder.com/300x200?text=No+Image'}
+                    alt={course.title}
+                    style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+            </div>
 
-        <div style={{ padding: '12px' }}>
-            <span style={{backgroundColor: 'E3F2FD', color: '#608f4d', fontSize: '11px', fontWeight: '700', padding: '4px 12px', letterSpacing: '0.5px'}}>
-                {course.category}
-            </span>
-            <h3 style={{fontSize: '15px', fontWeight: '600', margin: '12px 0', lineHeight: '1.4',
-                        color: '#333', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden'  
-            }}>
-                {course.title}
-            </h3>
+            <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', flex: 1 }}>
+                <h3 style={{
+                    fontSize: '16px', fontWeight: '700', margin: '0 0 8px 0', lineHeight: '1.4',
+                    color: '#333', display: '-webkit-box', WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical', overflow: 'hidden', minHeight: '44px'
+                }}>
+                    {course.title}
+                </h3>
 
-            <div>
-                <div style={{ marginBottom: '12px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px'}}>
-                        <span style={{ fontSize: '12px', color: '#666' }}>
-                            {Math.round(progressPercentage)}%
-                        </span>
-                    </div>
-
-                    <div style={{ width: '100%', height: '6px', backgroundColor: '#E0E0E0', borderRadius: '10px', overflow: 'hidden' }}>
-                        <div style={{ width: `${progressPercentage}%`, height: '100%', backgroundColor: '#608f4d', borderRadius: '10px', transition: 'width 0.3s ease' }} />
-                    </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                    <div style={{
+                        width: '24px', height: '24px', borderRadius: '50%', backgroundColor: '#eee',
+                        backgroundImage: 'url(https://www.w3schools.com/howto/img_avatar.png)',
+                        backgroundSize: 'cover'
+                    }} />
+                    <p style={{ fontSize: '12px', color: '#666', margin: 0 }}>
+                        {course.instructor ? course.instructor.name : 'Unknown Instructor'} 
+                    </p>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#E0E0E0',
-                                    backgroundImage: 'url(https://i.pinimg.com/736x/82/a1/50/82a15066e1554597f88aaae2d7c6b135.jpg)', backgroundSize: 'cover' }} />
-                        
-                        <div>
-                            <p style={{ fontSize: '13px', fontWeight: '600', margin: 0, color: '#333' }}>
-                                {course.instructor}
-                            </p>
-                            <p style={{ fontSize: '11px', margin: 0, color: '#999' }}>
-                                {course.role}
-                            </p>
-                        </div>
+                <p style={{
+                    fontSize: '13px', color: '#888', margin: '0 0 16px 0',
+                    display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                    flex: 1
+                }}>
+                    {course.description}
+                </p>
+
+                <div style={{ borderTop: '1px solid #eee', paddingTop: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '15px', fontWeight: '700', color: '#608f4d' }}>
+                        {formatPrice(course.priceVND)}
+                    </span>
+
+                    <span style={{ fontSize: '12px', color: '#999', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <i className="fa-regular fa-file-lines"></i>
+                        {course.modules ? course.modules.length : 0} bài học
+                    </span>
                 </div>
             </div>
         </div>
-    </div>
-  )
+    )
 }
 
 export default CourseCard

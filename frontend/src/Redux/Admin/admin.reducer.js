@@ -6,6 +6,7 @@ import {
     DELETE_USER_REQUEST, DELETE_USER_SUCCESS, DELETE_USER_FAILURE,
     CLEAR_ADMIN_ERROR, CLEAR_ADMIN_MESSAGE
 } from "./admin.actionType";
+import { GET_INSTRUCTORS_SUCCESS } from "./admin.actionType";
 
 const initialState = {
     loading: false,
@@ -14,7 +15,8 @@ const initialState = {
     user: null,
     pagination: {},
     message: null,
-    success: false
+    success: false,
+    instructors: []
 };
 
 export const adminReducer = (state = initialState, action) => {
@@ -69,6 +71,12 @@ export const adminReducer = (state = initialState, action) => {
                 ...state,
                 loading: false,
                 user: action.payload
+            };
+
+        case GET_INSTRUCTORS_SUCCESS:
+            return {
+                ...state,
+                instructors: action.payload
             };
 
         case GET_ALL_USERS_FAILURE:

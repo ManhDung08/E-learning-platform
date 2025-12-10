@@ -6,15 +6,16 @@ import CloseIcon from '@mui/icons-material/Close';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 
 import { getAllUsersAction } from '../../Redux/Admin/admin.action';
+import { getInstructorsForDropdownAction } from '../../Redux/Admin/admin.action';
 
-const CourseFormModal = ({ open, handleClose, handleSubmit, initialData, loading }) => {
+const CourseFormModal = ({ open, handleClose, handleSubmit, initialData, loading, isAdmin = false }) => {
     
     const dispatch = useDispatch();
     const themeColor = '#97A87A';
 
-    const { users } = useSelector(store => store.admin);
+    const { instructors } = useSelector(store => store.admin);
 
-    const instructorsList = users?.filter(u => u.role === 'instructor' || u.role === 'admin') || [];
+    const instructorsList = instructors?.filter(u => u.role === 'instructor' || u.role === 'admin') || [];
 
     const [formData, setFormData] = useState({
         title: '',
@@ -28,11 +29,11 @@ const CourseFormModal = ({ open, handleClose, handleSubmit, initialData, loading
 
     //fetch lại danh sách instructor khi mở modal
     useEffect(() => {
-        if (open) {
+        if (open && isAdmin) {
             //page = 1, limit = 100, search = "", role instructor
-            dispatch(getAllUsersAction(1, 100, "", "instructor"));
+            dispatch(getInstructorsForDropdownAction());
         }
-    }, [open, dispatch]);
+    }, [open, dispatch, isAdmin]);
 
     useEffect(() => {
         if (initialData) {
@@ -44,7 +45,7 @@ const CourseFormModal = ({ open, handleClose, handleSubmit, initialData, loading
                 instructorId: initialData.instructorId || '',
                 isPublished: initialData.isPublished || false,
                 imageFile: null,
-                imagePreview: initialData.imagePreview || ''
+                imagePreview: initialData.image || ''
             });
         } else {
             //create
@@ -84,7 +85,8 @@ const CourseFormModal = ({ open, handleClose, handleSubmit, initialData, loading
             alert("Tittle and Description are required!");
             return;
         }
-        if (!initialData && !formData.instructorId) {
+        //bắt buộc chọn instructor nếu là ad
+        if (isAdmin && !formData.instructorId) {
             alert("Please select an instructor!");
             return;
         }
@@ -151,33 +153,36 @@ const CourseFormModal = ({ open, handleClose, handleSubmit, initialData, loading
                                     <TextField fullWidth label="Course Title" name="title" value={formData.title} onChange={handleChange} required/>
                                 </Grid>
 
-                                <Grid size={{ xs: 12, sm: 6 }}>
+                                <Grid size={{ xs: 12, sm: isAdmin ? 6 : 12 }}>
                                     <TextField fullWidth label="Price (VND)" name='priceVND' type='number'
                                                 value={formData.priceVND} onChange={handleChange} InputProps={{ inputProps: { min: 0 } }}/>
                                 </Grid>
 
-                                <Grid size={{ xs: 12, sm: 6 }}>
-                                    <TextField
-                                        fullWidth
-                                        select
-                                        label="Instructor"
-                                        name="instructorId"
-                                        value={formData.instructorId}
-                                        onChange={handleChange}
-                                        disabled={loading || instructorsList.length === 0}
-                                        helperText={instructorsList.length === 0 ? "Loading instructors..." : ""}
-                                    >
-                                        {instructorsList.map((inst) => (
-                                            <MenuItem key={inst.id} value={inst.id}>
-                                                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                                                    <Avatar src={inst.profileImageUrl} sx={{ width: 24, height: 24 }} />
-                                                    {inst.username || inst.email}
-                                                </Box>
-                                            </MenuItem>
-                                        ))}
-                                    </TextField>
+                                {isAdmin && (
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            select
+                                            label="Instructor"
+                                            name="instructorId"
+                                            value={formData.instructorId}
+                                            onChange={handleChange}
+                                            disabled={loading || instructorsList.length === 0}
+                                            helperText={instructorsList.length === 0 ? "Loading instructors..." : ""}
+                                        >
+                                            {instructorsList.map((inst) => (
+                                                <MenuItem key={inst.id} value={inst.id}>
+                                                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                                        <Avatar src={inst.profileImageUrl} sx={{ width: 24, height: 24 }} />
+                                                        {inst.username || inst.email}
+                                                    </Box>
+                                                </MenuItem>
+                                            ))}
+                                        </TextField>
 
-                                </Grid>
+                                    </Grid>
+                                )}
+                                
 
                                 <Grid size={{ xs: 12 }}>
                                     <TextField fullWidth label="Description" name='description' multiline rows={4}
@@ -197,7 +202,7 @@ const CourseFormModal = ({ open, handleClose, handleSubmit, initialData, loading
 
         <DialogActions sx={{ p: 3, pt: 0 }}>
             <Button onClick={handleClose} color='inherit'>Cancel</Button>
-            <Button onClick={onSubmit} variant='contained' disabled={loading} sx={{ bgcolor: themeColor, '&hover': { bgcolor: themeColor, opacity: 0.9 } }} >
+            <Button onClick={onSubmit} variant='contained' disabled={loading} sx={{ bgcolor: themeColor, '&:hover': { bgcolor: themeColor, opacity: 0.9 } }} >
                 {loading ? "Processing..." : (initialData ? "Save Course" : "Create Course")}
             </Button>
         </DialogActions>

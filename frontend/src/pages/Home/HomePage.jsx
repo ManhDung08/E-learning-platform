@@ -14,13 +14,14 @@ import Dashboard from '../Admin/Dashboard';
 import CourseManagement from '../Admin/CourseManagement';
 import TransactionManagement from '../Admin/TransactionManagement';
 import Settings from '../Admin/Settings';
+import InstructorCourses from '../Instructor/InstructorCourses';
 
 const HomePage = () => {
   
   const { isAuthenticated, loading } = useSelector((store => store.auth));
   const isLoggedIn = isAuthenticated;
   const { user } = useSelector((store) => store.auth);
-  const isStudent = user?.role !== 'admin';
+  const isStudent = user?.role === 'student';
 
   const [isRightBarOpen, setIsRightBarOpen] = useState(true);
   const leftSidebarSize = 2;
@@ -66,10 +67,9 @@ const HomePage = () => {
               <Route path="/instructors/:id" element={<InstructorDetail />} />
               {/* instructor */}
               <Route path="/instructor/dashboard" element={<div>Instructor Dashboard</div>} />
-              <Route path="/instructor/courses" element={<div>My Courses Manager</div>} />
+              <Route path="/instructor/courses" element={<InstructorCourses />} />
               <Route path="/instructor/students" element={<div>My Students</div>} />
               <Route path="/instructor/revenue" element={<div>Revenue Page</div>} />
-              <Route path="/instructor/settings" element={<div>Instructor Settings</div>} />
               {/* admin */}
               <Route path="/admin/dashboard" element={<Dashboard />}/>
               <Route path="/admin/users" element={<UserManagement />} />

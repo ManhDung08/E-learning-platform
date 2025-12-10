@@ -1,25 +1,24 @@
 import React, { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { getAllCoursesAction, deleteCourseAction, clearCourseMessage, createCourseAction, updateCourseAction } from '../../Redux/Course/course.action';
+import { getInstructorCoursesAction, deleteCourseAction, clearCourseMessage, createCourseAction, updateCourseAction, getCourseByIdAction, getInstructorCourseByIdAction, } from '../../Redux/Course/course.action';
 
 import { DataGrid, GridToolbarContainer, GridToolbarExport } from '@mui/x-data-grid';
 import { Box, Button, TextField, MenuItem, Select, FormControl, InputLabel, 
-        Typography, Avatar, Chip, IconButton, Snackbar, Alert, Paper, Stack } from '@mui/material';
+        Typography, Chip, IconButton, Snackbar, Alert, Paper } from '@mui/material';
 
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import AddIcon from '@mui/icons-material/Add';
 import SearchIcon from '@mui/icons-material/Search';
-import VideoSettingsIcon from '@mui/icons-material/VideoSettings'; // Icon cho Builder
-import CourseBuilder from '../../components/admin/CourseBuilder';
-import { getCourseByIdAction } from '../../Redux/Course/course.action';
+import VideoSettingsIcon from '@mui/icons-material/VideoSettings';
 
 import CourseFormModal from '../../components/admin/CourseFormModal';
+import CourseBuilder from '../../components/admin/CourseBuilder';
 
-const CourseManagement = () => {
+const InstructorCourses = () => {
 
     const dispatch = useDispatch();
-    const { courses, loading, pagination, success, message } = useSelector(store => store.course);
+    const { instructorCourses, loading, pagination, success, message } = useSelector(store => store.course);
 
     const [paginationModel, setPaginationModel] = useState({
         page: 0,
@@ -45,11 +44,10 @@ const CourseManagement = () => {
     }, [search, publishFilter, paginationModel]);
 
     const fetchCourses = () => {
-        dispatch(getAllCoursesAction(
+        dispatch(getInstructorCoursesAction(
             paginationModel.page + 1,
             paginationModel.pageSize,
             search,
-            "",
             publishFilter
         ));
     };
@@ -58,14 +56,13 @@ const CourseManagement = () => {
         if (success) {
             setOpenSnackbar(true);
             setOpenModal(false);
-            fetchCourses();
-
             dispatch(clearCourseMessage());
+            fetchCourses();
         }
     }, [success, message, dispatch]);
 
     const handleDelete = (id) => {
-        if (window.confirm("Are you sure you want to delete this course? This will also delete all enrollments and lessons.")) {
+        if (window.confirm("Are you sure you want to delete this course?")) {
             dispatch(deleteCourseAction(id));
         }
     };
@@ -79,37 +76,27 @@ const CourseManagement = () => {
         setSelectedCourse(null);
         setOpenModal(true);
     };
-    
-    // load chi tiết khóa học (kèm module/lesson)
+
     const handleOpenBuilder = (id) => {
-        dispatch(getCourseByIdAction(id)); 
+        dispatch(getInstructorCourseByIdAction(id)); 
         setBuilderCourseId(id);
         setOpenBuilder(true);
     };
 
     const handleFormSubmit = (data) => {
-        // data nhận được từ Modal: title, description, priceVND, imageFile...
-        dispatch(clearCourseMessage());
-
         const formData = new FormData();
         formData.append('title', data.title);
         formData.append('description', data.description);
         formData.append('priceVND', data.priceVND);
         
-        // nếu có instructorId (chỉ admin mới chọn đc)
-        if(data.instructorId) formData.append('instructorId', data.instructorId);
-        
-        // nếu có ảnh mới
         if (data.imageFile) {
             formData.append('image', data.imageFile);
         }
 
         if (selectedCourse) {
             if(data.isPublished !== undefined) formData.append('isPublished', data.isPublished);
-            
             dispatch(updateCourseAction(selectedCourse.id, formData));
         } else {
-            //create
             dispatch(createCourseAction(formData));
         }
     };
@@ -128,40 +115,22 @@ const CourseManagement = () => {
             renderCell: (params) => (
                 <Box component="img" src={params.row.image || "https://via.placeholder.com/150"}
                     alt={params.row.title}
-                    sx={{
-                        width: '100%', height: '100%', objectFit: 'cover', borderRadius: 1, py: 1
-                    }} />
+                    sx={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 1, py: 1 }} />
             )
         },
         {
             field: 'title',
             headerName: 'Course Info',
-            width: 250,
+            width: 300,
             renderCell: (params) => (
                 <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', height: '100%' }}>
                     <Typography variant='body2' fontWeight="bold" sx={{ lineHeight: 1.2, mb: 0.5 }}>
                         {params.row.title}
                     </Typography>
                     <Typography variant='caption' color='textSecondary'>
-                        {params.row.totalLessons} lessons • {Math.round((params.row.totalDuration || 0) / 60)} mins
+                        {params.row.totalLessons || 0} lessons • {Math.round((params.row.totalDuration || 0) / 60)} mins
                     </Typography>
                 </Box>
-            )
-        },
-        { 
-            field: 'instructor', 
-            headerName: 'Instructor', 
-            width: 180,
-            renderCell: (params) => (
-                <Stack direction="row" spacing={1} alignItems="center" height="100%">
-                    <Avatar 
-                        src={params.row.instructor?.profileImageUrl} 
-                        sx={{ width: 24, height: 24 }}
-                    />
-                    <Typography variant="body2">
-                        {params.row.instructor?.username || "Unknown"}
-                    </Typography>
-                </Stack>
             )
         },
         { 
@@ -181,7 +150,6 @@ const CourseManagement = () => {
             renderCell: (params) => {
                 const isPublished = params.value;
                 const label = isPublished ? "Published" : "Draft";
-                
                 const bgcolor = isPublished ? '#e8f5e9' : '#fff3e0'; 
                 const color = isPublished ? '#2e7d32' : '#ef6c00';
                 
@@ -189,14 +157,7 @@ const CourseManagement = () => {
                     <Chip 
                         label={label} 
                         size="small" 
-                        sx={{
-                            bgcolor: bgcolor,
-                            color: color,
-                            fontWeight: 'bold',
-                            fontSize: '0.7rem',
-                            border: 'none',
-                            minWidth: '80px' 
-                        }}
+                        sx={{ bgcolor, color, fontWeight: 'bold', fontSize: '0.7rem', border: 'none', minWidth: '80px' }}
                     />
                 );
             }
@@ -208,9 +169,10 @@ const CourseManagement = () => {
             sortable: false,
             renderCell: (params) => (
                 <Box>
-                    <IconButton color="primary" onClick={() => handleOpenBuilder(params.row.id)}>
+                    <IconButton color="primary" onClick={() => handleOpenBuilder(params.row.id)} title="Add Content">
                         <VideoSettingsIcon />
                     </IconButton>
+
                     <IconButton sx={{ color: customThemeColor }} onClick={() => handleEdit(params.row)}>
                         <EditIcon />
                     </IconButton>
@@ -230,28 +192,23 @@ const CourseManagement = () => {
 
     return (
         <Paper elevation={0} sx={{ p: 3, height: '100%', bgcolor: 'transparent' }}>
-            {/* Header */}
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
                 <Typography variant="h5" fontWeight="bold" color="text.primary">
-                    Course Management
+                    My Courses
                 </Typography>
                 <Button 
                     variant="contained" 
                     startIcon={<AddIcon />}
-                    sx={{ 
-                        textTransform: 'none', borderRadius: 2, backgroundColor: customThemeColor,
-                        '&:hover': { backgroundColor: customThemeColor, opacity: 0.9 }
-                    }}
+                    sx={{ textTransform: 'none', borderRadius: 2, backgroundColor: customThemeColor, '&:hover': { backgroundColor: customThemeColor, opacity: 0.9 }}}
                     onClick={handleOpenCreate}
                 >
                     Create New Course
                 </Button>
             </Box>
 
-            {/* Filters */}
             <Paper sx={{ p: 2, mb: 3, display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
                 <TextField
-                    size="small" variant="outlined" placeholder="Search course title..."
+                    size="small" variant="outlined" placeholder="Search my courses..."
                     value={search} onChange={(e) => setSearch(e.target.value)}
                     InputProps={{ startAdornment: <SearchIcon sx={{ mr: 1, color: customThemeColor }} /> }}
                     sx={{ flexGrow: 1, minWidth: '200px' }}
@@ -270,10 +227,9 @@ const CourseManagement = () => {
                 </FormControl>
             </Paper>
 
-            {/* DataGrid */}
             <Paper sx={{ height: 650, width: '100%', boxShadow: 2, borderRadius: 2 }}>
                 <DataGrid
-                    rows={courses || []} 
+                    rows={instructorCourses || []} 
                     columns={columns} 
                     loading={loading}
                     rowHeight={80} 
@@ -294,7 +250,7 @@ const CourseManagement = () => {
                 handleSubmit={handleFormSubmit}
                 initialData={selectedCourse}
                 loading={loading}
-                isAdmin={true}
+                isAdmin={false}
             />
 
             <CourseBuilder 
@@ -312,4 +268,4 @@ const CourseManagement = () => {
     )
 }
 
-export default CourseManagement;
+export default InstructorCourses;
