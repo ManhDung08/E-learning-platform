@@ -1,40 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { User, Mail, Phone, Calendar, Users, BookOpen, Award, Lock, Check, Edit2, Save, X } from 'lucide-react';
 import InputField from '../components/InputField';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
 
-// Di chuyển InputField ra ngoài để tránh re-create mỗi lần render
-// const InputField = ({ label, value, onChange, disabled, icon: Icon, type = 'text', select, options }) => (
-//   <div className="space-y-2">
-//     <label className="block text-sm font-medium text-gray-700">{label}</label>
-//     <div className="relative">
-//       {Icon && (
-//         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-//           <Icon className="h-5 w-5 text-gray-400" />
-//         </div>
-//       )}
-//       {select ? (
-//         <select
-//           value={value || ''}
-//           onChange={(e) => onChange(e.target.value)}
-//           disabled={disabled}
-//           className={`w-full ${Icon ? 'pl-10' : 'pl-3'} pr-3 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${disabled ? 'bg-gray-50 text-gray-600' : 'bg-white'}`}
-//         >
-//           {options.map(opt => (
-//             <option key={opt.value} value={opt.value}>{opt.label}</option>
-//           ))}
-//         </select>
-//       ) : (
-//         <input
-//           type={type}
-//           value={value || ''}
-//           onChange={(e) => onChange(e.target.value)}
-//           disabled={disabled}
-//           className={`w-full ${Icon ? 'pl-10' : 'pl-3'} pr-3 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${disabled ? 'bg-gray-50 text-gray-600' : 'bg-white'}`}
-//         />
-//       )}
-//     </div>
-//   </div>
-// );
+
+
 
 // Di chuyển ToggleSwitch ra ngoài
 const ToggleSwitch = ({ enabled, onToggle }) => (
@@ -65,6 +35,14 @@ function AccountProfile() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+
+  //Dialog xac nhan doi mat khau
+  const [openDialog, setOpenDialog] = useState(false);
+  const [dialogMessage, setDialogMessage] = useState('');
+
+
+
+
 
   const [notifications, setNotifications] = useState({
     emailNotifications: true,
@@ -180,6 +158,7 @@ function AccountProfile() {
     try {
       let uploadedImageUrl = profile.profileImageUrl;
 
+      // 1. Nếu có chọn avatar mới → upload
       if (avatarFile) {
         const formData = new FormData();
         formData.append('avatar', avatarFile);
@@ -195,43 +174,52 @@ function AccountProfile() {
         }
 
         const uploadResult = await uploadResponse.json();
-        uploadedImageUrl = uploadResult.data.profileImageUrl;
+        uploadedImageUrl = uploadResult.data.profileImageUrl + '?t=' + Date.now();
       }
 
+      // 2. Gửi update profile (API này không trả về avatar)
       const response = await fetch('http://localhost:3000/api/user/update-profile', {
         method: 'PUT',
         credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...editedProfile,
-          profileImageUrl: uploadedImageUrl
+          profileImageUrl: uploadedImageUrl   // gửi lên để backend ghi vào DB nếu muốn
         })
       });
 
       if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error('Phiên đăng nhập đã hết hạn');
-        }
         throw new Error('Không thể cập nhật thông tin');
       }
 
       const result = await response.json();
-      const updatedData = result.data;
+
+      // 3. Tạo object hợp nhất: lấy thông tin từ API nhưng giữ avatar mới
+      const updatedData = {
+        ...result.data,
+        profileImageUrl: uploadedImageUrl
+      };
+
+      // 4. Cập nhật state
       setProfile(prev => ({ ...prev, ...updatedData }));
       setEditedProfile(prev => ({ ...prev, ...updatedData }));
 
+      // 5. Update preview của avatar
+      setAvatarPreview(uploadedImageUrl);
+
+      // 6. Reset trạng thái
       setIsEditing(false);
       setAvatarFile(null);
-      setAvatarPreview(null);
+
       setShowAlert(true);
       setTimeout(() => setShowAlert(false), 3000);
+
     } catch (err) {
       console.error('Lỗi khi cập nhật:', err);
       alert(err.message || 'Không thể cập nhật thông tin. Vui lòng thử lại!');
     }
   };
+
 
   const handleCancel = () => {
     setIsEditing(false);
@@ -243,51 +231,74 @@ function AccountProfile() {
   const handleChange = (field, value) => {
     setEditedProfile({ ...editedProfile, [field]: value });
   };
+
+
   const handleChangePassword = async () => {
     if (newPassword !== confirmPassword) {
-      alert("Mật khẩu mới và xác nhận mật khẩu không khớp!");
+      setDialogMessage("Mật khẩu mới và xác nhận mật khẩu không khớp!");
+      setOpenDialog(true);
       return;
     }
     if (newPassword.length < 6) {
-      alert("Mật khẩu mới phải có ít nhất 6 ký tự!");
+      setDialogMessage("Mật khẩu mới phải có ít nhất 6 ký tự!");
+      setOpenDialog(true);
       return;
     }
     if (!currentPassword || !newPassword || !confirmPassword) {
-      alert("Vui lòng nhập đầy đủ thông tin");
+      setDialogMessage("Vui lòng nhập đầy đủ thông tin");
+      setOpenDialog(true);
       return;
     }
     if (newPassword === currentPassword) {
-      alert("Mật khẩu mới không được trùng với mật khẩu hiện tại!");
+      setDialogMessage("Mật khẩu mới không được trùng với mật khẩu hiện tại!");
+      setOpenDialog(true);
       return;
     }
-    
-    try{
-      const response = await fetch('http://localhost:3000/api/user/change-password', {
-        method: 'PUT',
-        credentials: 'include',
-        headers:{
-          'Content-Type': 'application/json'
+
+    try {
+      const response = await fetch("http://localhost:3000/api/user/change-password", {
+        method: "PUT",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           currentPassword,
-          newPassword
-        })
-
+          newPassword,
+        }),
       });
+
       const data = await response.json();
-      if(!response.ok){
-        alert(data.message || "Đổi mật khẩu thất bại");
+
+      if (!response.ok) {
+        setDialogMessage(data.message || "Đổi mật khẩu thất bại");
+        setOpenDialog(true);
         return;
       }
-      alert("Đổi mật khẩu thành công!");
+
+      // Thành công
+      setDialogMessage("Đổi mật khẩu thành công!");
+      setOpenDialog(true);
+
     } catch (err) {
-      console.error('Lỗi khi đổi mật khẩu:', err);
-      alert("Đổi mật khẩu thất bại. Vui lòng thử lại!");
+      console.error("Lỗi khi đổi mật khẩu:", err);
+      setDialogMessage("Đổi mật khẩu thất bại. Vui lòng thử lại!");
+      setOpenDialog(true);
     }
-
-
-    
   };
+
+  const handleCloseDialog = () => {
+    setOpenDialog(false);
+
+    if (dialogMessage === "Đổi mật khẩu thành công!") {
+      // Reset lại 3 input
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    }
+  };
+
+
 
   const toggleNotification = (key) => {
     setNotifications({ ...notifications, [key]: !notifications[key] });
@@ -611,23 +622,28 @@ function AccountProfile() {
                     <InputField
                       label="Mật khẩu hiện tại"
                       type="password"
+                      value={currentPassword}
                       onChange={setCurrentPassword}
                       icon={Lock}
                     />
                     <InputField
                       label="Mật khẩu mới"
                       type="password"
+                      value={newPassword}
                       onChange={setNewPassword}
                       icon={Lock}
                     />
                     <InputField
                       label="Xác nhận mật khẩu mới"
                       type="password"
+                      value={confirmPassword}
                       onChange={setConfirmPassword}
                       icon={Lock}
                     />
-                    <button className="w-full sm:w-auto px-4 sm:px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm sm:text-base"
-                      onClick={handleChangePassword}>
+                    <button
+                      className="w-full sm:w-auto px-4 sm:px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm sm:text-base"
+                      onClick={handleChangePassword}
+                    >
                       Cập nhật mật khẩu
                     </button>
                   </div>
@@ -675,6 +691,19 @@ function AccountProfile() {
           </div>
         </div>
       </div>
+
+      {/* Dialog thông báo */}
+      <Dialog open={openDialog} onClose={handleCloseDialog}>
+        <DialogTitle>Thông báo</DialogTitle>
+        <DialogContent>
+          <p className="text-gray-700">{dialogMessage}</p>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDialog} color="primary" variant="contained">
+            OK
+          </Button>
+        </DialogActions>
+      </Dialog>
     </div>
   );
 }
