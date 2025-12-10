@@ -2092,6 +2092,142 @@ const getSwaggerSpecs = () => {
             },
             required: ["success", "message", "data"],
           },
+          SupportTicket: {
+            type: "object",
+            description: "Support ticket object",
+            properties: {
+              id: {
+                type: "integer",
+                example: 12,
+                description: "Ticket ID",
+              },
+              userId: {
+                type: "integer",
+                example: 3,
+                description: "Owner user ID",
+              },
+              subject: {
+                type: "string",
+                example: "Cannot access purchased course",
+              },
+              message: {
+                type: "string",
+                example: "I bought the course but the lessons do not unlock.",
+              },
+              status: {
+                type: "string",
+                enum: ["open", "in_progress", "resolved", "closed"],
+                example: "open",
+              },
+              createdAt: {
+                type: "string",
+                format: "date-time",
+                example: "2024-12-10T08:30:00Z",
+              },
+            },
+            required: [
+              "id",
+              "userId",
+              "subject",
+              "message",
+              "status",
+              "createdAt",
+            ],
+          },
+          SupportTicketCreateRequest: {
+            type: "object",
+            required: ["subject", "message"],
+            properties: {
+              subject: {
+                type: "string",
+                minLength: 3,
+                maxLength: 100,
+                example: "Billing issue",
+              },
+              message: {
+                type: "string",
+                minLength: 5,
+                maxLength: 1000,
+                example:
+                  "My payment succeeded but the course is not in my library.",
+              },
+            },
+          },
+          SupportTicketStatusUpdateRequest: {
+            type: "object",
+            required: ["status"],
+            properties: {
+              status: {
+                type: "string",
+                enum: ["open", "in_progress", "resolved", "closed"],
+                example: "resolved",
+              },
+            },
+          },
+          SupportTicketPagination: {
+            type: "object",
+            properties: {
+              total: {
+                type: "integer",
+                example: 42,
+                description: "Total tickets matching the query",
+              },
+              page: {
+                type: "integer",
+                example: 1,
+                description: "Current page number",
+              },
+              limit: {
+                type: "integer",
+                example: 20,
+                description: "Items per page",
+              },
+              totalPages: {
+                type: "integer",
+                example: 3,
+                description: "Total number of pages",
+              },
+            },
+            required: ["total", "page", "limit", "totalPages"],
+          },
+          SupportTicketResponse: {
+            type: "object",
+            properties: {
+              success: {
+                type: "boolean",
+                example: true,
+              },
+              data: {
+                $ref: "#/components/schemas/SupportTicket",
+              },
+            },
+            required: ["success", "data"],
+          },
+          SupportTicketListResponse: {
+            type: "object",
+            properties: {
+              success: {
+                type: "boolean",
+                example: true,
+              },
+              data: {
+                type: "object",
+                properties: {
+                  items: {
+                    type: "array",
+                    items: {
+                      $ref: "#/components/schemas/SupportTicket",
+                    },
+                  },
+                  meta: {
+                    $ref: "#/components/schemas/SupportTicketPagination",
+                  },
+                },
+                required: ["items", "meta"],
+              },
+            },
+            required: ["success", "data"],
+          },
         },
       },
       security: [
