@@ -8,6 +8,13 @@ const formatPrice = (price) => {
 
 const CourseCard = ({course}) => {
 
+    const instructorName = course.instructor 
+        ? `${course.instructor.firstName} ${course.instructor.lastName}` 
+        : 'Unknown Instructor';
+
+    const instructorAvatar = course.instructor?.profileImageUrl 
+        || 'https://www.w3schools.com/howto/img_avatar.png';
+
   return (
         <div style={{
             backgroundColor: 'white', borderRadius: '16px', overflow: 'hidden',
@@ -26,7 +33,7 @@ const CourseCard = ({course}) => {
         >
             <div style={{ position: 'relative', paddingTop: '56.25%', backgroundColor: '#f0f0f0' }}>
                 <img
-                    src={course.image || 'https://via.placeholder.com/300x200?text=No+Image'}
+                    src={course.image || ''}
                     alt={course.title}
                     style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }}
                 />
@@ -44,11 +51,11 @@ const CourseCard = ({course}) => {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
                     <div style={{
                         width: '24px', height: '24px', borderRadius: '50%', backgroundColor: '#eee',
-                        backgroundImage: 'url(https://www.w3schools.com/howto/img_avatar.png)',
+                        backgroundImage: `url(${instructorAvatar})`,
                         backgroundSize: 'cover'
                     }} />
                     <p style={{ fontSize: '12px', color: '#666', margin: 0 }}>
-                        {course.instructor ? course.instructor.name : 'Unknown Instructor'} 
+                        {instructorName} 
                     </p>
                 </div>
 
@@ -67,7 +74,7 @@ const CourseCard = ({course}) => {
 
                     <span style={{ fontSize: '12px', color: '#999', display: 'flex', alignItems: 'center', gap: '4px' }}>
                         <i className="fa-regular fa-file-lines"></i>
-                        {course.modules ? course.modules.length : 0} bài học
+                        {course.modules?.length || 0} bài học
                     </span>
                 </div>
             </div>

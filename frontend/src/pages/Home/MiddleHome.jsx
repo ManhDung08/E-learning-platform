@@ -8,6 +8,7 @@ import WatchingCard from '../../components/watching/WatchingCard';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import Footer from '../../components/footer/Footer';
+import { useNavigate } from 'react-router-dom';
 
 const courses = [
   {
@@ -68,6 +69,14 @@ const MiddleHome = () => {
   const [currentIntex, setCurrentIndex] = useState(0);
   const coursesPerPage = 3;
   const maxIndex = Math.max(0, courses.length - coursesPerPage + 1);
+  
+  const navigate = useNavigate();
+
+  const handleSearch = (keyword) => {
+    if (keyword.trim()) {
+      navigate(`/search?q=${encodeURIComponent(keyword)}`);
+    }
+  }
 
   const handlePrev = () => {
     setCurrentIndex(prev => Math.max(0, prev - 1));
@@ -80,7 +89,8 @@ const MiddleHome = () => {
   return (
     <div className='flex flex-col'>
       <div>
-        <SearchInput />
+        <SearchInput placeholder="Search for courses, mentors..." 
+                    onSearch={handleSearch}/>
       </div>
       {/* banner ? */}
       <div className='p-4 pt-2'>

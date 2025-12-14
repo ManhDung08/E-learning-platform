@@ -15,6 +15,7 @@ import CourseManagement from '../Admin/CourseManagement';
 import TransactionManagement from '../Admin/TransactionManagement';
 import Settings from '../Admin/Settings';
 import InstructorCourses from '../Instructor/InstructorCourses';
+import SearchResultsPage from '../../components/search/SearchResults';
 
 const HomePage = () => {
   
@@ -65,6 +66,7 @@ const HomePage = () => {
               <Route path="/courses" element={<MiddleHome />} />
               <Route path="/instructors" element={<InstructorsList />} />
               <Route path="/instructors/:id" element={<InstructorDetail />} />
+              <Route path="/search" element={<SearchResultsPage />} />
               {/* instructor */}
               <Route path="/instructor/dashboard" element={<div>Instructor Dashboard</div>} />
               <Route path="/instructor/courses" element={<InstructorCourses />} />
