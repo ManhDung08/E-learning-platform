@@ -11,7 +11,7 @@ import {
     RESEND_VERIFICATION_REQUEST, RESEND_VERIFICATION_SUCCESS, RESEND_VERIFICATION_FAILURE,
     FORGOT_PASSWORD_REQUEST, FORGOT_PASSWORD_SUCCESS, FORGOT_PASSWORD_FAILURE,
     RESET_PASSWORD_REQUEST, RESET_PASSWORD_SUCCESS, RESET_PASSWORD_FAILURE,
-    LOG_OUT, CLEAR_ERROR
+    LOG_OUT, CLEAR_ERROR, GOOGLE_AUTH_REQUEST, GOOGLE_AUTH_SUCCESS, GOOGLE_AUTH_FAILURE
 } from "./auth.actionType";
 
 const initialState = {
@@ -23,14 +23,14 @@ const initialState = {
     verificationMessage: null,
     passwordResetMessage: null,
     passwordChangeMessage: null,
-    avatarUploadSuccess: false
+    avatarUploadSuccess: false,
+    isAuthChecked: false
 };
 
 export const authReducer = (state = initialState, action) => {
     switch (action.type) {
         case LOGIN_REQUEST:
         case REGISTER_REQUEST:
-        case GET_PROFILE_REQUEST:
         case UPDATE_PROFILE_REQUEST:
         case UPLOAD_AVATAR_REQUEST:
         case DELETE_AVATAR_REQUEST:
@@ -50,6 +50,13 @@ export const authReducer = (state = initialState, action) => {
                 passwordChangeMessage: null,
                 avatarUploadSuccess: false
             };
+
+        case GET_PROFILE_REQUEST:
+            return {
+                ...state,
+                loading: true,
+                error: null,
+            }
 
         case LOGIN_SUCCESS:
             return {
@@ -78,6 +85,15 @@ export const authReducer = (state = initialState, action) => {
             };
 
         case GET_PROFILE_SUCCESS:
+            return { 
+                ...state, 
+                user: action.payload,
+                isAuthenticated: true,
+                error: null, 
+                loading: false,
+                isAuthChecked: true
+            };
+        
         case UPDATE_PROFILE_SUCCESS:
             return { 
                 ...state, 
@@ -142,9 +158,16 @@ export const authReducer = (state = initialState, action) => {
                 passwordResetMessage: action.payload.message
             };
 
+        case GET_PROFILE_FAILURE:
+            return {
+                ...state,
+                loading: false,
+                error: action.payload,
+                isAuthChecked: true
+            }
+
         case LOGIN_FAILURE:
         case REGISTER_FAILURE:
-        case GET_PROFILE_FAILURE:
         case UPDATE_PROFILE_FAILURE:
         case UPLOAD_AVATAR_FAILURE:
         case DELETE_AVATAR_FAILURE:
@@ -162,7 +185,8 @@ export const authReducer = (state = initialState, action) => {
 
         case LOG_OUT:
             return { 
-                ...initialState
+                ...initialState,
+                isAuthChecked: true
             };
 
         case CLEAR_ERROR:
@@ -170,6 +194,13 @@ export const authReducer = (state = initialState, action) => {
                 ...state,
                 error: null
             };
+
+        case GOOGLE_AUTH_FAILURE: 
+            return {
+                ...state,
+                loading: false,
+                error: action.payload
+            }
 
         default:
             return state;
