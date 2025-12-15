@@ -3,19 +3,36 @@ import reactLogo from './assets/react.svg'
 import viteLogo from '/vite.svg'
 import './App.css'
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import AppHeader from './components/AppHeader'
+
+import AppHeader from './components/AppHeader';
 import AppRoutes from './routes/AppRoutes';
+import { getProfileAction } from './Redux/Auth/auth.action';
+import { CircularProgress, Box } from '@mui/material';
 
+import VerifyEmailModal from './components/auth/VerifyEmailModal';
+import { useDispatch, useSelector } from 'react-redux';
 
-
-import VerifyEmailModal from './components/auth/VerifyEmailModal'
 
 function App() {
 
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+
+  const { user } = useSelector(state => state.auth);
+
   const [searchParams] = useSearchParams();
   const [verifyModalOpen, setVerifyModalOpen] = useState(false);
   const [verifyToken, setVerifyToken] = useState(null);
+
+  const { isAuthChecked } = useSelector(state => state.auth);
+
+  useEffect(() => {
+    dispatch(getProfileAction());
+  }, [dispatch]);
+
+  useEffect(() => {
+    dispatch(getProfileAction());
+  }, [dispatch]);
 
   useEffect(() => {
     if (window.location.pathname === '/verify-email') {
@@ -29,13 +46,22 @@ function App() {
 
   const handleVerifySuccess = () => {
     setVerifyModalOpen(false);
-    navigate('/');
+    navigate('/dashboard');
   };
 
   const handleVerifyClose = () => {
     setVerifyModalOpen(false);
-    navigate('/');
+    navigate('/dashboard');
   };
+  
+
+  if (!isAuthChecked) {
+      return (
+          <Box sx={{ height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+              <CircularProgress /> 
+          </Box>
+      );
+  }
 
   return (
     <div>
