@@ -3,13 +3,14 @@ import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 import { Button, TextField, Alert, CircularProgress } from '@mui/material';
 import { useDispatch, useSelector } from 'react-redux';
-import { loginUserAction, clearErrorAction } from '../../Redux/Auth/auth.action';
-import { useNavigate } from 'react-router-dom';
+import { loginUserAction, clearErrorAction, initiateGoogleAuthAction } from '../../Redux/Auth/auth.action';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { GOOGLE_AUTH_FAILURE } from '../../Redux/Auth/auth.actionType';
 
 const initialValues = { usernameOrEmail: "", password: "" };
 const validationSchema = Yup.object({
   usernameOrEmail: Yup.string().required("* Username or Email is required"),
-  password: Yup.string().min(8, "* Password must be at least 8 characters").required("* Password is required")
+  password: Yup.string().min(6, "* Password must be at least 6 characters").required("* Password is required")
 });
 
 // const API_URL = 'http://localhost:8080/api/auth/login'
@@ -18,13 +19,29 @@ const Login = ({ onSuccess, onToggleView }) => {
 
     const dispatch = useDispatch();
     const navigate = useNavigate();
+    const location = useLocation
 
     const { loading, error, isAuthenticated } = useSelector((state) => state.auth);
 
     //clear error khi component mount
     useEffect(() => {
         dispatch(clearErrorAction());
-    }, [dispatch]);
+
+        const params = new URLSearchParams(location.search);
+        const errorParam = params.get('error');
+
+        if (errorParam === 'oauth_failed') {
+            dispatch({
+                type: GOOGLE_AUTH_FAILURE,
+                payload: {
+                    code: 'oauth_failed',
+                    message: 'Google authentication failed'
+                }  
+            });
+
+            navigate('/login', {replace: true});
+        }
+    }, [dispatch, location.search, navigate]);
 
     //chạy khi log in thành công
     useEffect(() => {
@@ -32,7 +49,7 @@ const Login = ({ onSuccess, onToggleView }) => {
             if (onSuccess) {
                 onSuccess();
             } else {
-                navigate('/')
+                navigate('/dashboard')
             }
         }
     }, [isAuthenticated, navigate, onSuccess]);
@@ -45,6 +62,10 @@ const Login = ({ onSuccess, onToggleView }) => {
             password: values.password
         }));
     };
+
+    const handleGoogleLogin = () => {
+        dispatch(initiateGoogleAuthAction());
+    }
 
     const getErrorMessage = () => {
         if (!error) return null;
@@ -61,6 +82,9 @@ const Login = ({ onSuccess, onToggleView }) => {
         }
         if (error.code === 'oauth_user') {
             return 'This account was created with Google. Please use Google login';
+        }
+        if (error.code === 'oauth_failed') {
+            return 'Login with google failed'
         }
         
         return error.message || 'Please try again'
@@ -99,9 +123,15 @@ const Login = ({ onSuccess, onToggleView }) => {
                     </div>
                     
                     <div className='text-right mx-4 m-2'>
-                        <a href='/forgot-password' className='text-sm text-blue-500 underline'>
+                        <span 
+                            onClick={() => {
+                                if(onSuccess) onSuccess();
+                                navigate('/forgot-password');
+                            }} 
+                            className='text-sm text-blue-500 underline cursor-pointer'
+                        >
                             Forgot password?
-                        </a>
+                        </span>
                     </div>
                     
                     <Button type='submit' variant='contained' sx={{backgroundColor: '#97AB7A', color: 'white'}}
@@ -124,8 +154,11 @@ const Login = ({ onSuccess, onToggleView }) => {
             <span className="px-3 text-gray-500 text-sm">or</span>
             <div className="flex-1 h-px bg-gray-300"></div>
         </div>
-
+        
+        {/* đổi trong oauth2 controller đoạn res.cookie từ result.access_token và result.refresh_token thành .accessToken và .refreshToken thì chạy được */}
         <Button
+            onClick={handleGoogleLogin}
+            disabled={loading}
             variant="outlined"
             color="black"
             fullWidth

@@ -1,6 +1,6 @@
 import React from 'react'
 import { Stack, Box, Typography, IconButton, Avatar, Button, CircularProgress, Tooltip, Menu, MenuItem, ListItemIcon } from '@mui/material';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { logoutUserAction } from '../../Redux/Auth/auth.action';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -34,6 +34,25 @@ const RightBar = ({ isOpen, setIsOpen }) => {
     const [anchorEl, setAnchorEl] = useState(null);
     const openMenu = Boolean(anchorEl);
 
+    const { user, loading } = useSelector(store => store.auth);
+
+    const getUserName = () => {
+        if (!user) return 'Guest';
+
+        return user.firstName || user.username || user.email?.splot('@')[0] || 'User';
+    };
+
+    const getAvatarUrl = () => {
+        return user?.profileImageUrl || 'https://i.pinimg.com/736x/64/1d/78/641d788c014292f33dddadf001e4f0af.jpg';
+    }
+
+    const getGreeting = () => {
+        const hour = new Date().getHours();
+
+        if (hour < 12) return 'Good Morning';
+        if (hour < 18) return 'Good Afternoon';
+        return 'Good Evening';
+    }
 
     
     const handleLogout = async () => {
@@ -65,7 +84,7 @@ const RightBar = ({ isOpen, setIsOpen }) => {
                 </IconButton>
 
                 <Avatar sx={{width: 40, height: 40, mt: 3, border: '2px solid #97A87A'}}
-                        src='https://i.pinimg.com/736x/64/1d/78/641d788c014292f33dddadf001e4f0af.jpg' />
+                        src={getAvatarUrl()} alt={getUserName()} />
                 
                 <Tooltip title="Logout" placement="left">
                     <IconButton onClick={handleLogout} sx={{ mt: 3, mb: 4, color: '#e05e60'}}>
@@ -117,15 +136,21 @@ const RightBar = ({ isOpen, setIsOpen }) => {
 
             <Stack  direction='column' spacing={2} alignItems='center'>
                 <Avatar sx={{width: 90, height: 90, marginBottom: '20px', border: '5px solid #97A87A'}} 
-                        src="https://i.pinimg.com/736x/64/1d/78/641d788c014292f33dddadf001e4f0af.jpg"/>
+                        src={getAvatarUrl()} alt={getUserName()}/>
                 
                 <Typography variant='h6' fontWeight='600' color='#525252'>
-                    Good Morning X
+                    {loading ? 'Loading...' : `${getGreeting()} ${getUserName()}`}
                 </Typography>
 
                 <Typography variant='body2' color='#525252' textAlign='center' maxWidth={250}>
                     Continue Your Journey And Achieve Your Target
                 </Typography>
+
+                {user?.email && (
+                    <Typography variant='caption' color='#999' textAlign='center'>
+                        {user.email}
+                    </Typography>
+                )}
 
                 <Stack direction='row' spacing={2} mt={2}>
                     <IconButton sx={{ border: '2px solid #eee', bgcolor: 'white' }}>

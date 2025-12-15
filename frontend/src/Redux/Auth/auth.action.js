@@ -12,7 +12,7 @@ import {
     RESEND_VERIFICATION_REQUEST, RESEND_VERIFICATION_SUCCESS, RESEND_VERIFICATION_FAILURE,
     FORGOT_PASSWORD_REQUEST, FORGOT_PASSWORD_SUCCESS, FORGOT_PASSWORD_FAILURE,
     RESET_PASSWORD_REQUEST, RESET_PASSWORD_SUCCESS, RESET_PASSWORD_FAILURE,
-    LOG_OUT, CLEAR_ERROR
+    LOG_OUT, CLEAR_ERROR, GOOGLE_AUTH_REQUEST, GOOGLE_AUTH_SUCCESS, GOOGLE_AUTH_FAILURE,
 } from "./auth.actionType";
 
 export const loginUserAction = (loginData, minDelay = 2000) => async (dispatch) => {
@@ -310,13 +310,14 @@ export const forgotPasswordAction = (email) => async (dispatch) => {
     }
 };
 
-export const resetPasswordAction = (token, newPassword) => async (dispatch) => {
+export const resetPasswordAction = (token, newPassword, confirmPassword) => async (dispatch) => {
     dispatch({type: RESET_PASSWORD_REQUEST});
     
     try {
         const {data} = await api.post('/auth/reset-password', {
             token,
-            newPassword
+            newPassword,
+            confirmPassword
         });
 
         console.log("Reset password success:", data);
@@ -359,3 +360,19 @@ export const logoutUserAction = (minDelay = 2000) => async (dispatch) => {
 export const clearErrorAction = () => (dispatch) => {
     dispatch({type: CLEAR_ERROR});
 };
+
+export const initiateGoogleAuthAction = () => (dispatch) => {
+    dispatch({ type: GOOGLE_AUTH_REQUEST });
+
+    try {
+        const API_BASE_URL = "http://localhost:3000";
+
+        window.location.href = `${API_BASE_URL}/api/oauth2/google`;
+    } catch (error) {
+        dispatch({
+            type: GOOGLE_AUTH_FAILURE,
+            payload: { message: "Failed to initiate Google Auth" }
+        });
+    }
+
+}
