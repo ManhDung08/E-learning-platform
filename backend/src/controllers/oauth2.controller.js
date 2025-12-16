@@ -23,14 +23,14 @@ const googleCallback = async (req, res, next) => {
 
     const isProd = process.env.NODE_ENV === "production";
 
-    res.cookie("access_token", result.access_token, {
+    res.cookie("access_token", result.accessToken, {
       httpOnly: true,
       secure: isProd,
       sameSite: "strict",
       maxAge: 3600000, // 1h
     });
 
-    res.cookie("refresh_token", result.refresh_token, {
+    res.cookie("refresh_token", result.refreshToken, {
       httpOnly: true,
       secure: isProd,
       sameSite: "strict",

@@ -1482,6 +1482,752 @@ const getSwaggerSpecs = () => {
               },
             },
           },
+          Quiz: {
+            type: "object",
+            description: "Quiz object with basic information",
+            properties: {
+              id: {
+                type: "integer",
+                example: 1,
+                description: "Quiz ID",
+              },
+              title: {
+                type: "string",
+                example: "JavaScript Basics Quiz",
+                description: "Quiz title",
+              },
+              questionCount: {
+                type: "integer",
+                example: 5,
+                description: "Number of questions in the quiz",
+              },
+              lastAttempt: {
+                type: "object",
+                nullable: true,
+                description: "User's last attempt (if any)",
+                properties: {
+                  id: {
+                    type: "integer",
+                    example: 1,
+                    description: "Attempt ID",
+                  },
+                  score: {
+                    type: "number",
+                    format: "float",
+                    example: 85.5,
+                    nullable: true,
+                    description: "Score percentage (null if not completed)",
+                  },
+                  completedAt: {
+                    type: "string",
+                    format: "date-time",
+                    nullable: true,
+                    example: "2023-12-01T10:30:00Z",
+                    description: "Completion timestamp (null if not completed)",
+                  },
+                  startedAt: {
+                    type: "string",
+                    format: "date-time",
+                    example: "2023-12-01T10:15:00Z",
+                    description: "Start timestamp",
+                  },
+                },
+              },
+            },
+            required: ["id", "title", "questionCount"],
+          },
+          QuizQuestion: {
+            type: "object",
+            description: "Quiz question with options",
+            properties: {
+              id: {
+                type: "integer",
+                example: 1,
+                description: "Question ID",
+              },
+              questionText: {
+                type: "string",
+                example:
+                  "What is the correct way to declare a variable in JavaScript?",
+                description: "Question text",
+              },
+              options: {
+                type: "array",
+                items: {
+                  type: "string",
+                },
+                example: [
+                  "var x = 5",
+                  "let x = 5",
+                  "const x = 5",
+                  "All of the above",
+                ],
+                description: "Answer options",
+              },
+              correctOption: {
+                type: "string",
+                example: "All of the above",
+                description:
+                  "Correct answer (only visible to instructors and admins)",
+              },
+            },
+            required: ["id", "questionText", "options"],
+          },
+          QuizDetail: {
+            type: "object",
+            description: "Complete quiz with questions and metadata",
+            properties: {
+              id: {
+                type: "integer",
+                example: 1,
+                description: "Quiz ID",
+              },
+              title: {
+                type: "string",
+                example: "JavaScript Basics Quiz",
+                description: "Quiz title",
+              },
+              lesson: {
+                type: "object",
+                description: "Lesson information",
+                properties: {
+                  id: {
+                    type: "integer",
+                    example: 1,
+                    description: "Lesson ID",
+                  },
+                  title: {
+                    type: "string",
+                    example: "JavaScript Variables",
+                    description: "Lesson title",
+                  },
+                  module: {
+                    type: "object",
+                    description: "Module information",
+                    properties: {
+                      id: {
+                        type: "integer",
+                        example: 1,
+                        description: "Module ID",
+                      },
+                      title: {
+                        type: "string",
+                        example: "Introduction to JavaScript",
+                        description: "Module title",
+                      },
+                      courseId: {
+                        type: "integer",
+                        example: 1,
+                        description: "Course ID",
+                      },
+                      course: {
+                        type: "object",
+                        description: "Course information",
+                        properties: {
+                          id: {
+                            type: "integer",
+                            example: 1,
+                            description: "Course ID",
+                          },
+                          title: {
+                            type: "string",
+                            example: "Complete JavaScript Course",
+                            description: "Course title",
+                          },
+                          isPublished: {
+                            type: "boolean",
+                            example: true,
+                            description: "Course publication status",
+                          },
+                        },
+                        required: ["id", "title", "isPublished"],
+                      },
+                    },
+                    required: ["id", "title", "courseId", "course"],
+                  },
+                },
+                required: ["id", "title", "module"],
+              },
+              questions: {
+                type: "array",
+                items: {
+                  $ref: "#/components/schemas/QuizQuestion",
+                },
+                description: "Quiz questions",
+              },
+              userAttempts: {
+                type: "array",
+                description: "User's previous attempts (if authenticated)",
+                items: {
+                  type: "object",
+                  properties: {
+                    id: {
+                      type: "integer",
+                      example: 1,
+                      description: "Attempt ID",
+                    },
+                    score: {
+                      type: "number",
+                      format: "float",
+                      example: 85.5,
+                      nullable: true,
+                      description: "Score percentage",
+                    },
+                    completedAt: {
+                      type: "string",
+                      format: "date-time",
+                      nullable: true,
+                      example: "2023-12-01T10:30:00Z",
+                      description: "Completion timestamp",
+                    },
+                    startedAt: {
+                      type: "string",
+                      format: "date-time",
+                      example: "2023-12-01T10:15:00Z",
+                      description: "Start timestamp",
+                    },
+                  },
+                  required: ["id", "startedAt"],
+                },
+              },
+            },
+            required: ["id", "title", "lesson", "questions"],
+          },
+          QuizAttempt: {
+            type: "object",
+            description: "Quiz attempt with result",
+            properties: {
+              id: {
+                type: "integer",
+                example: 1,
+                description: "Attempt ID",
+              },
+              userId: {
+                type: "integer",
+                example: 123,
+                description: "User ID",
+              },
+              quizId: {
+                type: "integer",
+                example: 1,
+                description: "Quiz ID",
+              },
+              score: {
+                type: "number",
+                format: "float",
+                example: 85.5,
+                nullable: true,
+                description: "Score percentage (null if not completed)",
+              },
+              startedAt: {
+                type: "string",
+                format: "date-time",
+                example: "2023-12-01T10:15:00Z",
+                description: "Start timestamp",
+              },
+              completedAt: {
+                type: "string",
+                format: "date-time",
+                nullable: true,
+                example: "2023-12-01T10:30:00Z",
+                description: "Completion timestamp",
+              },
+              quiz: {
+                type: "object",
+                description: "Quiz information",
+                properties: {
+                  id: {
+                    type: "integer",
+                    example: 1,
+                    description: "Quiz ID",
+                  },
+                  title: {
+                    type: "string",
+                    example: "JavaScript Basics Quiz",
+                    description: "Quiz title",
+                  },
+                  lesson: {
+                    type: "object",
+                    description: "Lesson information",
+                    properties: {
+                      id: {
+                        type: "integer",
+                        example: 1,
+                        description: "Lesson ID",
+                      },
+                      title: {
+                        type: "string",
+                        example: "JavaScript Variables",
+                        description: "Lesson title",
+                      },
+                    },
+                    required: ["id", "title"],
+                  },
+                },
+                required: ["id", "title"],
+              },
+              user: {
+                type: "object",
+                description: "User information (for instructor/admin views)",
+                properties: {
+                  id: {
+                    type: "integer",
+                    example: 123,
+                    description: "User ID",
+                  },
+                  username: {
+                    type: "string",
+                    example: "john_doe",
+                    description: "Username",
+                  },
+                  firstName: {
+                    type: "string",
+                    example: "John",
+                    description: "First name",
+                  },
+                  lastName: {
+                    type: "string",
+                    example: "Doe",
+                    description: "Last name",
+                  },
+                  email: {
+                    type: "string",
+                    format: "email",
+                    example: "john@example.com",
+                    description: "Email address",
+                  },
+                },
+                required: ["id", "username"],
+              },
+            },
+            required: ["id", "userId", "quizId", "startedAt"],
+          },
+          QuizzesResponse: {
+            type: "object",
+            description: "Response containing list of quizzes",
+            properties: {
+              success: {
+                type: "boolean",
+                example: true,
+                description: "Success status",
+              },
+              message: {
+                type: "string",
+                example: "Quizzes retrieved successfully",
+                description: "Response message",
+              },
+              data: {
+                type: "array",
+                items: {
+                  $ref: "#/components/schemas/Quiz",
+                },
+                description: "List of quizzes",
+              },
+            },
+            required: ["success", "message", "data"],
+          },
+          QuizDetailResponse: {
+            type: "object",
+            description: "Response containing quiz details",
+            properties: {
+              success: {
+                type: "boolean",
+                example: true,
+                description: "Success status",
+              },
+              message: {
+                type: "string",
+                example: "Quiz retrieved successfully",
+                description: "Response message",
+              },
+              data: {
+                $ref: "#/components/schemas/QuizDetail",
+              },
+            },
+            required: ["success", "message", "data"],
+          },
+          QuizResponse: {
+            type: "object",
+            description: "Response containing quiz information",
+            properties: {
+              success: {
+                type: "boolean",
+                example: true,
+                description: "Success status",
+              },
+              message: {
+                type: "string",
+                example: "Quiz created successfully",
+                description: "Response message",
+              },
+              data: {
+                $ref: "#/components/schemas/QuizDetail",
+              },
+            },
+            required: ["success", "message", "data"],
+          },
+          QuizAttemptResponse: {
+            type: "object",
+            description: "Response when starting a quiz attempt",
+            properties: {
+              success: {
+                type: "boolean",
+                example: true,
+                description: "Success status",
+              },
+              message: {
+                type: "string",
+                example: "Quiz attempt started successfully",
+                description: "Response message",
+              },
+              data: {
+                type: "object",
+                properties: {
+                  attemptId: {
+                    type: "integer",
+                    example: 1,
+                    description: "Attempt ID",
+                  },
+                  quiz: {
+                    type: "object",
+                    properties: {
+                      id: {
+                        type: "integer",
+                        example: 1,
+                        description: "Quiz ID",
+                      },
+                      title: {
+                        type: "string",
+                        example: "JavaScript Basics Quiz",
+                        description: "Quiz title",
+                      },
+                      questions: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          properties: {
+                            id: {
+                              type: "integer",
+                              example: 1,
+                              description: "Question ID",
+                            },
+                            questionText: {
+                              type: "string",
+                              example:
+                                "What is the correct way to declare a variable in JavaScript?",
+                              description: "Question text",
+                            },
+                            options: {
+                              type: "array",
+                              items: {
+                                type: "string",
+                              },
+                              example: [
+                                "var x = 5",
+                                "let x = 5",
+                                "const x = 5",
+                                "All of the above",
+                              ],
+                              description: "Answer options",
+                            },
+                          },
+                          required: ["id", "questionText", "options"],
+                        },
+                        description: "Quiz questions (without correct answers)",
+                      },
+                    },
+                    required: ["id", "title", "questions"],
+                  },
+                  startedAt: {
+                    type: "string",
+                    format: "date-time",
+                    example: "2023-12-01T10:15:00Z",
+                    description: "Start timestamp",
+                  },
+                },
+                required: ["attemptId", "quiz", "startedAt"],
+              },
+            },
+            required: ["success", "message", "data"],
+          },
+          QuizSubmissionResponse: {
+            type: "object",
+            description: "Response after submitting a quiz",
+            properties: {
+              success: {
+                type: "boolean",
+                example: true,
+                description: "Success status",
+              },
+              message: {
+                type: "string",
+                example: "Quiz attempt submitted successfully",
+                description: "Response message",
+              },
+              data: {
+                type: "object",
+                properties: {
+                  id: {
+                    type: "integer",
+                    example: 1,
+                    description: "Attempt ID",
+                  },
+                  score: {
+                    type: "number",
+                    format: "float",
+                    example: 85.5,
+                    description: "Score percentage",
+                  },
+                  correctAnswers: {
+                    type: "integer",
+                    example: 4,
+                    description: "Number of correct answers",
+                  },
+                  totalQuestions: {
+                    type: "integer",
+                    example: 5,
+                    description: "Total number of questions",
+                  },
+                  completedAt: {
+                    type: "string",
+                    format: "date-time",
+                    example: "2023-12-01T10:30:00Z",
+                    description: "Completion timestamp",
+                  },
+                  quiz: {
+                    type: "object",
+                    properties: {
+                      id: {
+                        type: "integer",
+                        example: 1,
+                        description: "Quiz ID",
+                      },
+                      title: {
+                        type: "string",
+                        example: "JavaScript Basics Quiz",
+                        description: "Quiz title",
+                      },
+                      lesson: {
+                        type: "object",
+                        properties: {
+                          id: {
+                            type: "integer",
+                            example: 1,
+                            description: "Lesson ID",
+                          },
+                          title: {
+                            type: "string",
+                            example: "JavaScript Variables",
+                            description: "Lesson title",
+                          },
+                        },
+                        required: ["id", "title"],
+                      },
+                    },
+                    required: ["id", "title", "lesson"],
+                  },
+                },
+                required: [
+                  "id",
+                  "score",
+                  "correctAnswers",
+                  "totalQuestions",
+                  "completedAt",
+                  "quiz",
+                ],
+              },
+            },
+            required: ["success", "message", "data"],
+          },
+          QuizAttemptsResponse: {
+            type: "object",
+            description: "Response containing paginated quiz attempts",
+            properties: {
+              success: {
+                type: "boolean",
+                example: true,
+                description: "Success status",
+              },
+              message: {
+                type: "string",
+                example: "Quiz attempts retrieved successfully",
+                description: "Response message",
+              },
+              data: {
+                type: "object",
+                properties: {
+                  attempts: {
+                    type: "array",
+                    items: {
+                      $ref: "#/components/schemas/QuizAttempt",
+                    },
+                    description: "List of quiz attempts",
+                  },
+                  pagination: {
+                    $ref: "#/components/schemas/Pagination",
+                  },
+                },
+                required: ["attempts", "pagination"],
+              },
+            },
+            required: ["success", "message", "data"],
+          },
+          QuizAttemptDetailResponse: {
+            type: "object",
+            description: "Response containing quiz attempt details",
+            properties: {
+              success: {
+                type: "boolean",
+                example: true,
+                description: "Success status",
+              },
+              message: {
+                type: "string",
+                example: "Quiz attempt retrieved successfully",
+                description: "Response message",
+              },
+              data: {
+                $ref: "#/components/schemas/QuizAttempt",
+              },
+            },
+            required: ["success", "message", "data"],
+          },
+          SupportTicket: {
+            type: "object",
+            description: "Support ticket object",
+            properties: {
+              id: {
+                type: "integer",
+                example: 12,
+                description: "Ticket ID",
+              },
+              userId: {
+                type: "integer",
+                example: 3,
+                description: "Owner user ID",
+              },
+              subject: {
+                type: "string",
+                example: "Cannot access purchased course",
+              },
+              message: {
+                type: "string",
+                example: "I bought the course but the lessons do not unlock.",
+              },
+              status: {
+                type: "string",
+                enum: ["open", "in_progress", "resolved", "closed"],
+                example: "open",
+              },
+              createdAt: {
+                type: "string",
+                format: "date-time",
+                example: "2024-12-10T08:30:00Z",
+              },
+            },
+            required: [
+              "id",
+              "userId",
+              "subject",
+              "message",
+              "status",
+              "createdAt",
+            ],
+          },
+          SupportTicketCreateRequest: {
+            type: "object",
+            required: ["subject", "message"],
+            properties: {
+              subject: {
+                type: "string",
+                minLength: 3,
+                maxLength: 100,
+                example: "Billing issue",
+              },
+              message: {
+                type: "string",
+                minLength: 5,
+                maxLength: 1000,
+                example:
+                  "My payment succeeded but the course is not in my library.",
+              },
+            },
+          },
+          SupportTicketStatusUpdateRequest: {
+            type: "object",
+            required: ["status"],
+            properties: {
+              status: {
+                type: "string",
+                enum: ["open", "in_progress", "resolved", "closed"],
+                example: "resolved",
+              },
+            },
+          },
+          SupportTicketPagination: {
+            type: "object",
+            properties: {
+              total: {
+                type: "integer",
+                example: 42,
+                description: "Total tickets matching the query",
+              },
+              page: {
+                type: "integer",
+                example: 1,
+                description: "Current page number",
+              },
+              limit: {
+                type: "integer",
+                example: 20,
+                description: "Items per page",
+              },
+              totalPages: {
+                type: "integer",
+                example: 3,
+                description: "Total number of pages",
+              },
+            },
+            required: ["total", "page", "limit", "totalPages"],
+          },
+          SupportTicketResponse: {
+            type: "object",
+            properties: {
+              success: {
+                type: "boolean",
+                example: true,
+              },
+              data: {
+                $ref: "#/components/schemas/SupportTicket",
+              },
+            },
+            required: ["success", "data"],
+          },
+          SupportTicketListResponse: {
+            type: "object",
+            properties: {
+              success: {
+                type: "boolean",
+                example: true,
+              },
+              data: {
+                type: "object",
+                properties: {
+                  items: {
+                    type: "array",
+                    items: {
+                      $ref: "#/components/schemas/SupportTicket",
+                    },
+                  },
+                  meta: {
+                    $ref: "#/components/schemas/SupportTicketPagination",
+                  },
+                },
+                required: ["items", "meta"],
+              },
+            },
+            required: ["success", "data"],
+          },
         },
       },
       security: [

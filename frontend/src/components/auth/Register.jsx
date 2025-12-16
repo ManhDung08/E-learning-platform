@@ -3,7 +3,9 @@ import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 import { Button, TextField, MenuItem, Alert } from '@mui/material';
 import { useDispatch, useSelector } from 'react-redux';
-import { registerUserAction, clearErrorAction } from '../../Redux/Auth/auth.action';
+import { registerUserAction, clearErrorAction, initiateGoogleAuthAction } from '../../Redux/Auth/auth.action';
+import { GET_PROFILE_FAILURE } from '../../Redux/Auth/auth.actionType';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const initialValues = { 
     username: "", 
@@ -47,6 +49,8 @@ const validationSchema = Yup.object({
 const Register = ({ onSuccess, onToggleView }) => {
   
     const dispatch = useDispatch();
+    const navigate = useNavigate();
+    const location = useLocation();
 
     const [registeredEmail, setRegisteredEmail] = useState('');
 
@@ -57,8 +61,23 @@ const Register = ({ onSuccess, onToggleView }) => {
 
     //clear error khi component mount
     useEffect(() => {
-        dispatch(clearErrorAction())
-    }, [dispatch])
+        dispatch(clearErrorAction());
+
+        const params = new URLSearchParams(location.search);
+        const errorParam = params.get('error');
+
+        if (errorParam === 'oath_failed') {
+            dispatch({
+                type: GET_PROFILE_FAILURE,
+                payload: {
+                    code: 'oauth_failed',
+                    message: 'Google sign-up failed.'
+                }
+            });
+            navigate('/register', {replace: true});
+
+        }
+    }, [dispatch, location.search, navigate])
 
     //hiện thông báo khi đăng ký thành công
     useEffect(() => {
@@ -96,6 +115,10 @@ const Register = ({ onSuccess, onToggleView }) => {
         }
 
         return error.message || 'Register failed, please try again.';
+    }
+
+    const handleGoogleLogin = () => {
+        dispatch(initiateGoogleAuthAction());
     }
 
     return (
@@ -328,6 +351,8 @@ const Register = ({ onSuccess, onToggleView }) => {
         </div>
 
         <Button
+            onClick={handleGoogleLogin}
+            disabled={loading}
             variant="outlined"
             color="black"
             fullWidth

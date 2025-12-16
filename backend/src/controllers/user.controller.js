@@ -14,6 +14,7 @@ const getMe = async (req, res, next) => {
       gender,
       dateOfBirth,
       phoneNumber,
+      role,
     } = user;
 
     return res.status(200).json({
@@ -27,6 +28,7 @@ const getMe = async (req, res, next) => {
         gender,
         dateOfBirth,
         phoneNumber,
+        role,
       },
     });
   } catch (error) {
@@ -192,6 +194,25 @@ const getAllUsers = async (req, res, next) => {
   }
 };
 
+const getPublicInstructors = async (req, res, next) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const search = req.query.search;
+
+    const result = await userService.getPublicInstructors(page, limit, search);
+
+    return res.status(200).json({
+      success: true,
+      data: result.instructors,
+      pagination: result.pagination,
+    });
+  } catch (error) {
+    console.error("Get public instructors error:", error);
+    next(error);
+  }
+};
+
 const deleteUser = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -214,5 +235,6 @@ export default {
   setPassword,
   createUser,
   getAllUsers,
+  getPublicInstructors,
   deleteUser,
 };

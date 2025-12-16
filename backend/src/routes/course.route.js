@@ -437,14 +437,14 @@ router.delete(
  *               $ref: '#/components/schemas/Error'
  */
 router.post(
-  "/:courseId/enroll",
+  "/:courseId/enrollments",
   isAuth(["student"]),
   courseController.enrollInCourse
 );
 
 /**
  * @swagger
- * /api/courses/{courseId}/unenroll:
+ * /api/courses/{courseId}/enrollments:
  *   delete:
  *     summary: Unenroll from a course
  *     tags: [Courses]
@@ -478,7 +478,7 @@ router.post(
  *               $ref: '#/components/schemas/Error'
  */
 router.delete(
-  "/:courseId/unenroll",
+  "/:courseId/enrollments",
   isAuth(["student"]),
   courseController.unenrollFromCourse
 );
@@ -528,7 +528,7 @@ router.delete(
  *               $ref: '#/components/schemas/Error'
  */
 router.get(
-  "/enrollments",
+  "/me/enrollments",
   isAuth(["student"]),
   courseQueryValidation,
   validate,
@@ -537,7 +537,7 @@ router.get(
 
 /**
  * @swagger
- * /api/courses/instructor/courses:
+ * /api/courses/me/courses:
  *   get:
  *     summary: Get instructor's courses
  *     tags: [Courses]
@@ -586,7 +586,7 @@ router.get(
  *               $ref: '#/components/schemas/Error'
  */
 router.get(
-  "/instructor/courses",
+  "/me/courses",
   isAuth(["instructor", "admin"]),
   courseQueryValidation,
   validate,

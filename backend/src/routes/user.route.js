@@ -5,6 +5,7 @@ import {
   changePasswordValidation,
   updateProfileValidation,
   getAllUsersValidation,
+  getPublicInstructorsValidation,
 } from "../validations/user.validation.js";
 import { isAuth } from "../middlewares/auth.middleware.js";
 import { validate } from "../middlewares/validate.middleware.js";
@@ -406,6 +407,94 @@ router.get(
   getAllUsersValidation,
   validate,
   userController.getAllUsers
+);
+
+/**
+ * @swagger
+ * /api/users/instructors:
+ *   get:
+ *     summary: Get all instructors (public)
+ *     tags: [User Management]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 10
+ *         description: Number of instructors per page (max 100)
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search instructors by username or name
+ *     responses:
+ *       200:
+ *         description: Instructors retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                         example: 1
+ *                       username:
+ *                         type: string
+ *                         example: instructor01
+ *                       firstName:
+ *                         type: string
+ *                         example: Jane
+ *                       lastName:
+ *                         type: string
+ *                         example: Doe
+ *                       profileImageUrl:
+ *                         type: string
+ *                         nullable: true
+ *                         example: "https://cdn.example.com/avatar.jpg"
+ *                       role:
+ *                         type: string
+ *                         example: instructor
+ *                       createdAt:
+ *                         type: string
+ *                         format: date-time
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     currentPage:
+ *                       type: integer
+ *                     totalPages:
+ *                       type: integer
+ *                     totalCount:
+ *                       type: integer
+ *                     limit:
+ *                       type: integer
+ *                     hasNextPage:
+ *                       type: boolean
+ *                     hasPreviousPage:
+ *                       type: boolean
+ */
+router.get(
+  "/instructors",
+  getPublicInstructorsValidation,
+  validate,
+  userController.getPublicInstructors
 );
 
 /**
