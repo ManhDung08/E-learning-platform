@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { User, Mail, Phone, Calendar, Users, BookOpen, Award, Lock, Check, Edit2, Save, X } from 'lucide-react';
 import InputField from '../components/InputField';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
+import CourseCard from '../components/courses/CourseCard';
 
 
 
@@ -550,8 +551,11 @@ function AccountProfile() {
                 <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-1">Khóa học đang học ({courses.length})</h2>
                 <div className="h-1 w-16 bg-blue-600 rounded-full mb-4 sm:mb-6"></div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                   {courses.map((course) => (
+                    <CourseCard key={course.id} course={course} />
+                  ))}
+                  {/* {courses.map((course) => (
                     <div
                       key={course.id}
                       className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
@@ -579,8 +583,8 @@ function AccountProfile() {
                           </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    </div> */}
+                  {/* ))} */}
                 </div>
               </div>
             )}

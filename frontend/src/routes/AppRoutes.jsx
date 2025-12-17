@@ -3,6 +3,7 @@ import React from "react";
 import { Routes, Route } from "react-router-dom";
 import HomePage from "../pages/Home/HomePage";
 import AccountProfile from "../pages/AccountProfile";
+import CourseDetailPage from "../pages/CourseDetail/CourseDetail";
 
 function AppRoutes() {
 
@@ -18,7 +19,7 @@ function AppRoutes() {
 
 
             <Route path='/profile' element={<AccountProfile />}></Route>
-            
+            <Route path="/course/:courseId/checkout" element={<CourseDetailPage />} />
 
 
         </Routes>
