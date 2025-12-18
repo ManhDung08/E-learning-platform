@@ -20,7 +20,7 @@ const router = Router();
 
 /**
  * @swagger
- * /api/courses:
+ * /api/course:
  *   get:
  *     summary: Get all courses
  *     tags: [Courses]
@@ -90,7 +90,7 @@ router.get(
 
 /**
  * @swagger
- * /api/courses/{courseId}:
+ * /api/course/{courseId}:
  *   get:
  *     summary: Get detailed course information (admin only - sees everything)
  *     tags: [Courses]
@@ -133,7 +133,7 @@ router.get("/:courseId", isAuth(["admin"]), courseController.getCourseById);
 
 /**
  * @swagger
- * /api/courses/slug/{slug}:
+ * /api/course/slug/{slug}:
  *   get:
  *     summary: Get course by slug (dynamic access based on user type)
  *     description: |
@@ -169,7 +169,7 @@ router.get("/slug/:slug", optionalAuth, courseController.getCourseBySlug);
 
 /**
  * @swagger
- * /api/courses:
+ * /api/course:
  *   post:
  *     summary: Create a new course
  *     tags: [Courses]
@@ -252,7 +252,7 @@ router.post(
 
 /**
  * @swagger
- * /api/courses/{courseId}:
+ * /api/course/{courseId}:
  *   put:
  *     summary: Update a course
  *     tags: [Courses]
@@ -338,7 +338,7 @@ router.put(
 
 /**
  * @swagger
- * /api/courses/{courseId}:
+ * /api/course/{courseId}:
  *   delete:
  *     summary: Delete a course
  *     tags: [Courses]
@@ -391,7 +391,7 @@ router.delete(
 
 /**
  * @swagger
- * /api/courses/{courseId}/enroll:
+ * /api/course/{courseId}/enroll:
  *   post:
  *     summary: Enroll in a course
  *     tags: [Courses]
@@ -444,7 +444,7 @@ router.post(
 
 /**
  * @swagger
- * /api/courses/{courseId}/enrollments:
+ * /api/course/{courseId}/enrollments:
  *   delete:
  *     summary: Unenroll from a course
  *     tags: [Courses]
@@ -485,7 +485,7 @@ router.delete(
 
 /**
  * @swagger
- * /api/courses/enrollments:
+ * /api/course/enrollments:
  *   get:
  *     summary: Get user's course enrollments
  *     tags: [Courses]
@@ -537,7 +537,7 @@ router.get(
 
 /**
  * @swagger
- * /api/courses/me/courses:
+ * /api/course/me/courses:
  *   get:
  *     summary: Get instructor's courses
  *     tags: [Courses]
