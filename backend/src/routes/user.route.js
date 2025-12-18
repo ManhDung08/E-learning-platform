@@ -22,7 +22,7 @@ const router = express.Router();
 
 /**
  * @swagger
- * /users/me:
+ * /api/user/me:
  *   get:
  *     summary: Get current user profile
  *     tags: [User Management]
@@ -47,7 +47,7 @@ router.get("/me", isAuth(), userController.getMe);
 
 /**
  * @swagger
- * /api/users/update-profile:
+ * /api/user/update-profile:
  *   put:
  *     summary: Update user profile
  *     tags: [User Management]
@@ -116,7 +116,7 @@ router.put(
 
 /**
  * @swagger
- * /api/users/upload-avatar:
+ * /api/user/upload-avatar:
  *   post:
  *     summary: Upload user avatar
  *     tags: [User Management]
@@ -167,11 +167,16 @@ router.put(
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post("/upload-avatar", isAuth(), ...uploadAvatar, userController.updateUserAvatar);
+router.post(
+  "/upload-avatar",
+  isAuth(),
+  ...uploadAvatar,
+  userController.updateUserAvatar
+);
 
 /**
  * @swagger
- * /api/users/delete-avatar:
+ * /api/user/delete-avatar:
  *   delete:
  *     summary: Delete user avatar
  *     tags: [User Management]
@@ -203,7 +208,7 @@ router.delete("/delete-avatar", isAuth(), userController.deleteUserAvatar);
 
 /**
  * @swagger
- * /api/users/change-password:
+ * /api/user/change-password:
  *   put:
  *     summary: Change user password
  *     tags: [User Management]
@@ -246,7 +251,7 @@ router.put(
 
 /**
  * @swagger
- * /api/users/set-password:
+ * /api/user/set-password:
  *   put:
  *     summary: Set password for OAuth users
  *     tags: [User Management]
@@ -280,8 +285,8 @@ router.put(
  *               $ref: '#/components/schemas/Error'
  */
 router.put(
-  "/set-password", 
-  isAuth(), 
+  "/set-password",
+  isAuth(),
   setPasswordValidation,
   validate,
   userController.setPassword
@@ -289,7 +294,7 @@ router.put(
 
 /**
  * @swagger
- * /api/users:
+ * /api/user:
  *   get:
  *     summary: Get all users with pagination, filtering, and search (Admin only)
  *     tags: [User Management]
@@ -411,7 +416,7 @@ router.get(
 
 /**
  * @swagger
- * /api/users/instructors:
+ * /api/user/instructors:
  *   get:
  *     summary: Get all instructors (public)
  *     tags: [User Management]
@@ -499,7 +504,7 @@ router.get(
 
 /**
  * @swagger
- * /api/users/{id}:
+ * /api/user/{id}:
  *   get:
  *     summary: Get user profile by ID (Admin only)
  *     tags: [User Management]
@@ -549,7 +554,7 @@ router.get("/:id", isAuth(["admin"]), userController.getUserProfileById);
 
 /**
  * @swagger
- * /api/users:
+ * /api/user:
  *   post:
  *     summary: Create new user (Admin only)
  *     tags: [User Management]
@@ -607,7 +612,7 @@ router.post("/", isAuth(["admin"]), userController.createUser);
 
 /**
  * @swagger
- * /api/users/{id}:
+ * /api/user/{id}:
  *   put:
  *     summary: Update user profile (Admin only)
  *     tags: [User Management]
@@ -678,7 +683,7 @@ router.put(
 
 /**
  * @swagger
- * /api/users/{id}:
+ * /api/user/{id}:
  *   delete:
  *     summary: Delete user (Admin only)
  *     tags: [User Management]
