@@ -3,6 +3,7 @@ import { NotFoundError } from "../errors/NotFoundError.js";
 import { PermissionError } from "../errors/PermissionError.js";
 import { ConflictError } from "../errors/ConflictError.js";
 import { BadRequestError } from "../errors/BadRequestError.js";
+import notificationService from "./notification.service.js";
 
 const getAllQuizzesForLesson = async (
   lessonId,
@@ -331,6 +332,17 @@ const createQuiz = async (lessonId, quizData, userId, userRole) => {
     });
   });
 
+  // Notify enrolled users about new quiz
+  await notificationService
+    .notifyEnrolledUsers(quiz.lesson.module.courseId, {
+      type: "course_update",
+      title: "New Quiz Available",
+      content: `A new quiz "${title}" has been added to "${quiz.lesson.module.course.title}". Test your knowledge!`,
+    })
+    .catch((err) => {
+      console.error("Failed to send quiz creation notifications:", err);
+    });
+
   const questionsWithParsedOptions = quiz.questions.map((question) => {
     let options = [];
     try {
@@ -579,6 +591,17 @@ const deleteQuiz = async (quizId, userId, userRole) => {
   await prisma.quiz.delete({
     where: { id: parsedQuizId },
   });
+
+  // Notify enrolled users about quiz deletion
+  await notificationService
+    .notifyEnrolledUsers(quiz.lesson.module.course.id, {
+      type: "course_update",
+      title: "Quiz Removed",
+      content: `A quiz "${quiz.title}" has been removed from the course.`,
+    })
+    .catch((err) => {
+      console.error("Failed to send quiz deletion notifications:", err);
+    });
 
   return { success: true, message: "Quiz deleted successfully" };
 };
@@ -898,7 +921,14 @@ const getQuizAttempt = async (attemptId, userId, userRole = "student") => {
   return attempt;
 };
 
-const getQuizAttempts = async (quizId, userId, userRole, page = 1, limit = 10, filters = {}) => {
+const getQuizAttempts = async (
+  quizId,
+  userId,
+  userRole,
+  page = 1,
+  limit = 10,
+  filters = {}
+) => {
   const parsedQuizId = parseInt(quizId);
 
   const quiz = await prisma.quiz.findUnique({
