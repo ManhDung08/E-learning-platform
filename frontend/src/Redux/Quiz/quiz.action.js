@@ -4,7 +4,15 @@ import {
     UPDATE_QUIZ_REQUEST, UPDATE_QUIZ_SUCCESS, UPDATE_QUIZ_FAILURE,
     DELETE_QUIZ_REQUEST, DELETE_QUIZ_SUCCESS, DELETE_QUIZ_FAILURE,
     GET_QUIZ_BY_ID_REQUEST, GET_QUIZ_BY_ID_SUCCESS, GET_QUIZ_BY_ID_FAILURE,
-    CLEAR_QUIZ_MESSAGE, CLEAR_QUIZ_ERROR, GET_ALL_QUIZZES_REQUEST, GET_ALL_QUIZZES_SUCCESS, GET_ALL_QUIZZES_FAILURE
+    CLEAR_QUIZ_MESSAGE, CLEAR_QUIZ_ERROR, GET_ALL_QUIZZES_REQUEST, GET_ALL_QUIZZES_SUCCESS, GET_ALL_QUIZZES_FAILURE,
+    START_QUIZ_ATTEMPT_REQUEST, START_QUIZ_ATTEMPT_SUCCESS, START_QUIZ_ATTEMPT_FAILURE,
+    SUBMIT_QUIZ_ATTEMPT_REQUEST, SUBMIT_QUIZ_ATTEMPT_SUCCESS, SUBMIT_QUIZ_ATTEMPT_FAILURE,
+    GET_QUIZ_ATTEMPT_REQUEST, GET_QUIZ_ATTEMPT_SUCCESS, GET_QUIZ_ATTEMPT_FAILURE,
+    RESET_QUIZ_STATE, 
+    CLEAR_QUIZ_RESULT,
+    GET_USER_QUIZ_ATTEMPTS_REQUEST, 
+    GET_USER_QUIZ_ATTEMPTS_SUCCESS, 
+    GET_USER_QUIZ_ATTEMPTS_FAILURE
 } from "./quiz.actionType";
 
 import { getCourseByIdAction } from "../Course/course.action"; 
@@ -91,5 +99,71 @@ export const getAllQuizzesForLessonAction = (lessonId) => async (dispatch) => {
     }
 };
 
+export const startQuizAttemptAction = (quizId) => async (dispatch) => {
+    dispatch({ type: START_QUIZ_ATTEMPT_REQUEST });
+    try {
+        const { data } = await api.post(`/quiz/${quizId}/attempts`);
+
+        dispatch({ type: START_QUIZ_ATTEMPT_SUCCESS, payload: data.data });
+        console.log("Start quiz: ", data.data);
+    } catch (error) {
+        dispatch({
+            type: START_QUIZ_ATTEMPT_FAILURE,
+            payload: error.response?.data?.message || "Failed to start quiz"
+        })
+    }
+}
+
+export const submitQuizAttemptAction = (attemptId, answers) => async (dispatch) => {
+    dispatch({ type: SUBMIT_QUIZ_ATTEMPT_REQUEST });
+    try {
+        const { data } = await api.put(`/quiz/attempts/${attemptId}`, { answers });
+        
+        dispatch({ type: SUBMIT_QUIZ_ATTEMPT_SUCCESS, payload: data.data });
+        console.log("Submit quiz success:", data.data);
+    } catch (error) {
+        dispatch({ 
+            type: SUBMIT_QUIZ_ATTEMPT_FAILURE,
+            payload: error.response?.data?.message || "Failed to submit quiz"
+         });
+
+    }
+};
+
+export const getQuizAttemptByIdAction = (attemptId) => async (dispatch) => {
+    dispatch({ type: GET_QUIZ_ATTEMPT_REQUEST });
+    try {
+        const { data } = await api.get(`/quiz/attempts/${attemptId}`);
+        dispatch({ type: GET_QUIZ_ATTEMPT_SUCCESS, payload: data.data });
+    } catch (error) {
+        dispatch({
+            type: GET_QUIZ_ATTEMPT_FAILURE,
+            payload: error.response?.data?.message || "Failed to fetch attempt quiz"
+        });
+    }
+};
+
+export const getUserQuizAttemptsAction = () => async (dispatch) => {
+    dispatch({ type: GET_USER_QUIZ_ATTEMPTS_REQUEST });
+    try {
+        const { data } = await api.get(`/quiz/me/attempts`);
+        
+        console.log("User attempts fetched:", data.data.attempts);
+        
+        dispatch({ 
+            type: GET_USER_QUIZ_ATTEMPTS_SUCCESS, 
+            payload: data.data.attempts 
+        });
+    } catch (error) {
+        dispatch({ 
+            type: GET_USER_QUIZ_ATTEMPTS_FAILURE, 
+            payload: error.response?.data?.message || "Failed to fetch user attempts" 
+        });
+    }
+};
+
 export const clearQuizMessage = () => (dispatch) => dispatch({ type: CLEAR_QUIZ_MESSAGE });
 export const clearQuizError = () => (dispatch) => dispatch({ type: CLEAR_QUIZ_ERROR });
+
+export const clearQuizResult = () => (dispatch) => dispatch({ type: CLEAR_QUIZ_RESULT });
+export const resetQuizState = () => (dispatch) => dispatch({ type: RESET_QUIZ_STATE });

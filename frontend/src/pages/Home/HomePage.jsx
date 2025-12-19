@@ -1,6 +1,6 @@
 import {React, useState, useEffect, useRef } from 'react'
 import Register from '../../components/auth/Register'
-import { Grid } from '@mui/material'
+import { Grid, useMediaQuery, useTheme } from '@mui/material'
 import { Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from '../../components/bar/Sidebar';
 import MiddleHome from './MiddleHome';
@@ -16,6 +16,7 @@ import TransactionManagement from '../Admin/TransactionManagement';
 import Settings from '../Admin/Settings';
 import InstructorCourses from '../Instructor/InstructorCourses';
 import SearchResultsPage from '../../components/search/SearchResults';
+import LessonQuiz from '../../components/lesson/LessonQuiz';
 
 const HomePage = () => {
   
@@ -25,18 +26,26 @@ const HomePage = () => {
   const isStudent = user?.role === 'student';
 
   const [isRightBarOpen, setIsRightBarOpen] = useState(true);
-  const leftSidebarSize = 2;
 
   const scrollRef = useRef(null);
   const { pathname } = useLocation();
+  const theme = useTheme();
+
+  const isLgScreen = useMediaQuery(theme.breakpoints.up('lg'));
+
+  //nếu lg thì để full còn không thì 0.8 hiện mỗi icon
+  const leftSidebarSize = isLgScreen ? 2.2 : 0.8;
+
+  const isSidebarCollapsed = !isLgScreen;
 
   let rightBarSize = 0;
-
   if (isLoggedIn) {
-    rightBarSize = isRightBarOpen ? 2.5 : 0.5;
+    rightBarSize = isRightBarOpen ? (isLgScreen ? 2.5 : 0) : (isLgScreen ? 0.6 : 0);
   }
 
   const mainContentGridSize = 12 - leftSidebarSize - rightBarSize;
+
+  const rightBarMinWidth = isRightBarOpen ? '280px' : '70px';
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -49,21 +58,21 @@ const HomePage = () => {
     <div style={{height: 'calc(100vh - 65px)', overflow: 'hidden'}}>
       <Grid container spacing={0} wrap='nowrap' sx={{height: '100%'}}>
         {/* phần sidebar, màn bé thì chiếm 0 grid, màn to thì chiếm 2.5*/}
-        <Grid size={{ xs: 0, lg: leftSidebarSize }} sx={{display: { xs: 'none', lg: 'block', height: '100%', overflowY: 'hidden', position: 'relative', zIndex: 1 }}}>
+        <Grid size={{ xs: leftSidebarSize }} sx={{display: 'block', height: '100%', overflowY: 'hidden', position: 'relative', zIndex: 1, transition: 'all 0.3s ease', minWidth: isSidebarCollapsed ? '65px' : '260px' }}>
           <div className='h-screen' style={{display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
-            <Sidebar />
+            <Sidebar isCollapsed={isSidebarCollapsed}/>
           </div>
         </Grid>
 
         {/* main content, màn bé thfi chiếm trọn 12 phần grid, to thì chiếm 7 */}
-        <Grid size={{ xs: 12, lg: mainContentGridSize }} style={{display: 'flex', justifyContent: 'center'}} 
-              sx={{bgcolor: '#F4F6F8', height: '100%', overflowY: 'auto', position: 'relative', overflowX: 'hidden', zIndex: 2}} ref={scrollRef}>    
+        <Grid size={{ xs: mainContentGridSize }} style={{display: 'flex', justifyContent: 'center'}} 
+              sx={{bgcolor: '#F4F6F8', height: '100%', overflowY: 'auto', position: 'relative', overflowX: 'hidden', zIndex: 2, transition: 'all 0.3s ease'}} ref={scrollRef}>    
           <div style={{width: '100%', padding: '10px',  minHeight: '100%', display: 'flex', flexDirection: 'column'}}>
             <Routes>
               {/* student */}
               <Route path="/" element={<MiddleHome />} />
               <Route path="/dashboard" element={<MiddleHome />} />
-              <Route path="/courses" element={<MiddleHome />} />
+              <Route path="/courses" element={<LessonQuiz lessonId={1} />} />
               <Route path="/instructors" element={<InstructorsList />} />
               <Route path="/instructors/:id" element={<InstructorDetail />} />
               <Route path="/search" element={<SearchResultsPage />} />
@@ -94,8 +103,9 @@ const HomePage = () => {
         </Grid>
 
         {isLoggedIn && (
-          <Grid size={{ xs: 0, lg: rightBarSize }} sx={{display: { xs: 'none', lg: 'block', height: '100%', overflowY: 'auto', position: 'relative', zIndex: 1 }}}>
-          <div>
+          <Grid size={{ xs: rightBarSize }} sx={{display: { xs: 'none', lg: 'block'}, height: '100%', overflowY: 'auto', 
+                position: 'relative', zIndex: 1, transition: 'all 0.3s ease', minWidth: isLgScreen ? rightBarMinWidth : 0}}>
+          <div style={{ height: '100%', width: '100%' }}> 
             <RightBar isOpen={isRightBarOpen} setIsOpen={setIsRightBarOpen}/>
           </div>
         </Grid>

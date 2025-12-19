@@ -2,6 +2,7 @@ import React, { useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom';
 import Card from '@mui/material/Card';
 import { useSelector } from 'react-redux';
+import { Tooltip } from '@mui/material'; //hover vào icon hiện chữ
 
 //role student
 import HomeIcon from '@mui/icons-material/GridView';
@@ -105,7 +106,7 @@ const adminMenu = [
 ]
 
 
-const Sidebar = () => {
+const Sidebar = ({ isCollapsed }) => {
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -124,20 +125,63 @@ const Sidebar = () => {
     }
     
     return (
-        <Card elevation={0} className='card w-[85%] flex flex-col justify-between bg-white shadow-lg rounded-2xl' sx={{overflowX: 'hidden', height: 'calc(100vh - 65px)'}}>
-            <div>
-                <div className='px-10 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider'>
-                    {role} MENU
-                </div>
-                <div className='space-y-2 px-3 flex flex-col'>
+        <Card 
+              elevation={0} 
+              sx={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  backgroundColor: 'white',
+                  borderRadius: '16px',
+                  overflowX: 'hidden', 
+                  height: 'calc(100vh - 65px)',
+                  transition: 'all 0.3s ease-in-out',
+                  width: isCollapsed ? '70px' : '85%',
+                  alignItems: isCollapsed ? 'center' : 'stretch',
+                  py: isCollapsed ? 2 : 0,
+                  minWidth: '70px',
+                  flexShrink: 0,
+              }}
+          >
+            <div className={`w-full ${isCollapsed ? 'flex flex-col items-center' : ''}`}>
+                {!isCollapsed ? (
+                    <div className='px-10 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider transition-opacity duration-300'>
+                        {role} MENU
+                    </div>
+                ) : (
+                    <div className='h-4'></div>
+                )}
+                <div className={`space-y-2 flex flex-col ${isCollapsed ? 'px-2 items-center' : 'px-3'}`}>
                     {menuItems.map((item) => {
                         const active = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path));
+                        
+                        const content = (
+                          <div onClick={() => handleNavigate(item)}
+                              className={`flex items-center rounded-full cursor-pointer font-medium transition-all duration-200
+                                          ${isCollapsed 
+                                        ? 'justify-center p-3 w-10 h-10'
+                                        : 'space-x-3 px-4 py-3'
+                                    }
+                                    ${active 
+                                        ? 'bg-[#dadecd] text-[#97A87A]' 
+                                        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-800'
+                                    }
+                          `}>
+                            <span className={isCollapsed ? "" : ""}>{item.icon}</span>
+                            
+                            {!isCollapsed && (
+                              <p className='whitespace-nowrap'>{item.title}</p>
+                            )}
+                          </div>
+                        );
+
                         return (
-                            <div key={item.title} onClick={() => handleNavigate(item)}
-                                className={`flex items-center space-x-3 px-4 py-3 rounded-full cursor-pointer font-medium
-                                           transition-all duration-200 ${active ? 'bg-[#dadecd] text-[#97A87A] ' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-800'}`}>
-                                {item.icon}
-                                <p className=''>{item.title}</p>
+                            <div key={item.title}>
+                              {isCollapsed ? (
+                                    <Tooltip title={item.title} placement="right" arrow>
+                                        {content}
+                                    </Tooltip>
+                                ) : content}            
                             </div>
                         )
                     } )}
@@ -145,9 +189,11 @@ const Sidebar = () => {
             </div>
 
             
-            <div className='mb-4'>
-                <HelpCenterCard/>
-            </div>
+            {!isCollapsed && (
+                <div className='mb-4 transition-opacity duration-300'>
+                    <HelpCenterCard />
+                </div>
+            )}
         </Card>
     )
 }
