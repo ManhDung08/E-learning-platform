@@ -12,7 +12,8 @@ import {
     CLEAR_QUIZ_RESULT,
     GET_USER_QUIZ_ATTEMPTS_REQUEST, 
     GET_USER_QUIZ_ATTEMPTS_SUCCESS, 
-    GET_USER_QUIZ_ATTEMPTS_FAILURE
+    GET_USER_QUIZ_ATTEMPTS_FAILURE,
+    GET_ALL_ATTEMPTS_OF_QUIZ_REQUEST, GET_ALL_ATTEMPTS_OF_QUIZ_SUCCESS, GET_ALL_ATTEMPTS_OF_QUIZ_FAILURE
 } from "./quiz.actionType";
 
 import { getCourseByIdAction } from "../Course/course.action"; 
@@ -161,6 +162,27 @@ export const getUserQuizAttemptsAction = () => async (dispatch) => {
         });
     }
 };
+
+export const getAllAttemptsOfQuizAction = (quizId, page = 1) => async (dispatch) => {
+    dispatch({ type: GET_ALL_ATTEMPTS_OF_QUIZ_REQUEST });
+    try {
+        const { data } = await api.get(`/quiz/${quizId}/attempts?page=${page}`);
+        
+        console.log("Get all attempts success:", data.data);
+
+        dispatch({ 
+            type: GET_ALL_ATTEMPTS_OF_QUIZ_SUCCESS, 
+            payload: data.data 
+        });
+        
+    } catch (error) {
+        console.error("Get all attempts error:", error);
+        dispatch({ 
+            type: GET_ALL_ATTEMPTS_OF_QUIZ_FAILURE, 
+            payload: error.response?.data?.message || "Failed to fetch quiz attempts" 
+        });
+    }
+}  
 
 export const clearQuizMessage = () => (dispatch) => dispatch({ type: CLEAR_QUIZ_MESSAGE });
 export const clearQuizError = () => (dispatch) => dispatch({ type: CLEAR_QUIZ_ERROR });

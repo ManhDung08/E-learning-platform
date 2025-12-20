@@ -9,7 +9,8 @@ import {
     GET_QUIZ_ATTEMPT_REQUEST, GET_QUIZ_ATTEMPT_SUCCESS, GET_QUIZ_ATTEMPT_FAILURE,
     RESET_QUIZ_STATE, CLEAR_QUIZ_RESULT, GET_USER_QUIZ_ATTEMPTS_REQUEST, 
     GET_USER_QUIZ_ATTEMPTS_SUCCESS, 
-    GET_USER_QUIZ_ATTEMPTS_FAILURE
+    GET_USER_QUIZ_ATTEMPTS_FAILURE,
+    GET_ALL_ATTEMPTS_OF_QUIZ_REQUEST, GET_ALL_ATTEMPTS_OF_QUIZ_SUCCESS, GET_ALL_ATTEMPTS_OF_QUIZ_FAILURE
 } from "./quiz.actionType";
 
 const initialState = {
@@ -20,6 +21,7 @@ const initialState = {
     message: null,
     success: false,
     userAttempts: [],
+    instructorQuizAttempts: [], //lịch sử làm bài của tất cả học viên
     currentAttempt: null,
     quizResult: null
 };
@@ -39,6 +41,13 @@ export const quizReducer = (state = initialState, action) => {
                 loading: true, 
                 error: null, 
                 success: false 
+            };
+        
+        case GET_ALL_ATTEMPTS_OF_QUIZ_REQUEST:
+            return {
+                ...state,
+                loading: true,
+                error: null
             };
 
         case GET_ALL_QUIZZES_REQUEST:
@@ -119,6 +128,14 @@ export const quizReducer = (state = initialState, action) => {
                 loading: false, 
                 userAttempts: action.payload
             };
+        
+        case GET_ALL_ATTEMPTS_OF_QUIZ_SUCCESS:
+            return {
+                ...state,
+                loading: false,
+                instructorQuizAttempts: action.payload.attempts || [],
+                error: null
+            }
 
         case CREATE_QUIZ_FAILURE:
         case UPDATE_QUIZ_FAILURE:
@@ -139,6 +156,13 @@ export const quizReducer = (state = initialState, action) => {
 
         case GET_USER_QUIZ_ATTEMPTS_FAILURE:
             return { ...state, loading: false, error: action.payload };
+
+        case GET_ALL_ATTEMPTS_OF_QUIZ_FAILURE:
+            return {
+                ...state,
+                loading: false,
+                error: action.payload
+            }
 
         case CLEAR_QUIZ_MESSAGE:
             return { ...state, message: null, success: false };

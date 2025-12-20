@@ -17,6 +17,7 @@ import Settings from '../Admin/Settings';
 import InstructorCourses from '../Instructor/InstructorCourses';
 import SearchResultsPage from '../../components/search/SearchResults';
 import LessonQuiz from '../../components/lesson/LessonQuiz';
+import AllQuizAttempts from '../../components/lesson/AllQuizAttempts';
 
 const HomePage = () => {
   
@@ -72,7 +73,7 @@ const HomePage = () => {
               {/* student */}
               <Route path="/" element={<MiddleHome />} />
               <Route path="/dashboard" element={<MiddleHome />} />
-              <Route path="/courses" element={<LessonQuiz lessonId={1} />} />
+              <Route path="/courses" element={<LessonQuiz lessonId={13} />} />
               <Route path="/instructors" element={<InstructorsList />} />
               <Route path="/instructors/:id" element={<InstructorDetail />} />
               <Route path="/search" element={<SearchResultsPage />} />
@@ -81,12 +82,14 @@ const HomePage = () => {
               <Route path="/instructor/courses" element={<InstructorCourses />} />
               <Route path="/instructor/students" element={<div>My Students</div>} />
               <Route path="/instructor/revenue" element={<div>Revenue Page</div>} />
+              <Route path="/instructor/quiz/:quizId/attempts" element={<AllQuizAttempts />} />
               {/* admin */}
               <Route path="/admin/dashboard" element={<Dashboard />}/>
               <Route path="/admin/users" element={<UserManagement />} />
               <Route path="/admin/courses" element={<CourseManagement />} />
               <Route path="/admin/transactions" element={<TransactionManagement />} />
-              <Route path="/admin/settings" element={<Settings />} />
+              <Route path="/admin/quiz/:quizId/attempts" element={<AllQuizAttempts />} />
+
 
             </Routes>
 

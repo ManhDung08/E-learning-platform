@@ -19,6 +19,7 @@ import VideoLibraryIcon from '@mui/icons-material/VideoLibrary';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import SettingsIcon from '@mui/icons-material/Settings';
 import AnalyticsIcon from '@mui/icons-material/Analytics';
+import EditDocumentIcon from '@mui/icons-material/EditDocument';
 
 import HelpCenterCard from './HelpCenterCard';
 const studentMenu = [
@@ -97,11 +98,6 @@ const adminMenu = [
     title: "Transactions",
     icon: <AttachMoneyIcon />,
     path: "/admin/transactions"
-  },
-  {
-    title: "System Settings",
-    icon: <SettingsIcon />,
-    path: "/admmin/settings"
   }
 ]
 
