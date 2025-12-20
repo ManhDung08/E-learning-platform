@@ -91,6 +91,14 @@ const CourseFormModal = ({ open, handleClose, handleSubmit, initialData, loading
             return;
         }
 
+        const submitData = {
+            title: formData.title,
+            description: formData.description,
+            priceVND: formData.priceVND,
+            instructorId: formData.instructorId,
+            isPublished: formData.isPublished 
+        };
+
         handleSubmit(formData);
     }
 
