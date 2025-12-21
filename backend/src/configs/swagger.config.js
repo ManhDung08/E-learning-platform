@@ -1230,11 +1230,13 @@ const getSwaggerSpecs = () => {
                 example: "In this lesson, we'll learn about variables...",
                 description: "Lesson content",
               },
-              videoKey: {
+              videoUrl: {
                 type: "string",
                 nullable: true,
-                example: "lessons/course1/module1/lesson1.mp4",
-                description: "Video file key in storage",
+                example:
+                  "https://bucket.s3.amazonaws.com/lessons/video.mp4?X-Amz-Algorithm=...",
+                description:
+                  "Pre-signed URL for video streaming (expires in 1 hour)",
               },
               durationSeconds: {
                 type: "integer",
@@ -1374,11 +1376,6 @@ const getSwaggerSpecs = () => {
                   "In this lesson, we will explore the concept of variables...",
                 description: "Lesson content",
               },
-              videoKey: {
-                type: "string",
-                example: "lessons/course1/module1/lesson1.mp4",
-                description: "Video file key in storage (optional)",
-              },
               durationSeconds: {
                 type: "integer",
                 minimum: 0,
@@ -1412,12 +1409,6 @@ const getSwaggerSpecs = () => {
                 example:
                   "In this updated lesson, we will dive deeper into variables...",
                 description: "Lesson content",
-              },
-              videoKey: {
-                type: "string",
-                nullable: true,
-                example: "lessons/course1/module1/lesson1_updated.mp4",
-                description: "Video file key in storage",
               },
               durationSeconds: {
                 type: "integer",
@@ -2251,7 +2242,15 @@ const getSwaggerSpecs = () => {
                 example: "2024-12-11T09:00:00Z",
               },
             },
-            required: ["id", "userId", "type", "title", "content", "isRead", "createdAt"],
+            required: [
+              "id",
+              "userId",
+              "type",
+              "title",
+              "content",
+              "isRead",
+              "createdAt",
+            ],
           },
           NotificationPagination: {
             type: "object",

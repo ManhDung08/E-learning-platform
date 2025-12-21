@@ -73,11 +73,23 @@ const UserManagement = () => {
 
     const handleFormSubmit = (formData) => {
         if (selectedUser) {
-            dispatch(updateUserAction(formData));
+            const userId = parseInt(selectedUser.id, 10); 
+            
+            const dataToUpdate = { ...formData };
+
+            if (!dataToUpdate.password || dataToUpdate.password.trim() === "") {
+                delete dataToUpdate.password;
+            }
+
+            if (dataToUpdate.email === selectedUser.email) {
+                delete dataToUpdate.email;
+            }
+
+            dispatch(updateUserAction(userId, dataToUpdate)); 
         } else {
             dispatch(createUserAction(formData));
         }
-    }
+    };
 
     const columns = [
         { field: 'id', headerName: 'ID', width: 70 },

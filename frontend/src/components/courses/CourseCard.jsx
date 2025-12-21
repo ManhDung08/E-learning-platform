@@ -13,7 +13,7 @@ const CourseCard = ({ course }) => {
         // CHUYỂN TRANG NGAY LẬP TỨC
         // Trang chi tiết sẽ tự động gọi API dựa trên Slug/ID trên URL
         if (course.slug) {
-            navigate(`/course/${course.slug}`); 
+            navigate(`/course/${course.slug}`);
         } else {
             navigate(`/course/${course.id}`);
         }
@@ -26,16 +26,18 @@ const CourseCard = ({ course }) => {
     const instructorAvatar = course.instructor?.profileImageUrl
         || 'https://www.w3schools.com/howto/img_avatar.png';
 
-    // ... (Phần return giao diện giữ nguyên như cũ, rất tốt rồi) ...
+
+
     return (
-        <div 
-            onClick={handleCardClick} 
+        <div
+            onClick={handleCardClick}
             style={{
                 backgroundColor: 'white', borderRadius: '16px', overflow: 'hidden',
                 width: '280px', cursor: 'pointer', transition: 'all 0.3s ease',
                 boxShadow: '0 2px 8px rgba(0,0,0,0.08)', margin: '10px',
                 display: 'flex', flexDirection: 'column', height: '360px'
             }}
+
             onMouseEnter={(e) => {
                 e.currentTarget.style.transform = 'translateY(-4px)';
                 e.currentTarget.style.boxShadow = '0 12px 20px rgba(0,0,0,0.12)';
@@ -88,7 +90,7 @@ const CourseCard = ({ course }) => {
 
                     <span style={{ fontSize: '12px', color: '#999', display: 'flex', alignItems: 'center', gap: '4px' }}>
                         <i className="fa-regular fa-file-lines"></i>
-                        {course.modules?.length || 0} bài học
+                        {course.totalLessons || 0} bài học
                     </span>
                 </div>
             </div>

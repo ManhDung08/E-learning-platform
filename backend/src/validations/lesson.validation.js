@@ -63,16 +63,6 @@ export const updateLessonValidation = [
       return true;
     }),
 
-  body("videoKey")
-    .optional()
-    .custom((value) => {
-      if (value === null || value === undefined) return true;
-      if (typeof value !== "string") {
-        throw new Error("Video key must be a string or null");
-      }
-      return true;
-    }),
-
   body("durationSeconds")
     .optional()
     .custom((value) => {

@@ -3,7 +3,7 @@ import { NotFoundError } from "../errors/NotFoundError.js";
 import { PermissionError } from "../errors/PermissionError.js";
 import { BadRequestError } from "../errors/BadRequestError.js";
 import { ConflictError } from "../errors/ConflictError.js";
-import { deleteFromS3 } from "../utils/aws.util.js";
+import { deleteFromS3, getSignedUrlForDownload } from "../utils/aws.util.js";
 import notificationService from "./notification.service.js";
 
 const getModulesByCourseId = async (courseId, userId, userRole) => {
@@ -218,29 +218,48 @@ const getModuleById = async (moduleId, userId, userRole) => {
           ? Math.round((completedLessons / module.lessons.length) * 100)
           : 0,
     }),
-    lessons: module.lessons.map((lesson) => {
-      const lessonData = {
-        id: lesson.id,
-        title: lesson.title,
-        content: lesson.content,
-        videoKey: lesson.videoKey,
-        durationSeconds: lesson.durationSeconds,
-        order: lesson.order,
-        createdAt: lesson.createdAt,
-        updatedAt: lesson.updatedAt,
-      };
+    lessons: await Promise.all(
+      module.lessons.map(async (lesson) => {
+        // Generate signed URL for video if exists
+        let videoUrl = null;
+        if (lesson.videoKey) {
+          try {
+            videoUrl = await getSignedUrlForDownload(
+              lesson.videoKey,
+              "lessonVideo",
+              3600
+            );
+          } catch (error) {
+            console.error(
+              `Failed to generate video URL for lesson ${lesson.id}:`,
+              error
+            );
+          }
+        }
 
-      if (shouldIncludeProgress) {
-        const progress = progressMap.get(lesson.id);
-        lessonData.progress = progress || {
-          isCompleted: false,
-          lastAccessedAt: null,
-          watchedSeconds: null,
+        const lessonData = {
+          id: lesson.id,
+          title: lesson.title,
+          content: lesson.content,
+          videoUrl: videoUrl,
+          durationSeconds: lesson.durationSeconds,
+          order: lesson.order,
+          createdAt: lesson.createdAt,
+          updatedAt: lesson.updatedAt,
         };
-      }
 
-      return lessonData;
-    }),
+        if (shouldIncludeProgress) {
+          const progress = progressMap.get(lesson.id);
+          lessonData.progress = progress || {
+            isCompleted: false,
+            lastAccessedAt: null,
+            watchedSeconds: null,
+          };
+        }
+
+        return lessonData;
+      })
+    ),
   };
 };
 
