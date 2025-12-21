@@ -2228,6 +2228,124 @@ const getSwaggerSpecs = () => {
             },
             required: ["success", "data"],
           },
+          Notification: {
+            type: "object",
+            description: "User notification",
+            properties: {
+              id: { type: "integer", example: 5 },
+              userId: { type: "integer", example: 2 },
+              type: {
+                type: "string",
+                enum: ["system", "course_update", "new_comment"],
+                example: "system",
+              },
+              title: { type: "string", example: "Course Purchase Successful" },
+              content: {
+                type: "string",
+                example: "You have successfully enrolled in 'Node.js Basics'.",
+              },
+              isRead: { type: "boolean", example: false },
+              createdAt: {
+                type: "string",
+                format: "date-time",
+                example: "2024-12-11T09:00:00Z",
+              },
+            },
+            required: ["id", "userId", "type", "title", "content", "isRead", "createdAt"],
+          },
+          NotificationPagination: {
+            type: "object",
+            properties: {
+              total: { type: "integer", example: 24 },
+              page: { type: "integer", example: 1 },
+              limit: { type: "integer", example: 20 },
+              totalPages: { type: "integer", example: 2 },
+            },
+            required: ["total", "page", "limit", "totalPages"],
+          },
+          NotificationResponse: {
+            type: "object",
+            properties: {
+              success: { type: "boolean", example: true },
+              data: { $ref: "#/components/schemas/Notification" },
+            },
+            required: ["success", "data"],
+          },
+          NotificationListResponse: {
+            type: "object",
+            properties: {
+              success: { type: "boolean", example: true },
+              data: {
+                type: "object",
+                properties: {
+                  items: {
+                    type: "array",
+                    items: { $ref: "#/components/schemas/Notification" },
+                  },
+                  meta: { $ref: "#/components/schemas/NotificationPagination" },
+                },
+                required: ["items", "meta"],
+              },
+            },
+            required: ["success", "data"],
+          },
+          NotificationBulkUpdateResponse: {
+            type: "object",
+            properties: {
+              success: { type: "boolean", example: true },
+              data: {
+                type: "object",
+                properties: {
+                  updatedCount: { type: "integer", example: 5 },
+                },
+                required: ["updatedCount"],
+              },
+            },
+            required: ["success", "data"],
+          },
+          NotificationUnreadCountResponse: {
+            type: "object",
+            properties: {
+              success: { type: "boolean", example: true },
+              data: {
+                type: "object",
+                properties: {
+                  unreadCount: { type: "integer", example: 12 },
+                },
+                required: ["unreadCount"],
+              },
+            },
+            required: ["success", "data"],
+          },
+          NotificationDeleteResponse: {
+            type: "object",
+            properties: {
+              success: { type: "boolean", example: true },
+              data: {
+                type: "object",
+                properties: {
+                  deleted: { type: "boolean", example: true },
+                  id: { type: "integer", example: 5 },
+                },
+                required: ["deleted", "id"],
+              },
+            },
+            required: ["success", "data"],
+          },
+          NotificationBulkDeleteResponse: {
+            type: "object",
+            properties: {
+              success: { type: "boolean", example: true },
+              data: {
+                type: "object",
+                properties: {
+                  deletedCount: { type: "integer", example: 15 },
+                },
+                required: ["deletedCount"],
+              },
+            },
+            required: ["success", "data"],
+          },
         },
       },
       security: [

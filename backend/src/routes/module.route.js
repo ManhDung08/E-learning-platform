@@ -22,7 +22,7 @@ const router = Router();
 
 /**
  * @swagger
- * /api/modules/course/{courseId}:
+ * /api/module/course/{courseId}:
  *   get:
  *     summary: Get all modules for a course
  *     tags: [Modules]
@@ -74,7 +74,7 @@ router.get(
 
 /**
  * @swagger
- * /api/modules/{moduleId}:
+ * /api/module/{moduleId}:
  *   get:
  *     summary: Get a specific module by ID
  *     tags: [Modules]
@@ -124,7 +124,7 @@ router.get(
 
 /**
  * @swagger
- * /api/modules/course/{courseId}:
+ * /api/module/course/{courseId}:
  *   post:
  *     summary: Create a new module
  *     tags: [Modules]
@@ -194,7 +194,7 @@ router.post(
 
 /**
  * @swagger
- * /api/modules/{moduleId}:
+ * /api/module/{moduleId}:
  *   put:
  *     summary: Update a module
  *     tags: [Modules]
@@ -264,7 +264,7 @@ router.put(
 
 /**
  * @swagger
- * /api/modules/{moduleId}:
+ * /api/module/{moduleId}:
  *   delete:
  *     summary: Delete a module
  *     tags: [Modules]
@@ -319,7 +319,7 @@ router.delete(
 
 /**
  * @swagger
- * /api/modules/course/{courseId}/reorder:
+ * /api/module/course/{courseId}/reorder:
  *   patch:
  *     summary: Reorder modules in a course
  *     tags: [Modules]

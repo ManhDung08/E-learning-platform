@@ -4,6 +4,7 @@ import { PermissionError } from "../errors/PermissionError.js";
 import { BadRequestError } from "../errors/BadRequestError.js";
 import { ConflictError } from "../errors/ConflictError.js";
 import { deleteFromS3 } from "../utils/aws.util.js";
+import notificationService from "./notification.service.js";
 
 const getModulesByCourseId = async (courseId, userId, userRole) => {
   const parsedCourseId = parseInt(courseId);
@@ -313,6 +314,17 @@ const createModule = async (courseId, moduleData, userId, userRole) => {
     });
   });
 
+  // Notify enrolled users about new module
+  await notificationService
+    .notifyEnrolledUsers(parsedCourseId, {
+      type: "course_update",
+      title: "New Module Added",
+      content: `A new module "${title}" has been added to the course "${course.title}".`,
+    })
+    .catch((err) => {
+      console.error("Failed to send module creation notifications:", err);
+    });
+
   return {
     ...newModule,
     course: {
@@ -512,6 +524,17 @@ const deleteModule = async (moduleId, userId, userRole) => {
       );
     }
   }
+
+  // Notify enrolled users about module deletion
+  await notificationService
+    .notifyEnrolledUsers(module.courseId, {
+      type: "course_update",
+      title: "Module Removed",
+      content: `The module "${module.title}" has been removed from the course "${module.course.title}".`,
+    })
+    .catch((err) => {
+      console.error("Failed to send module deletion notifications:", err);
+    });
 
   return {
     success: true,

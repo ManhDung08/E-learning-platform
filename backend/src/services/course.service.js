@@ -10,6 +10,7 @@ import { NotFoundError } from "../errors/NotFoundError.js";
 import { PermissionError } from "../errors/PermissionError.js";
 import { ConflictError } from "../errors/ConflictError.js";
 import { BadRequestError } from "../errors/BadRequestError.js";
+import notificationService from "./notification.service.js";
 
 const getAllCourses = async (page = 1, limit = 10, filters = {}) => {
   const skip = (page - 1) * limit;
@@ -980,6 +981,39 @@ const updateCourse = async (
     );
   }
 
+  // Send notifications to enrolled users when course is published
+  const wasPublished = course.isPublished;
+  const isNowPublished = updatedCourse.isPublished;
+
+  if (!wasPublished && isNowPublished) {
+    // Course was just published - notify all enrolled users
+    await notificationService
+      .notifyEnrolledUsers(parseInt(courseId), {
+        type: "course_update",
+        title: "Course Published",
+        content: `The course "${updatedCourse.title}" has been published! You can now start learning.`,
+      })
+      .catch((err) => {
+        console.error("Failed to send course publication notifications:", err);
+      });
+  } else if (
+    wasPublished &&
+    isNowPublished &&
+    title &&
+    title !== course.title
+  ) {
+    // Course title was updated - notify enrolled users
+    await notificationService
+      .notifyEnrolledUsers(parseInt(courseId), {
+        type: "course_update",
+        title: "Course Updated",
+        content: `The course "${updatedCourse.title}" has been updated with new information.`,
+      })
+      .catch((err) => {
+        console.error("Failed to send course update notifications:", err);
+      });
+  }
+
   return {
     ...updatedCourse,
     ...(uploadedImageKey && {
@@ -1106,6 +1140,18 @@ const enrollInCourse = async (courseId, userId) => {
       },
     },
   });
+
+  // Notify user about successful enrollment
+  await notificationService
+    .createNotification({
+      userId: parseInt(userId),
+      type: "course_update",
+      title: "Enrollment Successful",
+      content: `You have successfully enrolled in "${enrollment.course.title}". Start learning now!`,
+    })
+    .catch((err) => {
+      console.error("Failed to send enrollment notification:", err);
+    });
 
   return enrollment;
 };
@@ -1408,6 +1454,737 @@ const checkPaymentForCourse = async (courseId, userId) => {
   }
 };
 
+const createReview = async (courseId, userId, reviewData) => {
+  // Check if course exists and is published
+  const course = await prisma.course.findUnique({
+    where: { id: courseId },
+    select: { id: true, isPublished: true },
+  });
+
+  if (!course) {
+    throw new NotFoundError("Course", "course_not_found");
+  }
+
+  if (!course.isPublished) {
+    throw new BadRequestError(
+      "Cannot review an unpublished course",
+      "course_not_published"
+    );
+  }
+
+  // Check if user is enrolled in the course
+  const enrollment = await prisma.enrollment.findUnique({
+    where: {
+      userId_courseId: {
+        userId: userId,
+        courseId: courseId,
+      },
+    },
+  });
+
+  if (!enrollment) {
+    throw new PermissionError(
+      "You must be enrolled in the course to write a review",
+      "not_enrolled"
+    );
+  }
+
+  // Create the review
+  const review = await prisma.review.create({
+    data: {
+      userId: userId,
+      courseId: courseId,
+      rating: reviewData.rating,
+      comment: reviewData.comment,
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          username: true,
+          firstName: true,
+          lastName: true,
+          profileImageUrl: true,
+        },
+      },
+      course: {
+        select: {
+          id: true,
+          title: true,
+          instructorId: true,
+        },
+      },
+    },
+  });
+
+  // Notify instructor about new review
+  await notificationService
+    .createNotification({
+      userId: review.course.instructorId,
+      type: "new_comment",
+      title: "New Course Review",
+      content: `${review.user.username} left a ${reviewData.rating}-star review on "${review.course.title}".`,
+    })
+    .catch((err) => {
+      console.error("Failed to send review notification:", err);
+    });
+
+  // Generate signed URL for user profile image
+  let userImageUrl = review.user.profileImageUrl;
+  if (review.user.profileImageUrl) {
+    const key = extractKeyFromUrl(review.user.profileImageUrl);
+    userImageUrl = await getSignedUrlForDownload(key, "avatar", 3600);
+  }
+
+  return {
+    ...review,
+    user: {
+      ...review.user,
+      profileImageUrl: userImageUrl,
+    },
+  };
+};
+
+const updateReview = async (courseId, reviewId, userId, reviewData) => {
+  // Check if review exists
+  const review = await prisma.review.findUnique({
+    where: { id: reviewId },
+    include: {
+      course: true,
+    },
+  });
+
+  if (!review) {
+    throw new NotFoundError("Review", "review_not_found");
+  }
+
+  // Check if review belongs to the course
+  if (review.courseId !== courseId) {
+    throw new BadRequestError(
+      "Review does not belong to this course",
+      "invalid_course"
+    );
+  }
+
+  // Check if user owns the review
+  if (review.userId !== userId) {
+    throw new PermissionError(
+      "You can only update your own reviews",
+      "not_review_owner"
+    );
+  }
+
+  // Update the review
+  const updatedReview = await prisma.review.update({
+    where: { id: reviewId },
+    data: {
+      ...(reviewData.rating && { rating: reviewData.rating }),
+      ...(reviewData.comment && { comment: reviewData.comment }),
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          username: true,
+          firstName: true,
+          lastName: true,
+          profileImageUrl: true,
+        },
+      },
+    },
+  });
+
+  // Generate signed URL for user profile image
+  let userImageUrl = updatedReview.user.profileImageUrl;
+  if (updatedReview.user.profileImageUrl) {
+    const key = extractKeyFromUrl(updatedReview.user.profileImageUrl);
+    userImageUrl = await getSignedUrlForDownload(key, "avatar", 3600);
+  }
+
+  return {
+    ...updatedReview,
+    user: {
+      ...updatedReview.user,
+      profileImageUrl: userImageUrl,
+    },
+  };
+};
+
+const deleteReview = async (courseId, reviewId, userId, userRole) => {
+  // Check if review exists
+  const review = await prisma.review.findUnique({
+    where: { id: reviewId },
+  });
+
+  if (!review) {
+    throw new NotFoundError("Review", "review_not_found");
+  }
+
+  // Check if review belongs to the course
+  if (review.courseId !== courseId) {
+    throw new BadRequestError(
+      "Review does not belong to this course",
+      "invalid_course"
+    );
+  }
+
+  // Check permissions: user must own the review or be an admin
+  if (review.userId !== userId && userRole !== "admin") {
+    throw new PermissionError(
+      "You can only delete your own reviews",
+      "not_review_owner"
+    );
+  }
+
+  // Delete the review
+  await prisma.review.delete({
+    where: { id: reviewId },
+  });
+
+  return { message: "Review deleted successfully" };
+};
+
+const getCourseReviews = async (
+  courseId,
+  page = 1,
+  limit = 10,
+  filters = {}
+) => {
+  // Check if course exists
+  const course = await prisma.course.findUnique({
+    where: { id: courseId },
+    select: { id: true, isPublished: true },
+  });
+
+  if (!course) {
+    throw new NotFoundError("Course", "course_not_found");
+  }
+
+  const skip = (page - 1) * limit;
+  const where = { courseId: courseId };
+
+  // Filter by rating if provided
+  if (filters.rating) {
+    where.rating = parseInt(filters.rating);
+  }
+
+  const orderBy = {
+    [filters.sortBy || "createdAt"]: filters.sortOrder || "desc",
+  };
+
+  const [reviews, totalCount] = await Promise.all([
+    prisma.review.findMany({
+      where,
+      orderBy,
+      skip,
+      take: limit,
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+            firstName: true,
+            lastName: true,
+            profileImageUrl: true,
+          },
+        },
+      },
+    }),
+    prisma.review.count({ where }),
+  ]);
+
+  // Generate signed URLs for user profile images
+  const reviewsWithSignedUrls = await Promise.all(
+    reviews.map(async (review) => {
+      let userImageUrl = review.user.profileImageUrl;
+      if (review.user.profileImageUrl) {
+        const key = extractKeyFromUrl(review.user.profileImageUrl);
+        userImageUrl = await getSignedUrlForDownload(key, "avatar", 3600);
+      }
+      return {
+        ...review,
+        user: {
+          ...review.user,
+          profileImageUrl: userImageUrl,
+        },
+      };
+    })
+  );
+
+  return {
+    reviews: reviewsWithSignedUrls,
+    pagination: {
+      currentPage: page,
+      totalPages: Math.ceil(totalCount / limit),
+      totalCount,
+      limit,
+      hasNextPage: page < Math.ceil(totalCount / limit),
+      hasPreviousPage: page > 1,
+    },
+  };
+};
+
+const createDiscussion = async (courseId, userId, discussionData) => {
+  // Check if course exists and is published
+  const course = await prisma.course.findUnique({
+    where: { id: courseId },
+    select: { id: true, isPublished: true },
+  });
+
+  if (!course) {
+    throw new NotFoundError("Course", "course_not_found");
+  }
+
+  if (!course.isPublished) {
+    throw new BadRequestError(
+      "Cannot create discussion in an unpublished course",
+      "course_not_published"
+    );
+  }
+
+  // Check if user is enrolled in the course
+  const enrollment = await prisma.enrollment.findUnique({
+    where: {
+      userId_courseId: {
+        userId: userId,
+        courseId: courseId,
+      },
+    },
+  });
+
+  if (!enrollment) {
+    throw new PermissionError(
+      "You must be enrolled in the course to create a discussion",
+      "not_enrolled"
+    );
+  }
+
+  // Create the discussion
+  const discussion = await prisma.discussion.create({
+    data: {
+      userId: userId,
+      courseId: courseId,
+      content: discussionData.content,
+      parentId: null,
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          username: true,
+          firstName: true,
+          lastName: true,
+          profileImageUrl: true,
+        },
+      },
+      replies: {
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true,
+              firstName: true,
+              lastName: true,
+              profileImageUrl: true,
+            },
+          },
+        },
+        orderBy: { createdAt: "asc" },
+      },
+      course: {
+        select: {
+          id: true,
+          title: true,
+          instructorId: true,
+        },
+      },
+    },
+  });
+
+  // Notify instructor about new discussion (if user is not the instructor)
+  if (discussion.course.instructorId !== userId) {
+    await notificationService
+      .createNotification({
+        userId: discussion.course.instructorId,
+        type: "new_comment",
+        title: "New Discussion in Your Course",
+        content: `${discussion.user.username} started a discussion in "${discussion.course.title}".`,
+      })
+      .catch((err) => {
+        console.error("Failed to send discussion notification:", err);
+      });
+  }
+
+  // Generate signed URL for user profile image
+  let userImageUrl = discussion.user.profileImageUrl;
+  if (discussion.user.profileImageUrl) {
+    const key = extractKeyFromUrl(discussion.user.profileImageUrl);
+    userImageUrl = await getSignedUrlForDownload(key, "avatar", 3600);
+  }
+
+  return {
+    ...discussion,
+    user: {
+      ...discussion.user,
+      profileImageUrl: userImageUrl,
+    },
+  };
+};
+
+const replyToDiscussion = async (courseId, discussionId, userId, replyData) => {
+  // Check if parent discussion exists
+  const parentDiscussion = await prisma.discussion.findUnique({
+    where: { id: discussionId },
+    include: {
+      course: true,
+    },
+  });
+
+  if (!parentDiscussion) {
+    throw new NotFoundError("Discussion", "discussion_not_found");
+  }
+
+  // Check if discussion belongs to the course
+  if (parentDiscussion.courseId !== courseId) {
+    throw new BadRequestError(
+      "Discussion does not belong to this course",
+      "invalid_course"
+    );
+  }
+
+  // Check if user is enrolled in the course
+  const enrollment = await prisma.enrollment.findUnique({
+    where: {
+      userId_courseId: {
+        userId: userId,
+        courseId: courseId,
+      },
+    },
+  });
+
+  if (!enrollment) {
+    throw new PermissionError(
+      "You must be enrolled in the course to reply to discussions",
+      "not_enrolled"
+    );
+  }
+
+  // Create the reply
+  const reply = await prisma.discussion.create({
+    data: {
+      userId: userId,
+      courseId: courseId,
+      content: replyData.content,
+      parentId: discussionId,
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          username: true,
+          firstName: true,
+          lastName: true,
+          profileImageUrl: true,
+        },
+      },
+      parent: {
+        select: {
+          userId: true,
+          user: {
+            select: {
+              username: true,
+            },
+          },
+        },
+      },
+      course: {
+        select: {
+          title: true,
+        },
+      },
+    },
+  });
+
+  // Notify the original discussion author about the reply (if not replying to themselves)
+  if (reply.parent.userId !== userId) {
+    await notificationService
+      .createNotification({
+        userId: reply.parent.userId,
+        type: "new_comment",
+        title: "New Reply to Your Discussion",
+        content: `${reply.user.username} replied to your discussion in "${reply.course.title}".`,
+      })
+      .catch((err) => {
+        console.error("Failed to send reply notification:", err);
+      });
+  }
+
+  // Generate signed URL for user profile image
+  let userImageUrl = reply.user.profileImageUrl;
+  if (reply.user.profileImageUrl) {
+    const key = extractKeyFromUrl(reply.user.profileImageUrl);
+    userImageUrl = await getSignedUrlForDownload(key, "avatar", 3600);
+  }
+
+  return {
+    ...reply,
+    user: {
+      ...reply.user,
+      profileImageUrl: userImageUrl,
+    },
+  };
+};
+
+const updateDiscussion = async (
+  courseId,
+  discussionId,
+  userId,
+  discussionData
+) => {
+  // Check if discussion exists
+  const discussion = await prisma.discussion.findUnique({
+    where: { id: discussionId },
+    include: {
+      course: true,
+    },
+  });
+
+  if (!discussion) {
+    throw new NotFoundError("Discussion", "discussion_not_found");
+  }
+
+  // Check if discussion belongs to the course
+  if (discussion.courseId !== courseId) {
+    throw new BadRequestError(
+      "Discussion does not belong to this course",
+      "invalid_course"
+    );
+  }
+
+  // Check if user owns the discussion
+  if (discussion.userId !== userId) {
+    throw new PermissionError(
+      "You can only update your own discussions",
+      "not_discussion_owner"
+    );
+  }
+
+  // Update the discussion
+  const updatedDiscussion = await prisma.discussion.update({
+    where: { id: discussionId },
+    data: {
+      content: discussionData.content,
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          username: true,
+          firstName: true,
+          lastName: true,
+          profileImageUrl: true,
+        },
+      },
+      replies: {
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true,
+              firstName: true,
+              lastName: true,
+              profileImageUrl: true,
+            },
+          },
+        },
+        orderBy: { createdAt: "asc" },
+      },
+    },
+  });
+
+  // Generate signed URLs for user profile images
+  let userImageUrl = updatedDiscussion.user.profileImageUrl;
+  if (updatedDiscussion.user.profileImageUrl) {
+    const key = extractKeyFromUrl(updatedDiscussion.user.profileImageUrl);
+    userImageUrl = await getSignedUrlForDownload(key, "avatar", 3600);
+  }
+
+  const repliesWithSignedUrls = await Promise.all(
+    updatedDiscussion.replies.map(async (reply) => {
+      let replyUserImageUrl = reply.user.profileImageUrl;
+      if (reply.user.profileImageUrl) {
+        const key = extractKeyFromUrl(reply.user.profileImageUrl);
+        replyUserImageUrl = await getSignedUrlForDownload(key, "avatar", 3600);
+      }
+      return {
+        ...reply,
+        user: {
+          ...reply.user,
+          profileImageUrl: replyUserImageUrl,
+        },
+      };
+    })
+  );
+
+  return {
+    ...updatedDiscussion,
+    user: {
+      ...updatedDiscussion.user,
+      profileImageUrl: userImageUrl,
+    },
+    replies: repliesWithSignedUrls,
+  };
+};
+
+const deleteDiscussion = async (courseId, discussionId, userId, userRole) => {
+  // Check if discussion exists
+  const discussion = await prisma.discussion.findUnique({
+    where: { id: discussionId },
+  });
+
+  if (!discussion) {
+    throw new NotFoundError("Discussion", "discussion_not_found");
+  }
+
+  // Check if discussion belongs to the course
+  if (discussion.courseId !== courseId) {
+    throw new BadRequestError(
+      "Discussion does not belong to this course",
+      "invalid_course"
+    );
+  }
+
+  // Check permissions: user must own the discussion or be an admin
+  if (discussion.userId !== userId && userRole !== "admin") {
+    throw new PermissionError(
+      "You can only delete your own discussions",
+      "not_discussion_owner"
+    );
+  }
+
+  // Delete the discussion (will cascade to replies)
+  await prisma.discussion.delete({
+    where: { id: discussionId },
+  });
+
+  return { message: "Discussion deleted successfully" };
+};
+
+const getCourseDiscussions = async (
+  courseId,
+  page = 1,
+  limit = 10,
+  filters = {}
+) => {
+  // Check if course exists
+  const course = await prisma.course.findUnique({
+    where: { id: courseId },
+    select: { id: true, isPublished: true },
+  });
+
+  if (!course) {
+    throw new NotFoundError("Course", "course_not_found");
+  }
+
+  const skip = (page - 1) * limit;
+  const where = {
+    courseId: courseId,
+    parentId: null, // Only get top-level discussions
+  };
+
+  const orderBy = {
+    [filters.sortBy || "createdAt"]: filters.sortOrder || "desc",
+  };
+
+  const [discussions, totalCount] = await Promise.all([
+    prisma.discussion.findMany({
+      where,
+      orderBy,
+      skip,
+      take: limit,
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+            firstName: true,
+            lastName: true,
+            profileImageUrl: true,
+          },
+        },
+        replies: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                username: true,
+                firstName: true,
+                lastName: true,
+                profileImageUrl: true,
+              },
+            },
+          },
+          orderBy: { createdAt: "asc" },
+        },
+      },
+    }),
+    prisma.discussion.count({ where }),
+  ]);
+
+  // Generate signed URLs for all user profile images
+  const discussionsWithSignedUrls = await Promise.all(
+    discussions.map(async (discussion) => {
+      let userImageUrl = discussion.user.profileImageUrl;
+      if (discussion.user.profileImageUrl) {
+        const key = extractKeyFromUrl(discussion.user.profileImageUrl);
+        userImageUrl = await getSignedUrlForDownload(key, "avatar", 3600);
+      }
+
+      const repliesWithSignedUrls = await Promise.all(
+        discussion.replies.map(async (reply) => {
+          let replyUserImageUrl = reply.user.profileImageUrl;
+          if (reply.user.profileImageUrl) {
+            const key = extractKeyFromUrl(reply.user.profileImageUrl);
+            replyUserImageUrl = await getSignedUrlForDownload(
+              key,
+              "avatar",
+              3600
+            );
+          }
+          return {
+            ...reply,
+            user: {
+              ...reply.user,
+              profileImageUrl: replyUserImageUrl,
+            },
+          };
+        })
+      );
+
+      return {
+        ...discussion,
+        user: {
+          ...discussion.user,
+          profileImageUrl: userImageUrl,
+        },
+        replies: repliesWithSignedUrls,
+      };
+    })
+  );
+
+  return {
+    discussions: discussionsWithSignedUrls,
+    pagination: {
+      currentPage: page,
+      totalPages: Math.ceil(totalCount / limit),
+      totalCount,
+      limit,
+      hasNextPage: page < Math.ceil(totalCount / limit),
+      hasPreviousPage: page > 1,
+    },
+  };
+};
+
 export default {
   getAllCourses,
   getCourseById,
@@ -1420,4 +2197,15 @@ export default {
   getUserEnrollments,
   getInstructorCourses,
   checkPaymentForCourse,
+  // Review functions
+  createReview,
+  updateReview,
+  deleteReview,
+  getCourseReviews,
+  // Discussion functions
+  createDiscussion,
+  replyToDiscussion,
+  updateDiscussion,
+  deleteDiscussion,
+  getCourseDiscussions,
 };
