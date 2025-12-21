@@ -7,6 +7,7 @@ import {
   uploadToS3,
   deleteFromS3,
   extractKeyFromUrl,
+  getSignedUrlForDownload,
 } from "../utils/aws.util.js";
 import notificationService from "./notification.service.js";
 
@@ -83,29 +84,48 @@ const getLessonsByModuleId = async (moduleId, userId, userRole) => {
     progressMap = new Map(allProgress.map((p) => [p.lessonId, p]));
   }
 
-  return lessons.map((lesson) => {
-    const lessonData = {
-      id: lesson.id,
-      title: lesson.title,
-      content: lesson.content,
-      videoKey: lesson.videoKey,
-      durationSeconds: lesson.durationSeconds,
-      order: lesson.order,
-      createdAt: lesson.createdAt,
-      updatedAt: lesson.updatedAt,
-    };
+  return await Promise.all(
+    lessons.map(async (lesson) => {
+      // Generate signed URL for video if exists
+      let videoUrl = null;
+      if (lesson.videoKey) {
+        try {
+          videoUrl = await getSignedUrlForDownload(
+            lesson.videoKey,
+            "lessonVideo",
+            3600
+          );
+        } catch (error) {
+          console.error(
+            `Failed to generate video URL for lesson ${lesson.id}:`,
+            error
+          );
+        }
+      }
 
-    if (shouldIncludeProgress) {
-      const progress = progressMap.get(lesson.id);
-      lessonData.progress = progress || {
-        isCompleted: false,
-        lastAccessedAt: null,
-        watchedSeconds: null,
+      const lessonData = {
+        id: lesson.id,
+        title: lesson.title,
+        content: lesson.content,
+        videoUrl: videoUrl,
+        durationSeconds: lesson.durationSeconds,
+        order: lesson.order,
+        createdAt: lesson.createdAt,
+        updatedAt: lesson.updatedAt,
       };
-    }
 
-    return lessonData;
-  });
+      if (shouldIncludeProgress) {
+        const progress = progressMap.get(lesson.id);
+        lessonData.progress = progress || {
+          isCompleted: false,
+          lastAccessedAt: null,
+          watchedSeconds: null,
+        };
+      }
+
+      return lessonData;
+    })
+  );
 };
 
 const getLessonById = async (lessonId, userId, userRole) => {
@@ -177,12 +197,29 @@ const getLessonById = async (lessonId, userId, userRole) => {
     });
   }
 
+  // Generate signed URL for video if exists
+  let videoUrl = null;
+  if (lesson.videoKey) {
+    try {
+      videoUrl = await getSignedUrlForDownload(
+        lesson.videoKey,
+        "lessonVideo",
+        3600
+      );
+    } catch (error) {
+      console.error(
+        `Failed to generate video URL for lesson ${lesson.id}:`,
+        error
+      );
+    }
+  }
+
   return {
     id: lesson.id,
     moduleId: lesson.moduleId,
     title: lesson.title,
     content: lesson.content,
-    videoKey: lesson.videoKey,
+    videoUrl: videoUrl,
     durationSeconds: lesson.durationSeconds,
     order: lesson.order,
     createdAt: lesson.createdAt,
@@ -272,7 +309,6 @@ const createLesson = async (
     );
   }
 
-  // Step 1: Create lesson first without video
   const lesson = await prisma.lesson.create({
     data: {
       moduleId: parsedModuleId,
@@ -331,8 +367,42 @@ const createLesson = async (
         },
       });
 
+      // Generate signed URL for the newly uploaded video
+      let videoUrl = null;
+      try {
+        videoUrl = await getSignedUrlForDownload(
+          uploadedVideoKey,
+          "lessonVideo",
+          3600
+        );
+      } catch (error) {
+        console.error(
+          `Failed to generate video URL for lesson ${updatedLesson.id}:`,
+          error
+        );
+      }
+
+      // Notify enrolled users about new lesson
+      await notificationService
+        .notifyEnrolledUsers(module.course.id, {
+          type: "course_update",
+          title: "New Lesson Added",
+          content: `A new lesson "${title}" has been added to the course "${module.course.title}".`,
+        })
+        .catch((err) => {
+          console.error("Failed to send lesson creation notifications:", err);
+        });
+
       return {
-        ...updatedLesson,
+        id: updatedLesson.id,
+        moduleId: updatedLesson.moduleId,
+        title: updatedLesson.title,
+        content: updatedLesson.content,
+        videoUrl: videoUrl,
+        durationSeconds: updatedLesson.durationSeconds,
+        order: updatedLesson.order,
+        createdAt: updatedLesson.createdAt,
+        updatedAt: updatedLesson.updatedAt,
         module: {
           id: module.id,
           title: module.title,
@@ -345,17 +415,27 @@ const createLesson = async (
       };
     }
 
-    // Notify enrolled users about new lesson
-    await notificationService.notifyEnrolledUsers(module.course.id, {
-      type: "course_update",
-      title: "New Lesson Added",
-      content: `A new lesson "${title}" has been added to the course "${module.course.title}".`,
-    }).catch(err => {
-      console.error("Failed to send lesson creation notifications:", err);
-    });
+    // Notify enrolled users about new lesson (non-video path)
+    await notificationService
+      .notifyEnrolledUsers(module.course.id, {
+        type: "course_update",
+        title: "New Lesson Added",
+        content: `A new lesson "${title}" has been added to the course "${module.course.title}".`,
+      })
+      .catch((err) => {
+        console.error("Failed to send lesson creation notifications:", err);
+      });
 
     return {
-      ...lesson,
+      id: lesson.id,
+      moduleId: lesson.moduleId,
+      title: lesson.title,
+      content: lesson.content,
+      videoUrl: null,
+      durationSeconds: lesson.durationSeconds,
+      order: lesson.order,
+      createdAt: lesson.createdAt,
+      updatedAt: lesson.updatedAt,
       module: {
         id: module.id,
         title: module.title,
@@ -567,13 +647,15 @@ const updateLesson = async (
     }
 
     // Notify enrolled users about lesson update
-    await notificationService.notifyEnrolledUsers(lesson.module.course.id, {
-      type: "course_update",
-      title: "Lesson Updated",
-      content: `The lesson "${updatedLesson.title}" in the course "${lesson.module.course.title}" has been updated.`,
-    }).catch(err => {
-      console.error("Failed to send lesson update notifications:", err);
-    });
+    await notificationService
+      .notifyEnrolledUsers(lesson.module.course.id, {
+        type: "course_update",
+        title: "Lesson Updated",
+        content: `The lesson "${updatedLesson.title}" in the course "${lesson.module.course.title}" has been updated.`,
+      })
+      .catch((err) => {
+        console.error("Failed to send lesson update notifications:", err);
+      });
   } catch (error) {
     // Clean up uploaded video if upload failed
     if (uploadedVideoKey) {
@@ -582,8 +664,33 @@ const updateLesson = async (
     throw error;
   }
 
+  // Generate signed URL for the video
+  let videoUrl = null;
+  if (updatedLesson.videoKey) {
+    try {
+      videoUrl = await getSignedUrlForDownload(
+        updatedLesson.videoKey,
+        "lessonVideo",
+        3600
+      );
+    } catch (error) {
+      console.error(
+        `Failed to generate video URL for lesson ${updatedLesson.id}:`,
+        error
+      );
+    }
+  }
+
   return {
-    ...updatedLesson,
+    id: updatedLesson.id,
+    moduleId: updatedLesson.moduleId,
+    title: updatedLesson.title,
+    content: updatedLesson.content,
+    videoUrl: videoUrl,
+    durationSeconds: updatedLesson.durationSeconds,
+    order: updatedLesson.order,
+    createdAt: updatedLesson.createdAt,
+    updatedAt: updatedLesson.updatedAt,
     module: {
       id: lesson.module.id,
       title: lesson.module.title,
@@ -783,7 +890,38 @@ const reorderLessons = async (moduleId, lessonOrders, userId, userRole) => {
     },
   });
 
-  return updatedLessons;
+  // Generate signed URLs for videos
+  return await Promise.all(
+    updatedLessons.map(async (lesson) => {
+      let videoUrl = null;
+      if (lesson.videoKey) {
+        try {
+          videoUrl = await getSignedUrlForDownload(
+            lesson.videoKey,
+            "lessonVideo",
+            3600
+          );
+        } catch (error) {
+          console.error(
+            `Failed to generate video URL for lesson ${lesson.id}:`,
+            error
+          );
+        }
+      }
+
+      return {
+        id: lesson.id,
+        moduleId: lesson.moduleId,
+        title: lesson.title,
+        content: lesson.content,
+        videoUrl: videoUrl,
+        durationSeconds: lesson.durationSeconds,
+        order: lesson.order,
+        createdAt: lesson.createdAt,
+        updatedAt: lesson.updatedAt,
+      };
+    })
+  );
 };
 
 const updateLessonProgress = async (
