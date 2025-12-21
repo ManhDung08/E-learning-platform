@@ -20,7 +20,7 @@ const CourseCard = ({course}) => {
             backgroundColor: 'white', borderRadius: '16px', overflow: 'hidden',
             width: '280px', cursor: 'pointer', transition: 'all 0.3s ease',
             boxShadow: '0 2px 8px rgba(0,0,0,0.08)', margin: '10px',
-            display: 'flex', flexDirection: 'column', height: '360px'
+            display: 'flex', flexDirection: 'column', height: '360px', minWidth: '240px'
         }}
             onMouseEnter={(e) => {
                 e.currentTarget.style.transform = 'translateY(-4px)';
@@ -74,7 +74,7 @@ const CourseCard = ({course}) => {
 
                     <span style={{ fontSize: '12px', color: '#999', display: 'flex', alignItems: 'center', gap: '4px' }}>
                         <i className="fa-regular fa-file-lines"></i>
-                        {course.modules?.length || 0} bài học
+                        {course.totalLessons || 0} bài học
                     </span>
                 </div>
             </div>

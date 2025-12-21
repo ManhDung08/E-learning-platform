@@ -48,6 +48,9 @@ const getUserProfile = async (userId) => {
 };
 
 const updateUserInfo = async (userId, updateData) => {
+  
+  const isAsNumber = Number(userId);
+
   const { username, email } = updateData;
 
   if (username) {
@@ -57,7 +60,7 @@ const updateUserInfo = async (userId, updateData) => {
       },
     });
 
-    if (existingUser && existingUser.id !== userId) {
+    if (existingUser && existingUser.id !== isAsNumber) {
       throw new UsernameAlreadyExistsError();
     }
   }
@@ -69,13 +72,13 @@ const updateUserInfo = async (userId, updateData) => {
       },
     });
 
-    if (existingUser && existingUser.id !== userId) {
+    if (existingUser && existingUser.id !== isAsNumber) {
       throw new EmailAlreadyExistsError();
     }
   }
 
   const updatedUser = await prisma.user.update({
-    where: { id: userId },
+    where: { id: isAsNumber },
     data: updateData,
     select: {
       id: true,
@@ -401,8 +404,11 @@ const getPublicInstructors = async (page = 1, limit = 10, search) => {
 };
 
 const deleteUser = async (userId) => {
+
+  const id = parseInt(userId);
+
   const user = await prisma.user.findUnique({
-    where: { id: userId },
+    where: { id: id },
     select: { id: true, profileImageUrl: true },
   });
   if (!user) {
@@ -411,11 +417,33 @@ const deleteUser = async (userId) => {
 
   if (user.profileImageUrl) {
     const key = extractKeyFromUrl(user.profileImageUrl);
-    await deleteFromS3(key);
+    if (key) {
+        await deleteFromS3(key).catch(err => console.error("S3 delete error:", err));
+    }
   }
 
-  await prisma.user.delete({
-    where: { id: userId },
+  await prisma.$transaction(async (tx) => {
+        
+    await tx.enrollment.deleteMany({
+      where: { userId: id },
+    });
+
+    await tx.review.deleteMany({
+      where: { userId: id },
+    });
+
+
+    if (user.role === 'instructor' || user.role === 'admin') {
+         const instructorCourses = await tx.course.findMany({ where: { instructorId: id }, select: { id: true } });
+         
+         await tx.course.deleteMany({
+             where: { instructorId: id }
+         });
+    }
+
+    await tx.user.delete({
+      where: { id: id },
+    });
   });
   return { message: "User deleted successfully" };
 };

@@ -8,9 +8,20 @@ const InstructorCard = ({ instructor }) => {
   return (
     <div 
         // onClick={() => navigate(`/instructors/${instructor.id}`)}
-        className='bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md 
-                    transition-shadow border border-gray-100 flex flex-col items-center
-                    p-6 text-center cursor-pointer h-full'
+        style={{
+            backgroundColor: 'white', borderRadius: '16px', overflow: 'hidden',
+            cursor: 'pointer', transition: 'all 0.3s ease', boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+            display: 'flex',flexDirection: 'column', alignItems: 'center', padding: '24px',
+            height: '100%', border: '1px solid #f3f4f6'
+        }}
+        onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-4px)';
+            e.currentTarget.style.boxShadow = '0 12px 20px rgba(0,0,0,0.12)';
+        }}
+        onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
+        }}
     >
         <Avatar 
             src={instructor.profileImageUrl} 
