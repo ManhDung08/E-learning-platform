@@ -14,7 +14,7 @@ import {
 } from '@mui/icons-material';
 
 // --- CẤU HÌNH API URL ---
-const API_BASE_URL = 'http://localhost:8080'; 
+const API_BASE_URL = 'http://localhost:3000'; 
 
 // --- HELPER FUNCTIONS ---
 const formatCurrency = (amount) => {
