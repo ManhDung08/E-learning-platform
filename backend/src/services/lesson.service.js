@@ -8,6 +8,7 @@ import {
   deleteFromS3,
   extractKeyFromUrl,
 } from "../utils/aws.util.js";
+import notificationService from "./notification.service.js";
 
 const getLessonsByModuleId = async (moduleId, userId, userRole) => {
   const parsedModuleId = parseInt(moduleId);
@@ -344,6 +345,15 @@ const createLesson = async (
       };
     }
 
+    // Notify enrolled users about new lesson
+    await notificationService.notifyEnrolledUsers(module.course.id, {
+      type: "course_update",
+      title: "New Lesson Added",
+      content: `A new lesson "${title}" has been added to the course "${module.course.title}".`,
+    }).catch(err => {
+      console.error("Failed to send lesson creation notifications:", err);
+    });
+
     return {
       ...lesson,
       module: {
@@ -555,6 +565,15 @@ const updateLesson = async (
     if (uploadedVideoKey && oldVideoKey) {
       await deleteFromS3(oldVideoKey);
     }
+
+    // Notify enrolled users about lesson update
+    await notificationService.notifyEnrolledUsers(lesson.module.course.id, {
+      type: "course_update",
+      title: "Lesson Updated",
+      content: `The lesson "${updatedLesson.title}" in the course "${lesson.module.course.title}" has been updated.`,
+    }).catch(err => {
+      console.error("Failed to send lesson update notifications:", err);
+    });
   } catch (error) {
     // Clean up uploaded video if upload failed
     if (uploadedVideoKey) {
@@ -636,6 +655,17 @@ const deleteLesson = async (lessonId, userId, userRole) => {
       console.error("Failed to delete lesson video from S3:", err)
     );
   }
+
+  // Notify enrolled users about lesson deletion
+  await notificationService
+    .notifyEnrolledUsers(lesson.module.course.id, {
+      type: "course_update",
+      title: "Lesson Removed",
+      content: `The lesson "${lesson.title}" has been removed from the course "${lesson.module.course.title}".`,
+    })
+    .catch((err) => {
+      console.error("Failed to send lesson deletion notifications:", err);
+    });
 
   return {
     success: true,
