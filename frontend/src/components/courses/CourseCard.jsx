@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const formatPrice = (price) => {
-    if (price === 0) return 'Free';
+    if (price === 0) return 'Miễn phí'; // Sửa 'Free' thành tiếng Việt cho đồng bộ
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
 };
 
@@ -10,27 +10,26 @@ const CourseCard = ({ course }) => {
     const navigate = useNavigate();
 
     const handleCardClick = () => {
-        // LOGIC CHUYỂN HƯỚNG:
-        // 1. Kiểm tra xem khóa học có Slug (đường dẫn đẹp) không?
+        // CHUYỂN TRANG NGAY LẬP TỨC
+        // Trang chi tiết sẽ tự động gọi API dựa trên Slug/ID trên URL
         if (course.slug) {
-            // Nếu có -> Chuyển sang: /course/ten-khoa-hoc-slug
             navigate(`/course/${course.slug}`); 
         } else {
-            // Nếu không -> Chuyển sang: /course/123 (ID)
             navigate(`/course/${course.id}`);
         }
     };
 
     const instructorName = course.instructor
-        ? `${course.instructor.firstName} ${course.instructor.lastName}`
-        : 'Unknown Instructor';
+        ? `${course.instructor.lastName} ${course.instructor.firstName}` // Đảo lại Họ Tên cho chuẩn VN
+        : 'Giảng viên ẩn';
 
     const instructorAvatar = course.instructor?.profileImageUrl
         || 'https://www.w3schools.com/howto/img_avatar.png';
 
+    // ... (Phần return giao diện giữ nguyên như cũ, rất tốt rồi) ...
     return (
         <div 
-            onClick={handleCardClick} // <--- ĐÂY LÀ DÒNG QUAN TRỌNG NHẤT
+            onClick={handleCardClick} 
             style={{
                 backgroundColor: 'white', borderRadius: '16px', overflow: 'hidden',
                 width: '280px', cursor: 'pointer', transition: 'all 0.3s ease',
@@ -94,7 +93,7 @@ const CourseCard = ({ course }) => {
                 </div>
             </div>
         </div>
-    )
-}
+    );
+};
 
 export default CourseCard;

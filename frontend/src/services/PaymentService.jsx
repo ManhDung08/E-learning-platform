@@ -1,30 +1,28 @@
-import axios from 'axios'; 
+import axios from 'axios'; // Hoặc import instance axios đã cấu hình của bạn
 
-const API_URL = 'http://localhost:8080'; 
+// API 1: Tạo link thanh toán VNPay
+export const createPaymentUrl = async (courseId, bankCode = "") => {
+    try {
+        // Gọi đúng đường dẫn API bạn cung cấp
+        const response = await axios.post(`/api/payment/courses/${courseId}/payments`, {
+            bankCode: bankCode, // Nếu để rỗng, sang VNPay user sẽ tự chọn ngân hàng
+            locale: "vn"
+        });
 
-const getHeaders = () => {
-    const token = localStorage.getItem('token');
-    return {
-        headers: { Authorization: `Bearer ${token}` }
-    };
-}
-
-export const createPaymentUrl = async (courseId) => {
-  // Phải tự ghép URL và tự thêm header
-  const response = await axios.post(
-      `${API_URL}/api/payment/courses/${courseId}/payments`, 
-      {}, // body rỗng
-      getHeaders() // Header chứa token
-  );
-  return response.data;
+        // QUAN TRỌNG: Dựa vào hình ảnh Response, link nằm trong data.data.paymentUrl
+        // (Axios bọc 1 lớp 'data', Backend trả về 1 lớp 'data' nữa)
+        if (response.data && response.data.success) {
+            return response.data.data.paymentUrl; 
+        } else {
+            throw new Error(response.data.message || "Không lấy được link thanh toán");
+        }
+    } catch (error) {
+        console.error("Lỗi tạo thanh toán:", error);
+        throw error;
+    }
 };
 
-export const verifyPayment = async (queryParams) => {
-  const response = await axios.post(
-      `${API_URL}/api/payment/verify`, 
-      queryParams,
-      getHeaders()
-  );
-  return response.data;
+// API 2: Verify (Dùng ở trang PaymentResult)
+export const verifyPayment = async (params) => {
+    return axios.post('/api/payment/verify', params);
 };
-

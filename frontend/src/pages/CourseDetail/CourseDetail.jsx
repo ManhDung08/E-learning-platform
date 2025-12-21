@@ -1,298 +1,338 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { useParams } from 'react-router-dom';
 import { 
-  Box, Container, Paper, Accordion, AccordionSummary, AccordionDetails, 
-  Rating, Chip, Divider, Button 
+  Box, Container, Accordion, AccordionSummary, AccordionDetails, 
+  Rating, Button, Grid, Typography, Divider, Avatar, Chip,
+  Dialog, DialogTitle, DialogContent, DialogActions, Radio, RadioGroup, FormControlLabel, FormControl, CircularProgress,
+  Tabs, Tab, TextField
 } from '@mui/material';
 import { 
   ExpandMore, PlayCircleOutline, Star, 
-  AccessTime, Group, Update, Language, AllInclusive 
+  Update, Lock, ReceiptLong, AccountBalance, School,
+  Description, RateReview, QuestionAnswer, Send
 } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
 
-// --- MOCK DATA ---
-const mockCourseData = {
-  id: 1,
-  title: "Fullstack Web Development with React & Node.js",
-  description: "Khóa học toàn diện giúp bạn trở thành lập trình viên Fullstack. Học cách xây dựng ứng dụng web hiện đại từ Frontend đến Backend sử dụng các công nghệ mới nhất.",
-  priceVND: 1299000,
-  image: "https://images.unsplash.com/photo-1587620962725-abab7fe55159?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80",
-  updatedAt: "2023-11-15T08:00:00Z",
-  instructor: {
-    firstName: "Huy",
-    lastName: "Duong",
-    profileImageUrl: "https://i.pravatar.cc/150?img=11" // Avatar mẫu
-  },
-  modules: [
-    {
-      id: 1, title: "Giới thiệu & Cài đặt môi trường", order: 1,
-      lessons: [
-        { id: 101, title: "Giới thiệu khóa học", durationSeconds: 300 },
-        { id: 102, title: "Cài đặt VS Code & Node.js", durationSeconds: 600 },
-      ]
-    },
-    {
-      id: 2, title: "Kiến thức React căn bản", order: 2,
-      lessons: [
-        { id: 201, title: "Components & Props", durationSeconds: 1200 },
-        { id: 202, title: "State & Lifecycle", durationSeconds: 1500 },
-        { id: 203, title: "Handling Events", durationSeconds: 900 },
-      ]
-    },
-    {
-      id: 3, title: "Kết nối Backend Prisma", order: 3,
-      lessons: [
-        { id: 301, title: "Khởi tạo Project Express", durationSeconds: 1800 },
-      ]
-    }
-  ],
-  reviews: [
-    { id: 1, rating: 5, comment: "Khóa học rất chi tiết, giảng viên dạy dễ hiểu!", userId: 101 },
-    { id: 2, rating: 4, comment: "Nội dung tốt nhưng cần thêm bài tập thực hành.", userId: 102 },
-    { id: 3, rating: 5, comment: "Tuyệt vời!", userId: 103 },
-  ],
-  _count: { enrollments: 1245 }
-};
+// --- CẤU HÌNH API URL ---
+const API_BASE_URL = 'http://localhost:8080'; 
 
 // --- HELPER FUNCTIONS ---
-const calculateTotalDuration = (modules) => {
-  let totalSeconds = 0;
-  modules.forEach(mod => mod.lessons.forEach(l => totalSeconds += (l.durationSeconds || 0)));
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  return hours > 0 ? `${hours} giờ ${minutes} phút` : `${minutes} phút`;
+const formatCurrency = (amount) => {
+    if (amount === undefined || amount === null) return '0 đ';
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
 };
 
-const calculateRating = (reviews) => {
-  if (!reviews || reviews.length === 0) return 0;
-  return (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1);
+const formatDuration = (seconds) => {
+  if (!seconds) return "0p";
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  return h > 0 ? `${h} giờ ${m} phút` : `${m} phút`;
 };
 
-const formatCurrency = (amount) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+// --- SERVICE GỌI API ---
+const api = axios.create({
+    baseURL: API_BASE_URL,
+    withCredentials: true,
+    headers: { 'Content-Type': 'application/json' }
+});
 
-// --- MAIN COMPONENT ---
+// --- COMPONENT CHÍNH ---
 const CourseDetailPage = () => {
-  const course = mockCourseData;
-  const navigate = useNavigate();
-  const totalDuration = calculateTotalDuration(course.modules);
-  const totalLessons = course.modules.reduce((acc, mod) => acc + mod.lessons.length, 0);
-  const avgRating = calculateRating(course.reviews);
+  const { slug } = useParams(); 
+  const [course, setCourse] = useState(null);
+  const [loading, setLoading] = useState(true);
+  
+  // State Tabs & Data phụ
+  const [activeTab, setActiveTab] = useState(0);
+  const [reviews, setReviews] = useState([]);
+  const [discussions, setDiscussions] = useState([]);
+  const [expandedModules, setExpandedModules] = useState({});
 
-  // Component Sidebar (Tách ra để tái sử dụng cho Mobile/Desktop)
-  const SidebarContent = () => (
-    <Paper elevation={4} className="overflow-hidden rounded-none border border-white">
-      {/* Video Preview */}
-      <div className="relative aspect-video bg-black cursor-pointer group">
-        <img src={course.image} alt={course.title} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" />
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="bg-white rounded-full p-2 group-hover:scale-110 transition-transform">
-             <PlayCircleOutline color="primary" sx={{ fontSize: 40 }} />
-          </div>
-        </div>
-        <div className="absolute bottom-4 left-0 w-full text-center text-white font-bold">Xem trước khóa học</div>
-      </div>
+  // State Modal
+  const [openPaymentModal, setOpenPaymentModal] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('vnpay');
+  const [isProcessing, setIsProcessing] = useState(false);
 
-      <div className="p-5 text-gray-800">
-        <div className="text-3xl font-bold mb-4">
-          {course.priceVND === 0 ? "Miễn phí" : formatCurrency(course.priceVND)}
-        </div>
-        
-        <Button 
-          variant="contained" 
-          fullWidth 
-          size="large"
-          className="!bg-[#a435f0] hover:!bg-[#8710d8] !font-bold !py-3 !text-lg !mb-3"
-          onClick={() => navigate(`/course/${course.id}/checkout`)}
-        >
-          Đăng ký ngay
-        </Button>
-        
-        <p className="text-xs text-center text-gray-500 mb-4">Đảm bảo hoàn tiền trong 7 ngày</p>
-        
-        <div className="space-y-3">
-          <p className="font-bold text-sm">Khóa học bao gồm:</p>
-          <ul className="text-sm space-y-2 text-gray-600">
-            <li className="flex items-center gap-2"><AccessTime fontSize="small"/> {totalDuration} video bài giảng</li>
-            <li className="flex items-center gap-2"><AllInclusive fontSize="small"/> Truy cập trọn đời</li>
-            <li className="flex items-center gap-2"><Language fontSize="small"/> Ngôn ngữ: Tiếng Việt</li>
-            <li className="flex items-center gap-2"><Group fontSize="small"/> {course._count.enrollments} học viên</li>
-          </ul>
-        </div>
-      </div>
-    </Paper>
-  );
+  // --- FETCH DATA ---
+  useEffect(() => {
+    const fetchCourseDetail = async () => {
+        try {
+            const response = await api.get(`/api/course/slug/${slug}`);
+            if (response.data && response.data.success) {
+                setCourse(response.data.data);
+            }
+        } catch (error) {
+            console.error("Lỗi lấy chi tiết khóa học:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+    if (slug) fetchCourseDetail();
+  }, [slug]);
+
+  // --- TAB CHANGE ---
+  const handleTabChange = async (event, newValue) => {
+      setActiveTab(newValue);
+      if (!course) return;
+
+      if (newValue === 1 && reviews.length === 0) {
+          try {
+              const res = await api.get(`/api/course/${course.id}/reviews`);
+              if(res.data.success) setReviews(res.data.data);
+          } catch (e) { console.error("Lỗi lấy reviews", e); }
+      }
+      if (newValue === 2 && discussions.length === 0) {
+          try {
+              const res = await api.get(`/api/course/${course.id}/discussions`);
+              if(res.data.success) setDiscussions(res.data.data);
+          } catch (e) { console.error("Lỗi lấy discussions", e); }
+      }
+  };
+
+  const handleExpandAll = () => {
+    if (!course?.modules) return;
+    const allExpanded = {};
+    course.modules.forEach((mod, index) => { allExpanded[index] = true; });
+    setExpandedModules(allExpanded);
+  };
+
+  // --- THANH TOÁN ---
+  const handleProceedPayment = async () => {
+    setIsProcessing(true);
+    try {
+        const response = await api.post(`/api/payment/courses/${course.id}/payments`, {
+            bankCode: "NCB",
+            locale: "vn"
+        });
+
+        if (response.data && response.data.success) {
+            window.location.href = response.data.data.paymentUrl; 
+        }
+    } catch (error) {
+        alert(`Lỗi thanh toán: ${error.response?.data?.message || "Không xác định"}`);
+        setIsProcessing(false);
+    }
+  };
+
+  // --- RENDER ---
+  if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 10 }}><CircularProgress /></Box>;
+  if (!course) return <Container sx={{ mt: 10, textAlign: 'center' }}><Typography variant="h5">Không tìm thấy khóa học</Typography></Container>;
+
+  const { title, description, priceVND, image, updatedAt, enrollmentCount, totalLessons, totalDuration, averageRating, instructor, modules } = course;
 
   return (
-    <div className="bg-white min-h-screen pb-20 font-sans">
+    <Box sx={{ bgcolor: '#fff', minHeight: '100vh', pb: 10 }}>
       
-      {/* --- HERO SECTION --- */}
-      {/* Dùng relative để làm điểm neo cho Sidebar Desktop */}
-      <div className="bg-[#1c1d1f] text-white py-8 relative">
-        <Container maxWidth="lg" className="relative">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            
-            {/* LEFT CONTENT (Thông tin khóa học) */}
-            <div className="lg:col-span-8 z-0">
-              {/* Breadcrumb */}
-              <div className="text-[#cec0fc] text-sm font-bold mb-4 flex items-center gap-2">
-                <span>Khám phá</span> 
-                <span className="text-xs text-white">/</span>
-                <span>Lập trình Web</span>
-                <span className="text-xs text-white">/</span>
-                <span>Backend</span>
-              </div>
+      {/* ===================================================================== */}
+      {/* HERO SECTION (BACKGROUND IMAGE) */}
+      {/* ===================================================================== */}
+      <Box sx={{ position: 'relative', color: 'white', py: 10, overflow: 'hidden', minHeight: '400px', display: 'flex', alignItems: 'center' }}>
+        <Box sx={{
+            position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+            backgroundImage: `url(${image})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            filter: 'brightness(0.3) blur(4px)',
+            transform: 'scale(1.1)',
+            zIndex: 0
+        }} />
 
-              <h1 className="text-3xl md:text-4xl font-bold mb-4 leading-tight font-serif">
-                {course.title}
-              </h1>
-
-              <p className="text-lg mb-6 max-w-2xl text-gray-200">
-                {course.description}
-              </p>
-
-              {/* Badges */}
-              <div className="flex flex-wrap items-center gap-4 mb-4 text-sm">
-                <div className="flex items-center bg-[#eceb98] text-[#3d3c0a] px-2 py-1 rounded font-bold">
-                  <span className="mr-1">{avgRating}</span>
-                  <Star fontSize="inherit" />
-                </div>
-                <span className="text-[#cec0fc] underline cursor-pointer">({course.reviews.length} đánh giá)</span>
-                <span>{course._count.enrollments.toLocaleString()} học viên</span>
-              </div>
-
-              <div className="text-sm mb-2">
-                Giảng viên: <span className="text-[#cec0fc] underline cursor-pointer">{course.instructor.firstName} {course.instructor.lastName}</span>
-              </div>
-
-              <div className="flex items-center gap-2 text-sm text-gray-300">
-                <Update fontSize="small" />
-                <span>Cập nhật lần cuối: {new Date(course.updatedAt).toLocaleDateString('vi-VN')}</span>
-              </div>
-            </div>
-
-            {/* SIDEBAR FOR DESKTOP (Overlapping) */}
-            {/* Logic: Ẩn trên mobile/tablet, Hiện trên lg. Absolute position để đè lên */}
-            <div className="hidden lg:block lg:col-span-4 relative">
-               <div className="absolute top-0 right-0 w-[340px] z-10 shadow-2xl">
-                 <SidebarContent />
-               </div>
-            </div>
-
-          </div>
-        </Container>
-      </div>
-
-      {/* --- SIDEBAR FOR MOBILE (Nằm dưới Header) --- */}
-      <div className="lg:hidden p-4">
-         <SidebarContent />
-      </div>
-
-      {/* --- MAIN CONTENT BODY --- */}
-      <Container maxWidth="lg" className="mt-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          
-          {/* Main Column (Chiếm 2/3 bên trái trên desktop) */}
-          <div className="lg:col-span-8">
-            
-            {/* What you'll learn (Box màu xám) */}
-            <div className="border border-gray-300 p-6 mb-8">
-              <h2 className="text-xl font-bold mb-4">Bạn sẽ học được gì</h2>
-              <ul className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-700">
-                 <li className="flex gap-2"><span className="text-gray-400">✓</span> Xây dựng Fullstack App hoàn chỉnh</li>
-                 <li className="flex gap-2"><span className="text-gray-400">✓</span> Làm chủ React Hooks & Redux</li>
-                 <li className="flex gap-2"><span className="text-gray-400">✓</span> Thiết kế CSDL với Prisma & SQL</li>
-                 <li className="flex gap-2"><span className="text-gray-400">✓</span> Deploy ứng dụng lên Vercel/Render</li>
-              </ul>
-            </div>
-
-            {/* Course Content (Accordion) */}
-            <div className="mb-8">
-              <h2 className="text-2xl font-bold mb-4">Nội dung khóa học</h2>
-              <div className="flex justify-between text-sm text-gray-600 mb-2">
-                 <span>{course.modules.length} phần • {totalLessons} bài học • {totalDuration}</span>
-                 <span className="text-blue-700 font-bold cursor-pointer">Mở rộng tất cả</span>
-              </div>
+        <Container maxWidth="md" sx={{ position: 'relative', zIndex: 1 }}>
+          <Grid container spacing={4} alignItems="center">
+            {/* INFO */}
+            <Grid item xs={12} md={7}>
+              <Typography variant="h3" fontWeight="bold" mb={2} sx={{ fontSize: { xs: '2rem', md: '2.8rem' }, textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>
+                  {title}
+              </Typography>
+              <Typography variant="body1" mb={3} sx={{ color: '#e0e0e0', fontSize: '1.1rem', lineHeight: 1.6 }}>
+                  {description}
+              </Typography>
               
-              <div className="border border-gray-200">
-                {course.modules.map((module) => (
-                  <Accordion key={module.id} disableGutters square elevation={0} className="border-b border-gray-200 last:border-b-0">
-                    <AccordionSummary expandIcon={<ExpandMore />} className="bg-[#f7f9fa] hover:bg-gray-100">
-                      <div className="font-bold text-gray-800 w-full flex justify-between mr-2">
-                        <span>{module.title}</span>
-                        <span className="text-xs font-normal text-gray-500 mt-1">{module.lessons.length} bài</span>
-                      </div>
-                    </AccordionSummary>
-                    <AccordionDetails className="!p-0">
-                      <ul className="bg-white">
-                        {module.lessons.map((lesson) => (
-                          <li key={lesson.id} className="flex justify-between items-center py-3 px-4 hover:bg-gray-50 cursor-pointer text-sm text-gray-600">
-                            <div className="flex items-center gap-3">
-                              <PlayCircleOutline fontSize="small" className="text-gray-400" />
-                              <span>{lesson.title}</span>
-                            </div>
-                            <span>{Math.floor(lesson.durationSeconds / 60)}:{String(lesson.durationSeconds % 60).padStart(2, '0')}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </AccordionDetails>
-                  </Accordion>
-                ))}
-              </div>
-            </div>
+              <Box display="flex" gap={3} alignItems="center" mb={3} flexWrap="wrap">
+                <Box display="flex" alignItems="center" color="#f3ca8c" fontWeight="bold">
+                  <span style={{ marginRight: 4, fontSize: '1.2rem' }}>{averageRating || 0}</span> <Star />
+                </Box>
+                <Typography sx={{ color: '#fff', opacity: 0.9 }}>
+                    <i className="fa-solid fa-user-group" style={{ marginRight: 8 }}></i>
+                    {(enrollmentCount || 0).toLocaleString()} học viên
+                </Typography>
+                <Typography sx={{ color: '#fff', opacity: 0.9 }}>
+                    <Update sx={{ fontSize: 16, mr: 0.5, mb: 0.3 }} />
+                    Cập nhật: {new Date(updatedAt).toLocaleDateString('vi-VN')}
+                </Typography>
+              </Box>
 
-            {/* Instructor */}
-            <div className="mb-8">
-               <h2 className="text-2xl font-bold mb-4">Giảng viên</h2>
-               <div className="flex gap-4">
-                  <div className="w-24 h-24 rounded-full overflow-hidden border border-gray-200 shrink-0">
-                    <img src={course.instructor.profileImageUrl} alt="Instructor" className="w-full h-full object-cover" />
-                  </div>
-                  <div>
-                    <div className="text-[#a435f0] font-bold text-lg hover:underline cursor-pointer">
-                      {course.instructor.firstName} {course.instructor.lastName}
-                    </div>
-                    <p className="text-gray-500 text-sm mb-2">Senior Fullstack Developer</p>
-                    <div className="flex gap-3 text-xs">
-                       <span className="flex items-center gap-1"><Star fontSize="inherit"/> {avgRating} Đánh giá</span>
-                       <span className="flex items-center gap-1"><Group fontSize="inherit"/> {course._count.enrollments} Học viên</span>
-                    </div>
-                    <p className="mt-3 text-sm text-gray-700">
-                       Huy là một kỹ sư phần mềm với 5 năm kinh nghiệm làm việc tại các công ty công nghệ lớn. Anh đam mê chia sẻ kiến thức về lập trình Web hiện đại.
-                    </p>
-                  </div>
-               </div>
-            </div>
+              <Box display="flex" gap={1.5} alignItems="center">
+                <Avatar src={instructor?.profileImageUrl} sx={{ width: 40, height: 40, border: '2px solid white' }} />
+                <Box>
+                    <Typography variant="caption" display="block" sx={{ opacity: 0.8 }}>Giảng viên</Typography>
+                    <Typography variant="body2" fontWeight="bold">{instructor?.lastName} {instructor?.firstName}</Typography>
+                </Box>
+              </Box>
+            </Grid>
 
-            {/* Reviews */}
-            <div>
-               <h2 className="text-2xl font-bold mb-4">Đánh giá từ học viên</h2>
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {course.reviews.map((review) => (
-                     <div key={review.id} className="border-t border-gray-200 py-4">
-                        <div className="flex items-center gap-3 mb-2">
-                           <div className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center text-white font-bold text-xs">
-                              U{review.userId}
-                           </div>
-                           <div>
-                              <div className="font-bold text-sm">Học viên hệ thống</div>
-                              <Rating value={review.rating} readOnly size="small" />
-                           </div>
-                        </div>
-                        <p className="text-gray-600 text-sm">"{review.comment}"</p>
-                     </div>
-                  ))}
-               </div>
-            </div>
+            {/* BUTTON & PRICE */}
+            <Grid item xs={12} md={5} sx={{ textAlign: { xs: 'left', md: 'center' }, mt: { xs: 4, md: 0 } }}>
+                <Typography variant="h2" fontWeight="800" sx={{ color: '#fff', mb: 1, textShadow: '0 4px 20px rgba(0,0,0,0.5)' }}>
+                    {formatCurrency(priceVND)}
+                </Typography>
+                
+                <Button 
+                    variant="contained" 
+                    size="large" 
+                    onClick={() => setOpenPaymentModal(true)} 
+                    sx={{ 
+                        bgcolor: '#a435f0', color: 'white', fontWeight: 'bold', 
+                        py: 2, px: 6, fontSize: '1.2rem', borderRadius: '50px',
+                        boxShadow: '0 0 30px rgba(164, 53, 240, 0.6)',
+                        '&:hover': { bgcolor: '#8710d8', transform: 'scale(1.05)' },
+                        transition: 'all 0.3s ease'
+                    }}
+                >
+                    Đăng ký học ngay
+                </Button>
+                
+                <Typography variant="body2" sx={{ mt: 2, color: '#ddd', fontStyle: 'italic' }}>
+                    Truy cập trọn đời • Hoàn tiền trong 7 ngày
+                </Typography>
+            </Grid>
+          </Grid>
+        </Container>
+      </Box>
 
-          </div>
-          
-          {/* Right Column (Placeholder for Layout Integrity) */}
-          <div className="hidden lg:block lg:col-span-4">
-             {/* Cột này để trống để giữ chỗ (spacing) cho Sidebar 'absolute' ở trên không che mất nội dung bên dưới khi scroll */}
-          </div>
+      {/* TABS */}
+      <Container maxWidth="md" sx={{ mt: 4 }}>
+        <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+          <Tabs value={activeTab} onChange={handleTabChange} centered variant="fullWidth">
+            <Tab icon={<Description />} iconPosition="start" label="Nội dung" />
+            <Tab icon={<RateReview />} iconPosition="start" label="Đánh giá" />
+            <Tab icon={<QuestionAnswer />} iconPosition="start" label="Thảo luận" />
+          </Tabs>
+        </Box>
 
+        {/* TAB 0: NỘI DUNG (KHÔNG FAKE DATA) */}
+        <div hidden={activeTab !== 0}>
+            {activeTab === 0 && (
+                <Box>
+                    <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                        <Typography variant="h6">Chương trình học</Typography>
+                        <Box>
+                            <Typography variant="body2" component="span" sx={{ mr: 2, fontWeight: 'bold' }}>
+                                {modules?.length || 0} chương • {totalLessons || 0} bài học • {formatDuration(totalDuration || 0)}
+                            </Typography>
+                            <Button size="small" onClick={handleExpandAll} sx={{ fontWeight: 'bold' }}>Mở rộng tất cả</Button>
+                        </Box>
+                    </Box>
+                    
+                    <Box sx={{ border: '1px solid #e0e0e0', borderRadius: 2, overflow: 'hidden' }}>
+                        {modules && modules.length > 0 ? modules.map((mod, idx) => (
+                            <Accordion key={idx} expanded={expandedModules[idx]} onChange={(e, x) => setExpandedModules({...expandedModules, [idx]: x})}>
+                                <AccordionSummary expandIcon={<ExpandMore />} sx={{ bgcolor: '#f7f9fa' }}>
+                                    <Typography fontWeight={600}>{mod.title}</Typography>
+                                    <Typography sx={{ ml: 'auto', fontSize: '13px', color: 'text.secondary' }}>{mod.lessonCount} bài</Typography>
+                                </AccordionSummary>
+                                <AccordionDetails>
+                                    {/* CHỈ RENDER NẾU CÓ DỮ LIỆU THẬT */}
+                                    {mod.lessons && mod.lessons.length > 0 ? (
+                                        mod.lessons.map(lesson => (
+                                            <Box key={lesson.id} display="flex" gap={2} py={1.5} borderBottom="1px dashed #eee" color="text.secondary" alignItems="center">
+                                                <PlayCircleOutline fontSize="small" /> 
+                                                <Typography variant="body2">{lesson.title}</Typography>
+                                                {/* Nếu có trường isFree hoặc duration thì hiển thị, không thì thôi */}
+                                                {lesson.isFree ? <Chip label="Học thử" size="small" color="success" variant="outlined" sx={{ ml: 'auto', height: 20 }} /> : <Lock fontSize="small" sx={{ ml: 'auto', opacity: 0.5 }}/>}
+                                            </Box>
+                                        ))
+                                    ) : (
+                                        <Typography fontStyle="italic" color="text.secondary" align="center" py={1}>
+                                            {mod.lessonCount > 0 
+                                                ? "Nội dung bài học chỉ dành cho học viên đã đăng ký." 
+                                                : "Chưa có bài học nào trong chương này."}
+                                        </Typography>
+                                    )}
+                                </AccordionDetails>
+                            </Accordion>
+                        )) : <Box p={3} textAlign="center">Chưa có nội dung chương trình.</Box>}
+                    </Box>
+                </Box>
+            )}
         </div>
+
+        {/* TAB 1: ĐÁNH GIÁ */}
+        <div hidden={activeTab !== 1}>
+            {activeTab === 1 && (
+                <Box>
+                    <Typography variant="h6" mb={3}>Đánh giá từ học viên</Typography>
+                    <Grid container spacing={2}>
+                        {reviews.length > 0 ? reviews.map((rev) => (
+                            <Grid item xs={12} key={rev.id}>
+                                <Box sx={{ p: 2, bgcolor: '#f9fafb', borderRadius: 2 }}>
+                                    <Box display="flex" gap={2}>
+                                        <Avatar src={rev.user?.profileImageUrl}>{rev.user?.firstName?.[0]}</Avatar>
+                                        <Box>
+                                            <Typography fontWeight="bold">{rev.user?.lastName} {rev.user?.firstName}</Typography>
+                                            <Rating value={rev.rating} readOnly size="small" />
+                                        </Box>
+                                    </Box>
+                                    <Typography mt={1} variant="body2">{rev.comment}</Typography>
+                                </Box>
+                            </Grid>
+                        )) : <Typography fontStyle="italic" color="text.secondary">Chưa có đánh giá nào.</Typography>}
+                    </Grid>
+                </Box>
+            )}
+        </div>
+
+        {/* TAB 2: THẢO LUẬN */}
+        <div hidden={activeTab !== 2}>
+            {activeTab === 2 && (
+                <Box>
+                    <Box mb={4} p={3} bgcolor="#f8f9fa" borderRadius={2}>
+                        <Typography variant="h6" mb={2}>Đặt câu hỏi</Typography>
+                        <TextField fullWidth multiline rows={3} placeholder="Bạn thắc mắc gì?" variant="outlined" sx={{ bgcolor: 'white' }} />
+                        <Button variant="contained" endIcon={<Send />} sx={{ mt: 2, bgcolor: '#1c1d1f' }}>Gửi câu hỏi</Button>
+                    </Box>
+                    {discussions.length > 0 ? discussions.map((disc) => (
+                        <Box key={disc.id} sx={{ mb: 2, p: 2, border: '1px solid #eee', borderRadius: 2 }}>
+                            <Typography fontWeight="bold" color="primary">{disc.title || "Thảo luận"}</Typography>
+                            <Typography variant="body2" mt={1}>{disc.content}</Typography>
+                            <Typography variant="caption" color="text.secondary" mt={1} display="block">
+                                Đăng bởi: {disc.user?.username} • {disc.replies?.length || 0} trả lời
+                            </Typography>
+                        </Box>
+                    )) : <Typography fontStyle="italic" color="text.secondary">Chưa có thảo luận nào.</Typography>}
+                </Box>
+            )}
+        </div>
+
       </Container>
-    </div>
+
+      {/* MODAL THANH TOÁN */}
+      <Dialog open={openPaymentModal} onClose={() => !isProcessing && setOpenPaymentModal(false)} fullWidth maxWidth="sm">
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <ReceiptLong color="primary" /> Xác nhận đơn hàng
+        </DialogTitle>
+        <DialogContent dividers>
+            <Box display="flex" justifyContent="space-between" mb={2}>
+                <Typography color="text.secondary">Giá khóa học:</Typography>
+                <Typography fontWeight="bold">{formatCurrency(priceVND)}</Typography>
+            </Box>
+            <Typography fontWeight="bold" mb={1}>Chọn phương thức:</Typography>
+            <FormControl fullWidth>
+                <RadioGroup value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
+                    <Box border="1px solid #ddd" borderRadius={2} p={1} mb={1}>
+                        <FormControlLabel value="vnpay" control={<Radio />} label="Ví VNPay / Ngân hàng" />
+                    </Box>
+                </RadioGroup>
+            </FormControl>
+        </DialogContent>
+        <DialogActions sx={{ p: 2, justifyContent: 'center' }}>
+            <Button onClick={() => setOpenPaymentModal(false)} color="inherit" disabled={isProcessing}>Hủy</Button>
+            <Button variant="contained" onClick={handleProceedPayment} disabled={isProcessing} startIcon={isProcessing && <CircularProgress size={20} color="inherit"/>} sx={{ bgcolor: '#a435f0' }}>
+                Thanh toán {formatCurrency(priceVND)}
+            </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
   );
 };
 
