@@ -16,7 +16,12 @@ const QuizFormModal = ({ open, handleClose, handleSubmit, loading, initialData }
         if (open) {
             if (initialData) {
                 setTitle(initialData.title || "");
-                setQuestions(initialData.questions ? JSON.parse(JSON.stringify(initialData.questions)) : []);
+                const parsedQuestions = (initialData.questions || []).map(q => ({
+                ...q,
+                correctOption: q.correctOption ? parseInt(q.correctOption) - 1 : 0
+            }));
+            
+            setQuestions(parsedQuestions);
             } else {
                 setTitle("New Quiz");
                 setQuestions([
@@ -88,7 +93,7 @@ const QuizFormModal = ({ open, handleClose, handleSubmit, loading, initialData }
 
         const payloadQuestions = questions.map(q => ({
             ...q,
-            correctOption: q.options[q.correctOption] 
+            correctOption: (q.correctOption + 1).toString() 
         }));
 
         handleSubmit({ title, questions: payloadQuestions });

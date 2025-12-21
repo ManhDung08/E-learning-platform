@@ -65,7 +65,7 @@ const UserFormModal = ({ open, handleClose, handleSubmit, initialData, loading }
     return (
         <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
             <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #eee' }}>
-                <Typography variant="h6" fontWeight="bold">
+                <Typography variant="h6" component='div' fontWeight="bold">
                     {initialData ? "Update User Profile" : "Create New User"}
                 </Typography>
                 <IconButton onClick={handleClose}>

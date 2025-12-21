@@ -65,7 +65,14 @@ const getCourseBySlug = async (req, res, next) => {
 
 const createCourse = async (req, res, next) => {
   try {
-    const courseData = req.body;
+    const courseData = {...req.body};
+
+    if (courseData.isPublished === 'true') {
+        courseData.isPublished = true;
+    } else if (courseData.isPublished === 'false') {
+        courseData.isPublished = false;
+    }
+
     const userId = req.user.id;
     const userRole = req.user.role;
     const imageFile = req.file;
@@ -90,7 +97,16 @@ const createCourse = async (req, res, next) => {
 const updateCourse = async (req, res, next) => {
   try {
     const { courseId } = req.params;
-    const courseData = req.body;
+    const courseData = { ...req.body };
+
+    const isPublishedStr = String(courseData.isPublished);
+
+    if (isPublishedStr === 'true') {
+        courseData.isPublished = true;
+    } else if (isPublishedStr === 'false') {
+        courseData.isPublished = false;
+    }
+
     const userId = req.user.id;
     const userRole = req.user.role;
     const imageFile = req.file;
