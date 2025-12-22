@@ -404,7 +404,7 @@ router.delete(
 
 /**
  * @swagger
- * /api/course/{courseId}/enroll:
+ * /api/course/{courseId}/enrollments:
  *   post:
  *     summary: Enroll in a course
  *     tags: [Courses]
@@ -498,7 +498,7 @@ router.delete(
 
 /**
  * @swagger
- * /api/course/enrollments:
+ * /api/course/me/enrollments:
  *   get:
  *     summary: Get user's course enrollments
  *     tags: [Courses]
