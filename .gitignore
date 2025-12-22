@@ -42,3 +42,6 @@ Thumbs.db         # Windows
 # ==============================
 *.pem            # Private keys
 
+backend/package-lock.json
+frontend/.env.production
+frontend/package-lock.json
