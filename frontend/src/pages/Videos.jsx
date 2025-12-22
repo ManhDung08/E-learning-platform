@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useRef } from "react";
+import { useParams } from "react-router-dom";
 
-const Videos = ({ courseId }) => {
+const Videos = () => {
+  const { courseId } = useParams();
   const [modules, setModules] = useState([]);
   const [selectedModule, setSelectedModule] = useState(null);
   const [lessons, setLessons] = useState([]);
@@ -9,6 +11,22 @@ const Videos = ({ courseId }) => {
   const [error, setError] = useState(null);
   const [note, setNote] = useState("");
   const videoRef = useRef(null);
+
+  // Format duration from seconds to readable format (e.g., "5:30" or "1h 5m 30s")
+  const formatDuration = (seconds) => {
+    if (!seconds || seconds === 0) return 'N/A';
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    
+    if (hours > 0) {
+      return `${hours}h ${minutes}m ${secs}s`;
+    } else if (minutes > 0) {
+      return `${minutes}:${secs.toString().padStart(2, '0')}`;
+    } else {
+      return `${secs}s`;
+    }
+  };
 
   // Fetch modules for the course
   useEffect(() => {
@@ -157,7 +175,7 @@ const Videos = ({ courseId }) => {
                       key={selectedLesson?.id}
                       controls
                       className="w-full h-full object-contain bg-black"
-                      src={selectedLesson?.videoKey}
+                      src={selectedLesson?.videoUrl}
                     >
                       Your browser does not support the video tag.
                     </video>
@@ -167,7 +185,7 @@ const Videos = ({ courseId }) => {
                     <div className="flex items-start justify-between gap-4">
                       <div>
                         <h2 className="text-lg font-semibold">{selectedLesson?.title}</h2>
-                        <p className="text-sm text-gray-500 mt-1">Duration: {selectedLesson?.duration || 'N/A'}</p>
+                        <p className="text-sm text-gray-500 mt-1">Duration: {formatDuration(selectedLesson?.durationSeconds)}</p>
                       </div>
                       <div className="text-sm text-gray-400">ID: {selectedLesson?.id}</div>
                     </div>
@@ -255,11 +273,11 @@ const Videos = ({ courseId }) => {
                           onClick={() => onSelectLesson(l)}
                         >
                           <div className="w-20 h-12 bg-gray-100 rounded flex items-center justify-center text-xs text-gray-500 overflow-hidden">
-                            {l.videoKey ? 'Video' : 'No Video'}
+                            {l.videoUrl ? 'Video' : 'No Video'}
                           </div>
                           <div className="flex-1">
                             <div className="font-medium text-sm text-gray-800">{l.title}</div>
-                            <div className="text-xs text-gray-500">{l.duration || 'N/A'}</div>
+                            <div className="text-xs text-gray-500">{formatDuration(l.durationSeconds)}</div>
                           </div>
                           <div className="text-xs text-indigo-600 font-medium">Play</div>
                         </li>

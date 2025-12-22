@@ -15,7 +15,7 @@ function AppRoutes() {
             <Route path='/*' element={<HomePage />}></Route>
             <Route path='/home' element={<HomePage />}></Route>
             <Route path='/profile' element={<AccountProfile />}></Route>
-            <Route path='/videos' element={<Videos />}></Route>
+            <Route path='/videos/:courseId' element={<Videos />}></Route>
 
         </Routes>
     );
