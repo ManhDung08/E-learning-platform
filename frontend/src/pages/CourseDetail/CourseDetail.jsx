@@ -12,6 +12,9 @@ import {
   Update, Lock, ReceiptLong, AccountBalance, School,
   Description, RateReview, QuestionAnswer, Send
 } from '@mui/icons-material';
+import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
+import { getUserEnrollmentsAction } from '../../Redux/Course/course.action';
 
 // --- CẤU HÌNH API URL ---
 const API_BASE_URL = 'http://localhost:3000'; 
@@ -39,9 +42,28 @@ const api = axios.create({
 // --- COMPONENT CHÍNH ---
 const CourseDetailPage = () => {
   const { slug } = useParams(); 
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  const { userEnrollments } = useSelector(store => store.course);
   
+  console.log("Current Course:", course);
+  console.log("User Enrollments:", userEnrollments);
+
+  const isEnrolled = React.useMemo(() => {
+    if (!course || !userEnrollments) return false;
+
+    return userEnrollments.some(enrollment => {
+        if (enrollment.course && enrollment.course.id) {
+            return String(enrollment.course.id) === String(course.id);
+        }
+        return false;
+    });
+  }, [course, userEnrollments]);
+
   // State Tabs & Data phụ
   const [activeTab, setActiveTab] = useState(0);
   const [reviews, setReviews] = useState([]);
@@ -52,6 +74,20 @@ const CourseDetailPage = () => {
   const [openPaymentModal, setOpenPaymentModal] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('vnpay');
   const [isProcessing, setIsProcessing] = useState(false);
+
+  useEffect(() => {
+    dispatch(getUserEnrollmentsAction());
+  }, [dispatch]);
+
+
+
+  const handleEnrollClick = () => {
+    if (isEnrolled) {
+        navigate(`/course/learn/${course.slug || course.id}`)
+    } else {
+        setOpenPaymentModal(true);
+    }
+  } 
 
   // --- FETCH DATA ---
   useEffect(() => {
@@ -140,7 +176,7 @@ const CourseDetailPage = () => {
         <Container maxWidth="md" sx={{ position: 'relative', zIndex: 1 }}>
           <Grid container spacing={4} alignItems="center">
             {/* INFO */}
-            <Grid item xs={12} md={7}>
+            <Grid item size={{xs: 12, md: 7}} xs={12} md={7}>
               <Typography variant="h3" fontWeight="bold" mb={2} sx={{ fontSize: { xs: '2rem', md: '2.8rem' }, textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>
                   {title}
               </Typography>
@@ -172,29 +208,36 @@ const CourseDetailPage = () => {
             </Grid>
 
             {/* BUTTON & PRICE */}
-            <Grid item xs={12} md={5} sx={{ textAlign: { xs: 'left', md: 'center' }, mt: { xs: 4, md: 0 } }}>
-                <Typography variant="h2" fontWeight="800" sx={{ color: '#fff', mb: 1, textShadow: '0 4px 20px rgba(0,0,0,0.5)' }}>
-                    {formatCurrency(priceVND)}
-                </Typography>
+            <Grid item size={{ xs: 12, md: 5 }} sx={{ textAlign: { xs: 'left', md: 'center' }, mt: { xs: 4, md: 0 } }}>
+                {!isEnrolled && (
+                    <Typography variant="h2" fontWeight="800" sx={{ color: '#fff', mb: 1, textShadow: '0 4px 20px rgba(0,0,0,0.5)' }}>
+                        {formatCurrency(priceVND)}
+                    </Typography>
+                )}
                 
                 <Button 
                     variant="contained" 
                     size="large" 
-                    onClick={() => setOpenPaymentModal(true)} 
+                    onClick={handleEnrollClick} 
                     sx={{ 
-                        bgcolor: '#a435f0', color: 'white', fontWeight: 'bold', 
+                        bgcolor: isEnrolled ? '#97A87A' : '#a435f0', 
+                        color: 'white', fontWeight: 'bold', 
                         py: 2, px: 6, fontSize: '1.2rem', borderRadius: '50px',
-                        boxShadow: '0 0 30px rgba(164, 53, 240, 0.6)',
-                        '&:hover': { bgcolor: '#8710d8', transform: 'scale(1.05)' },
+                        boxShadow: isEnrolled ? '0 0 30px rgba(76, 107, 88, 0.6)' : '0 0 30px rgba(164, 53, 240, 0.6)',
+                        '&:hover': { 
+                            transform: 'scale(1.05)' 
+                        },
                         transition: 'all 0.3s ease'
                     }}
                 >
-                    Đăng ký học ngay
+                    {isEnrolled ? "Tiếp tục học" : "Đăng ký học ngay"}
                 </Button>
                 
-                <Typography variant="body2" sx={{ mt: 2, color: '#ddd', fontStyle: 'italic' }}>
-                    Truy cập trọn đời • Hoàn tiền trong 7 ngày
-                </Typography>
+                {!isEnrolled && (
+                    <Typography variant="body2" sx={{ mt: 2, color: '#ddd', fontStyle: 'italic' }}>
+                        Truy cập trọn đời • Hoàn tiền trong 7 ngày
+                    </Typography>
+                )}
             </Grid>
           </Grid>
         </Container>
@@ -239,7 +282,17 @@ const CourseDetailPage = () => {
                                                 <PlayCircleOutline fontSize="small" /> 
                                                 <Typography variant="body2">{lesson.title}</Typography>
                                                 {/* Nếu có trường isFree hoặc duration thì hiển thị, không thì thôi */}
-                                                {lesson.isFree ? <Chip label="Học thử" size="small" color="success" variant="outlined" sx={{ ml: 'auto', height: 20 }} /> : <Lock fontSize="small" sx={{ ml: 'auto', opacity: 0.5 }}/>}
+                                                {(lesson.isFree || isEnrolled) ? (
+                                                    <Chip 
+                                                        label={isEnrolled ? "Học ngay" : "Học thử"} size="small" 
+                                                        color={isEnrolled ? "primary" : "success"} 
+                                                        variant={isEnrolled ? "filled" : "outlined"} 
+                                                        sx={{ ml: 'auto', height: 20, cursor: 'pointer' }} 
+                                                        onClick={() => navigate(`/course/learn/${course.slug}`)}
+                                                    /> 
+                                                ) : (
+                                                    <Lock fontSize="small" sx={{ ml: 'auto', opacity: 0.5 }}/>
+                                                )}
                                             </Box>
                                         ))
                                     ) : (
