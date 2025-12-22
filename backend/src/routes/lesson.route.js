@@ -27,7 +27,7 @@ const router = Router();
 
 /**
  * @swagger
- * /api/lessons/module/{moduleId}:
+ * /api/lesson/module/{moduleId}:
  *   get:
  *     summary: Get all lessons for a module
  *     tags: [Lessons]
@@ -79,7 +79,7 @@ router.get(
 
 /**
  * @swagger
- * /api/lessons/{lessonId}:
+ * /api/lesson/{lessonId}:
  *   get:
  *     summary: Get a specific lesson by ID
  *     tags: [Lessons]
@@ -129,7 +129,7 @@ router.get(
 
 /**
  * @swagger
- * /api/lessons/module/{moduleId}:
+ * /api/lesson/module/{moduleId}:
  *   post:
  *     summary: Create a new lesson
  *     tags: [Lessons]
@@ -200,7 +200,7 @@ router.post(
 
 /**
  * @swagger
- * /api/lessons/{lessonId}:
+ * /api/lesson/{lessonId}:
  *   put:
  *     summary: Update a lesson
  *     tags: [Lessons]
@@ -271,7 +271,7 @@ router.put(
 
 /**
  * @swagger
- * /api/lessons/{lessonId}:
+ * /api/lesson/{lessonId}:
  *   delete:
  *     summary: Delete a lesson
  *     tags: [Lessons]
@@ -320,7 +320,7 @@ router.delete(
 
 /**
  * @swagger
- * /api/lessons/module/{moduleId}/reorder:
+ * /api/lesson/module/{moduleId}/reorder:
  *   patch:
  *     summary: Reorder lessons in a module
  *     tags: [Lessons]
@@ -392,7 +392,7 @@ router.patch(
 
 /**
  * @swagger
- * /api/lessons/{lessonId}/progress:
+ * /api/lesson/{lessonId}/progress:
  *   patch:
  *     summary: Update lesson progress for a student
  *     tags: [Lessons]

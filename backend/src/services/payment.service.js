@@ -6,6 +6,8 @@ import { BadRequestError } from "../errors/BadRequestError.js";
 import { ConflictError } from "../errors/ConflictError.js";
 import { PermissionError } from "../errors/PermissionError.js";
 import { VNPayError } from "../errors/VNPayError.js";
+import { emitToUser } from "../configs/socket.config.js";
+import notificationService from "./notification.service.js";
 
 const vnpayConfig = {
   tmnCode: process.env.VNPAY_TMN_CODE || "your_tmn_code",
@@ -86,7 +88,8 @@ const createPaymentUrl = async (
   }
 
   // Check if price is reasonable (not too high to prevent errors)
-  if (course.priceVND > 100000000) { // 100 million VND
+  if (course.priceVND > 100000000) {
+    // 100 million VND
     throw new BadRequestError("Course price exceeds maximum allowed amount");
   }
 
@@ -111,8 +114,10 @@ const createPaymentUrl = async (
 
   // Use transaction to prevent race conditions
   const PAYMENT_TIMEOUT_MINUTES = 15;
-  const timeoutDate = new Date(Date.now() - PAYMENT_TIMEOUT_MINUTES * 60 * 1000);
-  
+  const timeoutDate = new Date(
+    Date.now() - PAYMENT_TIMEOUT_MINUTES * 60 * 1000
+  );
+
   // Use transaction to atomically handle payment creation/update
   const { payment, txnRef } = await prisma.$transaction(async (tx) => {
     // Cancel any expired pending payment for this user and course
@@ -122,12 +127,12 @@ const createPaymentUrl = async (
         courseId: parseInt(courseId),
         status: "pending",
         createdAt: {
-          lt: timeoutDate
-        }
+          lt: timeoutDate,
+        },
       },
       data: {
-        status: "failed"
-      }
+        status: "failed",
+      },
     });
 
     // Check for valid pending payment (not expired)
@@ -137,15 +142,15 @@ const createPaymentUrl = async (
         courseId: parseInt(courseId),
         status: "pending",
         createdAt: {
-          gte: timeoutDate
-        }
+          gte: timeoutDate,
+        },
       },
     });
 
     if (pendingPayment) {
       return {
         payment: pendingPayment,
-        txnRef: pendingPayment.transactionRef
+        txnRef: pendingPayment.transactionRef,
       };
     }
 
@@ -169,11 +174,9 @@ const createPaymentUrl = async (
 
     return {
       payment: updatedPayment,
-      txnRef: newTxnRef
+      txnRef: newTxnRef,
     };
   });
-
-
 
   const createDate = moment().format("YYYYMMDDHHmmss");
   const ipAddr = ipAddress || "127.0.0.1";
@@ -211,7 +214,7 @@ const createPaymentUrl = async (
   signData = signData.slice(0, -1);
   const signed = crypto
     .createHmac("sha512", vnpayConfig.hashSecret)
-    .update(signData)
+    .update(Buffer.from(signData, 'utf-8'))
     .digest("hex");
 
   vnpParams.vnp_SecureHash = signed;
@@ -237,24 +240,24 @@ const verifyPayment = async (vnpParams) => {
   } = vnpParams;
 
   // Log the payment verification attempt
-  console.log('Payment verification attempt:', {
+  console.log("Payment verification attempt:", {
     txnRef: vnp_TxnRef,
     responseCode: vnp_ResponseCode,
-    amount: vnp_Amount
+    amount: vnp_Amount,
   });
 
   // Verify signature
   const isValidSignature = verifyVNPaySignature(vnpParams, vnp_SecureHash);
 
   if (!isValidSignature) {
-    console.error('Invalid VNPay signature for transaction:', vnp_TxnRef);
+    console.error("Invalid VNPay signature for transaction:", vnp_TxnRef);
     throw new BadRequestError("Invalid payment signature");
   }
 
   // Extract payment ID from transaction reference
   const paymentIdMatch = vnp_TxnRef.match(/^PAY(\d+)/);
   if (!paymentIdMatch) {
-    console.error('Invalid transaction reference format:', vnp_TxnRef);
+    console.error("Invalid transaction reference format:", vnp_TxnRef);
     throw new BadRequestError("Invalid transaction reference format");
   }
 
@@ -274,15 +277,15 @@ const verifyPayment = async (vnpParams) => {
   });
 
   if (!payment) {
-    console.error('Payment record not found for ID:', paymentId);
+    console.error("Payment record not found for ID:", paymentId);
     throw new NotFoundError("Payment record not found");
   }
 
   // Verify the transaction reference matches our stored value
   if (payment.transactionRef !== vnp_TxnRef) {
-    console.error('Transaction reference mismatch:', {
+    console.error("Transaction reference mismatch:", {
       stored: payment.transactionRef,
-      received: vnp_TxnRef
+      received: vnp_TxnRef,
     });
     throw new BadRequestError(
       "Transaction reference mismatch - possible fraud attempt"
@@ -291,9 +294,9 @@ const verifyPayment = async (vnpParams) => {
 
   // Check if payment was already processed
   if (payment.status !== "pending") {
-    console.log('Payment already processed:', {
+    console.log("Payment already processed:", {
       paymentId,
-      currentStatus: payment.status
+      currentStatus: payment.status,
     });
     return {
       status: payment.status,
@@ -305,19 +308,17 @@ const verifyPayment = async (vnpParams) => {
   // Verify amount
   const expectedAmount = payment.amountVND * 100; // Convert to VNPay format
   if (parseInt(vnp_Amount) !== expectedAmount) {
-    console.error('Payment amount mismatch:', {
+    console.error("Payment amount mismatch:", {
       expected: expectedAmount,
-      received: vnp_Amount
+      received: vnp_Amount,
     });
     throw new BadRequestError("Payment amount mismatch");
   }
 
   // Process payment result
   if (vnp_ResponseCode === "00") {
-    // Payment successful
-    console.log('Processing successful payment:', paymentId);
+    console.log("Processing successful payment:", paymentId);
     const updatedPayment = await prisma.$transaction(async (tx) => {
-      // Update payment status
       const payment = await tx.payment.update({
         where: { id: paymentId },
         data: { status: "success" },
@@ -327,7 +328,6 @@ const verifyPayment = async (vnpParams) => {
         },
       });
 
-      // Create enrollment (with conflict handling)
       await tx.enrollment.upsert({
         where: {
           userId_courseId: {
@@ -335,26 +335,25 @@ const verifyPayment = async (vnpParams) => {
             courseId: payment.courseId,
           },
         },
-        update: {}, // No update needed if already exists
+        update: {},
         create: {
           userId: payment.userId,
           courseId: payment.courseId,
         },
       });
 
-      await tx.notification.create({
-        data: {
-          userId: payment.userId,
-          type: "system",
-          title: "Course Purchase Successful",
-          content: `You have successfully enrolled in "${payment.course.title}". You can now start learning!`,
-        },
-      });
-
       return payment;
     });
 
-    console.log('Payment processed successfully:', paymentId);
+    // Use notification service instead of direct Prisma calls
+    await notificationService.createNotification({
+      userId: updatedPayment.userId,
+      type: "system",
+      title: "Course Purchase Successful",
+      content: `You have successfully enrolled in "${updatedPayment.course.title}". You can now start learning!`,
+    });
+
+    console.log("Payment processed successfully:", paymentId);
     return {
       status: "success",
       message: "Payment successful and course enrollment completed",
@@ -374,10 +373,9 @@ const verifyPayment = async (vnpParams) => {
       },
     };
   } else {
-    // Payment failed - use custom VNPay error
-    console.log('Processing failed payment:', {
+    console.log("Processing failed payment:", {
       paymentId,
-      responseCode: vnp_ResponseCode
+      responseCode: vnp_ResponseCode,
     });
     const updatedPayment = await prisma.payment.update({
       where: { id: paymentId },
@@ -387,17 +385,18 @@ const verifyPayment = async (vnpParams) => {
       },
     });
 
-    // Create notification for failed payment
-    await prisma.notification.create({
-      data: {
-        userId: payment.userId,
-        type: "system",
-        title: "Payment Failed",
-        content: `Payment for course "${payment.course.title}" was unsuccessful. Please try again.`,
-      },
+    // Use notification service instead of direct Prisma calls
+    await notificationService.createNotification({
+      userId: updatedPayment.userId,
+      type: "system",
+      title: "Payment Failed",
+      content: `Payment for course "${updatedPayment.course.title}" was unsuccessful. Please try again.`,
     });
 
-    throw new VNPayError(vnp_ResponseCode, `Payment failed for course: ${updatedPayment.course.title}`);
+    throw new VNPayError(
+      vnp_ResponseCode,
+      `Payment failed for course: ${updatedPayment.course.title}`
+    );
   }
 };
 

@@ -1230,11 +1230,13 @@ const getSwaggerSpecs = () => {
                 example: "In this lesson, we'll learn about variables...",
                 description: "Lesson content",
               },
-              videoKey: {
+              videoUrl: {
                 type: "string",
                 nullable: true,
-                example: "lessons/course1/module1/lesson1.mp4",
-                description: "Video file key in storage",
+                example:
+                  "https://bucket.s3.amazonaws.com/lessons/video.mp4?X-Amz-Algorithm=...",
+                description:
+                  "Pre-signed URL for video streaming (expires in 1 hour)",
               },
               durationSeconds: {
                 type: "integer",
@@ -1352,6 +1354,11 @@ const getSwaggerSpecs = () => {
                     description:
                       "Student progress (only for enrolled students)",
                   },
+                  note: {
+                    $ref: "#/components/schemas/LessonNote",
+                    description:
+                      "User's personal note for this lesson (only for enrolled/instructor users who have created a note)",
+                  },
                 },
               },
             ],
@@ -1373,11 +1380,6 @@ const getSwaggerSpecs = () => {
                 example:
                   "In this lesson, we will explore the concept of variables...",
                 description: "Lesson content",
-              },
-              videoKey: {
-                type: "string",
-                example: "lessons/course1/module1/lesson1.mp4",
-                description: "Video file key in storage (optional)",
               },
               durationSeconds: {
                 type: "integer",
@@ -1412,12 +1414,6 @@ const getSwaggerSpecs = () => {
                 example:
                   "In this updated lesson, we will dive deeper into variables...",
                 description: "Lesson content",
-              },
-              videoKey: {
-                type: "string",
-                nullable: true,
-                example: "lessons/course1/module1/lesson1_updated.mp4",
-                description: "Video file key in storage",
               },
               durationSeconds: {
                 type: "integer",
@@ -1481,6 +1477,105 @@ const getSwaggerSpecs = () => {
                 description: "Number of seconds watched",
               },
             },
+          },
+          // Lesson Note Schemas
+          LessonNote: {
+            type: "object",
+            description: "User's personal note for a lesson",
+            properties: {
+              id: {
+                type: "integer",
+                example: 1,
+                description: "Note ID",
+              },
+              content: {
+                type: "string",
+                example: "Remember to review the forEach method",
+                description: "Note content",
+              },
+              createdAt: {
+                type: "string",
+                format: "date-time",
+                description: "Creation timestamp",
+              },
+              updatedAt: {
+                type: "string",
+                format: "date-time",
+                description: "Last update timestamp",
+              },
+            },
+            required: ["id", "content", "createdAt", "updatedAt"],
+          },
+          LessonNoteWithLesson: {
+            type: "object",
+            description: "User's note with lesson context",
+            properties: {
+              id: {
+                type: "integer",
+                example: 1,
+                description: "Note ID",
+              },
+              content: {
+                type: "string",
+                example: "Remember to review the forEach method",
+                description: "Note content",
+              },
+              createdAt: {
+                type: "string",
+                format: "date-time",
+                description: "Creation timestamp",
+              },
+              updatedAt: {
+                type: "string",
+                format: "date-time",
+                description: "Last update timestamp",
+              },
+              lesson: {
+                type: "object",
+                description: "Associated lesson information",
+                properties: {
+                  id: {
+                    type: "integer",
+                    example: 5,
+                    description: "Lesson ID",
+                  },
+                  title: {
+                    type: "string",
+                    example: "Array Methods in JavaScript",
+                    description: "Lesson title",
+                  },
+                  order: {
+                    type: "integer",
+                    example: 3,
+                    description: "Lesson order in module",
+                  },
+                  module: {
+                    type: "object",
+                    description: "Module information",
+                    properties: {
+                      id: {
+                        type: "integer",
+                        example: 2,
+                        description: "Module ID",
+                      },
+                      title: {
+                        type: "string",
+                        example: "JavaScript Fundamentals",
+                        description: "Module title",
+                      },
+                      order: {
+                        type: "integer",
+                        example: 1,
+                        description: "Module order in course",
+                      },
+                    },
+                    required: ["id", "title", "order"],
+                  },
+                },
+                required: ["id", "title", "order", "module"],
+              },
+            },
+            required: ["id", "content", "createdAt", "updatedAt", "lesson"],
           },
           Quiz: {
             type: "object",
@@ -2224,6 +2319,132 @@ const getSwaggerSpecs = () => {
                   },
                 },
                 required: ["items", "meta"],
+              },
+            },
+            required: ["success", "data"],
+          },
+          Notification: {
+            type: "object",
+            description: "User notification",
+            properties: {
+              id: { type: "integer", example: 5 },
+              userId: { type: "integer", example: 2 },
+              type: {
+                type: "string",
+                enum: ["system", "course_update", "new_comment"],
+                example: "system",
+              },
+              title: { type: "string", example: "Course Purchase Successful" },
+              content: {
+                type: "string",
+                example: "You have successfully enrolled in 'Node.js Basics'.",
+              },
+              isRead: { type: "boolean", example: false },
+              createdAt: {
+                type: "string",
+                format: "date-time",
+                example: "2024-12-11T09:00:00Z",
+              },
+            },
+            required: [
+              "id",
+              "userId",
+              "type",
+              "title",
+              "content",
+              "isRead",
+              "createdAt",
+            ],
+          },
+          NotificationPagination: {
+            type: "object",
+            properties: {
+              total: { type: "integer", example: 24 },
+              page: { type: "integer", example: 1 },
+              limit: { type: "integer", example: 20 },
+              totalPages: { type: "integer", example: 2 },
+            },
+            required: ["total", "page", "limit", "totalPages"],
+          },
+          NotificationResponse: {
+            type: "object",
+            properties: {
+              success: { type: "boolean", example: true },
+              data: { $ref: "#/components/schemas/Notification" },
+            },
+            required: ["success", "data"],
+          },
+          NotificationListResponse: {
+            type: "object",
+            properties: {
+              success: { type: "boolean", example: true },
+              data: {
+                type: "object",
+                properties: {
+                  items: {
+                    type: "array",
+                    items: { $ref: "#/components/schemas/Notification" },
+                  },
+                  meta: { $ref: "#/components/schemas/NotificationPagination" },
+                },
+                required: ["items", "meta"],
+              },
+            },
+            required: ["success", "data"],
+          },
+          NotificationBulkUpdateResponse: {
+            type: "object",
+            properties: {
+              success: { type: "boolean", example: true },
+              data: {
+                type: "object",
+                properties: {
+                  updatedCount: { type: "integer", example: 5 },
+                },
+                required: ["updatedCount"],
+              },
+            },
+            required: ["success", "data"],
+          },
+          NotificationUnreadCountResponse: {
+            type: "object",
+            properties: {
+              success: { type: "boolean", example: true },
+              data: {
+                type: "object",
+                properties: {
+                  unreadCount: { type: "integer", example: 12 },
+                },
+                required: ["unreadCount"],
+              },
+            },
+            required: ["success", "data"],
+          },
+          NotificationDeleteResponse: {
+            type: "object",
+            properties: {
+              success: { type: "boolean", example: true },
+              data: {
+                type: "object",
+                properties: {
+                  deleted: { type: "boolean", example: true },
+                  id: { type: "integer", example: 5 },
+                },
+                required: ["deleted", "id"],
+              },
+            },
+            required: ["success", "data"],
+          },
+          NotificationBulkDeleteResponse: {
+            type: "object",
+            properties: {
+              success: { type: "boolean", example: true },
+              data: {
+                type: "object",
+                properties: {
+                  deletedCount: { type: "integer", example: 15 },
+                },
+                required: ["deletedCount"],
               },
             },
             required: ["success", "data"],

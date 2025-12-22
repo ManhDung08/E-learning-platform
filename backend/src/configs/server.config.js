@@ -9,6 +9,7 @@ import cookieParser from "cookie-parser";
 import { initializeRoutes } from "./route.config.js";
 import errorHandler from "../middlewares/errorHandle.middleware.js";
 import { getSwaggerSpecs, swaggerUi } from "./swagger.config.js";
+import { initializeSocket } from "./socket.config.js";
 
 const app = express();
 
@@ -42,7 +43,12 @@ const setupServer = async () => {
 
   app.use(errorHandler);
 
-  return http.createServer(app);
+  const httpServer = http.createServer(app);
+  
+  // Initialize Socket.IO
+  initializeSocket(httpServer);
+
+  return httpServer;
 };
 
 export default setupServer;

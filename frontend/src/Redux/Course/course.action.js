@@ -150,9 +150,13 @@ export const createCourseAction = (courseData) => async (dispatch) => {
 export const updateCourseAction = (courseId, courseData) => async (dispatch) => {
     dispatch({ type: UPDATE_COURSE_REQUEST });
     try {
-        const config = {
-            headers: { 'Content-Type': 'multipart/form-data' }
-        };
+        const config = {};
+
+        if (!(courseData instanceof FormData)) {
+            config.headers = {
+                'Content-Type': 'application/json'
+            };
+        }
 
         const { data } = await api.put(`/course/${courseId}`, courseData, config);
 
@@ -161,7 +165,7 @@ export const updateCourseAction = (courseId, courseData) => async (dispatch) => 
         
         dispatch(getAllCoursesAction());
         dispatch(getInstructorCoursesAction());
-        dispatch(getCourseByIdAction(courseId));
+        // dispatch(getCourseByIdAction(courseId));
 
     } catch (error) {
         dispatch({
@@ -243,7 +247,7 @@ export const createModuleAction = (courseId, moduleData) => async (dispatch) => 
         dispatch({ type: CREATE_MODULE_SUCCESS, payload: data.data });
         
         //load lại chi tiết khóa học để hiển thị module mới
-        dispatch(getCourseByIdAction(courseId)); 
+        // dispatch(getCourseByIdAction(courseId)); 
     } catch (error) {
         dispatch({ 
             type: CREATE_MODULE_FAILURE, 
@@ -307,7 +311,10 @@ export const createLessonAction = (moduleId, lessonData, courseId) => async (dis
         const config = lessonData instanceof FormData ? { headers: { 'Content-Type': 'multipart/form-data' } } : {};
         
         const { data } = await api.post(`/lesson/module/${moduleId}`, lessonData, config);
+
         dispatch({ type: CREATE_LESSON_SUCCESS, payload: data });
+        console.log('create lesson success', data);
+
         dispatch(getCourseByIdAction(courseId));
     } catch (error) {
         dispatch({ type: CREATE_LESSON_FAILURE, payload: error.response?.data?.message });

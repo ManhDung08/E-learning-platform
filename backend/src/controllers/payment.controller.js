@@ -5,7 +5,7 @@ import { getClientIpAddress } from "../utils/network.util.js";
 const createPaymentUrl = async (req, res, next) => {
   try {
     const { courseId } = req.params;
-    const { bankCode, locale = "vn" } = req.body;
+    const { bankCode, locale = "vn" } = req.body || {};
     const userId = req.user.id;
     const clientIp = getClientIpAddress(req);
 
@@ -41,27 +41,31 @@ const verifyPayment = async (req, res, next) => {
     const paymentResult = {
       success: true,
       status: result.status,
-      courseId: result.enrollment?.courseId || result.payment?.course?.id || '',
-      courseName: encodeURIComponent(result.enrollment?.courseName || result.payment?.course?.title || ''),
-      paymentId: result.payment?.id || '',
-      message: encodeURIComponent(result.message || 'Payment processed')
+      courseId: result.enrollment?.courseId || result.payment?.course?.id || "",
+      courseName: encodeURIComponent(
+        result.enrollment?.courseName || result.payment?.course?.title || ""
+      ),
+      paymentId: result.payment?.id || "",
+      message: encodeURIComponent(result.message || "Payment processed"),
     };
 
     // Build query string for frontend
     const queryParams = new URLSearchParams(paymentResult).toString();
-    
+
     return res.redirect(`${frontendUrl}/payment/result?${queryParams}`);
   } catch (error) {
     console.error("Verify payment error:", error);
-    
+
     // Redirect to frontend with error
     const frontendUrl = process.env.FRONTEND_URL;
     const errorParams = new URLSearchParams({
-      success: 'false',
-      status: 'failed',
-      message: encodeURIComponent(error.message || 'Payment verification failed')
+      success: "false",
+      status: "failed",
+      message: encodeURIComponent(
+        error.message || "Payment verification failed"
+      ),
     }).toString();
-    
+
     return res.redirect(`${frontendUrl}/payment/result?${errorParams}`);
   }
 };
@@ -69,14 +73,23 @@ const verifyPayment = async (req, res, next) => {
 const handleIPN = async (req, res, next) => {
   try {
     const vnpParams = req.query;
-    
+
     // Validate required VNPay IPN parameters
-    const requiredParams = ['vnp_Amount', 'vnp_ResponseCode', 'vnp_TxnRef', 'vnp_SecureHash'];
-    const missingParams = requiredParams.filter(param => !vnpParams[param]);
-    
+    const requiredParams = [
+      "vnp_Amount",
+      "vnp_ResponseCode",
+      "vnp_TxnRef",
+      "vnp_SecureHash",
+    ];
+    const missingParams = requiredParams.filter((param) => !vnpParams[param]);
+
     if (missingParams.length > 0) {
-      console.error(`Missing required IPN parameters: ${missingParams.join(', ')}`);
-      return res.status(200).json({ RspCode: "01", Message: "Missing required parameters" });
+      console.error(
+        `Missing required IPN parameters: ${missingParams.join(", ")}`
+      );
+      return res
+        .status(200)
+        .json({ RspCode: "01", Message: "Missing required parameters" });
     }
 
     const result = await paymentService.verifyPayment(vnpParams);
@@ -89,12 +102,12 @@ const handleIPN = async (req, res, next) => {
     }
   } catch (error) {
     console.error("IPN handler error:", error);
-    
+
     // VNPay needs immediate response
-    if (error.name === 'VNPayError') {
+    if (error.name === "VNPayError") {
       return res.status(200).json({ RspCode: "01", Message: "Payment failed" });
     }
-    
+
     return res.status(200).json({ RspCode: "99", Message: "Unknown error" });
   }
 };

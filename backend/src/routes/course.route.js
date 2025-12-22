@@ -7,6 +7,19 @@ import {
   updateCourseValidation,
   courseQueryValidation,
 } from "../validations/course.validation.js";
+import {
+  createReviewValidation,
+  updateReviewValidation,
+  deleteReviewValidation,
+  getCourseReviewsValidation,
+} from "../validations/review.validation.js";
+import {
+  createDiscussionValidation,
+  replyToDiscussionValidation,
+  updateDiscussionValidation,
+  deleteDiscussionValidation,
+  getCourseDiscussionsValidation,
+} from "../validations/discussion.validation.js";
 import { optionalUploadCourseImage } from "../middlewares/upload.middleware.js";
 
 const router = Router();
@@ -20,7 +33,7 @@ const router = Router();
 
 /**
  * @swagger
- * /api/courses:
+ * /api/course:
  *   get:
  *     summary: Get all courses
  *     tags: [Courses]
@@ -90,7 +103,7 @@ router.get(
 
 /**
  * @swagger
- * /api/courses/{courseId}:
+ * /api/course/{courseId}:
  *   get:
  *     summary: Get detailed course information (admin only - sees everything)
  *     tags: [Courses]
@@ -133,7 +146,7 @@ router.get("/:courseId", isAuth(["admin"]), courseController.getCourseById);
 
 /**
  * @swagger
- * /api/courses/slug/{slug}:
+ * /api/course/slug/{slug}:
  *   get:
  *     summary: Get course by slug (dynamic access based on user type)
  *     description: |
@@ -169,7 +182,7 @@ router.get("/slug/:slug", optionalAuth, courseController.getCourseBySlug);
 
 /**
  * @swagger
- * /api/courses:
+ * /api/course:
  *   post:
  *     summary: Create a new course
  *     tags: [Courses]
@@ -252,7 +265,7 @@ router.post(
 
 /**
  * @swagger
- * /api/courses/{courseId}:
+ * /api/course/{courseId}:
  *   put:
  *     summary: Update a course
  *     tags: [Courses]
@@ -338,7 +351,7 @@ router.put(
 
 /**
  * @swagger
- * /api/courses/{courseId}:
+ * /api/course/{courseId}:
  *   delete:
  *     summary: Delete a course
  *     tags: [Courses]
@@ -391,7 +404,7 @@ router.delete(
 
 /**
  * @swagger
- * /api/courses/{courseId}/enroll:
+ * /api/course/{courseId}/enrollments:
  *   post:
  *     summary: Enroll in a course
  *     tags: [Courses]
@@ -444,7 +457,7 @@ router.post(
 
 /**
  * @swagger
- * /api/courses/{courseId}/enrollments:
+ * /api/course/{courseId}/enrollments:
  *   delete:
  *     summary: Unenroll from a course
  *     tags: [Courses]
@@ -485,7 +498,7 @@ router.delete(
 
 /**
  * @swagger
- * /api/courses/enrollments:
+ * /api/course/me/enrollments:
  *   get:
  *     summary: Get user's course enrollments
  *     tags: [Courses]
@@ -537,7 +550,7 @@ router.get(
 
 /**
  * @swagger
- * /api/courses/me/courses:
+ * /api/course/me/courses:
  *   get:
  *     summary: Get instructor's courses
  *     tags: [Courses]
@@ -591,6 +604,479 @@ router.get(
   courseQueryValidation,
   validate,
   courseController.getInstructorCourses
+);
+
+// ==================== REVIEW ROUTES ====================
+
+/**
+ * @swagger
+ * /api/course/{courseId}/reviews:
+ *   get:
+ *     summary: Get all reviews for a course
+ *     tags: [Courses]
+ *     parameters:
+ *       - in: path
+ *         name: courseId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Course ID
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 10
+ *         description: Number of reviews per page
+ *       - in: query
+ *         name: rating
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 5
+ *         description: Filter by rating
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           enum: [createdAt, rating]
+ *           default: createdAt
+ *         description: Field to sort by
+ *       - in: query
+ *         name: sortOrder
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *           default: desc
+ *         description: Sort order
+ *     responses:
+ *       200:
+ *         description: Course reviews retrieved successfully
+ *       404:
+ *         description: Course not found
+ */
+router.get(
+  "/:courseId/reviews",
+  getCourseReviewsValidation,
+  validate,
+  courseController.getCourseReviews
+);
+
+/**
+ * @swagger
+ * /api/course/{courseId}/reviews:
+ *   post:
+ *     summary: Create a review for a course (enrolled students only)
+ *     tags: [Courses]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: courseId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Course ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               rating:
+ *                 type: integer
+ *                 minimum: 1
+ *                 maximum: 5
+ *                 description: Rating from 1 to 5
+ *               comment:
+ *                 type: string
+ *                 minLength: 10
+ *                 maxLength: 1000
+ *                 description: Review comment
+ *             required:
+ *               - rating
+ *               - comment
+ *     responses:
+ *       201:
+ *         description: Review created successfully
+ *       400:
+ *         description: Bad request - validation error
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - must be enrolled
+ *       404:
+ *         description: Course not found
+ *       409:
+ *         description: Already reviewed this course
+ */
+router.post(
+  "/:courseId/reviews",
+  isAuth(["student"]),
+  createReviewValidation,
+  validate,
+  courseController.createReview
+);
+
+/**
+ * @swagger
+ * /api/course/{courseId}/reviews/{reviewId}:
+ *   put:
+ *     summary: Update a review (review owner only)
+ *     tags: [Courses]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: courseId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Course ID
+ *       - in: path
+ *         name: reviewId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Review ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               rating:
+ *                 type: integer
+ *                 minimum: 1
+ *                 maximum: 5
+ *                 description: Rating from 1 to 5
+ *               comment:
+ *                 type: string
+ *                 minLength: 10
+ *                 maxLength: 1000
+ *                 description: Review comment
+ *     responses:
+ *       200:
+ *         description: Review updated successfully
+ *       400:
+ *         description: Bad request - validation error
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - not review owner
+ *       404:
+ *         description: Review not found
+ */
+router.put(
+  "/:courseId/reviews/:reviewId",
+  isAuth(["student"]),
+  updateReviewValidation,
+  validate,
+  courseController.updateReview
+);
+
+/**
+ * @swagger
+ * /api/course/{courseId}/reviews/{reviewId}:
+ *   delete:
+ *     summary: Delete a review (review owner or admin)
+ *     tags: [Courses]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: courseId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Course ID
+ *       - in: path
+ *         name: reviewId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Review ID
+ *     responses:
+ *       200:
+ *         description: Review deleted successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - not review owner or admin
+ *       404:
+ *         description: Review not found
+ */
+router.delete(
+  "/:courseId/reviews/:reviewId",
+  isAuth(["student", "admin"]),
+  deleteReviewValidation,
+  validate,
+  courseController.deleteReview
+);
+
+// ==================== DISCUSSION ROUTES ====================
+
+/**
+ * @swagger
+ * /api/course/{courseId}/discussions:
+ *   get:
+ *     summary: Get all discussions for a course
+ *     tags: [Courses]
+ *     parameters:
+ *       - in: path
+ *         name: courseId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Course ID
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 10
+ *         description: Number of discussions per page
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           enum: [createdAt]
+ *           default: createdAt
+ *         description: Field to sort by
+ *       - in: query
+ *         name: sortOrder
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *           default: desc
+ *         description: Sort order
+ *     responses:
+ *       200:
+ *         description: Course discussions retrieved successfully
+ *       404:
+ *         description: Course not found
+ */
+router.get(
+  "/:courseId/discussions",
+  getCourseDiscussionsValidation,
+  validate,
+  courseController.getCourseDiscussions
+);
+
+/**
+ * @swagger
+ * /api/course/{courseId}/discussions:
+ *   post:
+ *     summary: Create a discussion for a course (enrolled users only)
+ *     tags: [Courses]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: courseId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Course ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               content:
+ *                 type: string
+ *                 minLength: 5
+ *                 maxLength: 2000
+ *                 description: Discussion content
+ *             required:
+ *               - content
+ *     responses:
+ *       201:
+ *         description: Discussion created successfully
+ *       400:
+ *         description: Bad request - validation error
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - must be enrolled
+ *       404:
+ *         description: Course not found
+ */
+router.post(
+  "/:courseId/discussions",
+  isAuth(["student", "instructor", "admin"]),
+  createDiscussionValidation,
+  validate,
+  courseController.createDiscussion
+);
+
+/**
+ * @swagger
+ * /api/course/{courseId}/discussions/{discussionId}/reply:
+ *   post:
+ *     summary: Reply to a discussion (enrolled users only)
+ *     tags: [Courses]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: courseId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Course ID
+ *       - in: path
+ *         name: discussionId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Discussion ID to reply to
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               content:
+ *                 type: string
+ *                 minLength: 5
+ *                 maxLength: 2000
+ *                 description: Reply content
+ *             required:
+ *               - content
+ *     responses:
+ *       201:
+ *         description: Reply created successfully
+ *       400:
+ *         description: Bad request - validation error
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - must be enrolled
+ *       404:
+ *         description: Discussion not found
+ */
+router.post(
+  "/:courseId/discussions/:discussionId/reply",
+  isAuth(["student", "instructor", "admin"]),
+  replyToDiscussionValidation,
+  validate,
+  courseController.replyToDiscussion
+);
+
+/**
+ * @swagger
+ * /api/course/{courseId}/discussions/{discussionId}:
+ *   put:
+ *     summary: Update a discussion (discussion owner only)
+ *     tags: [Courses]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: courseId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Course ID
+ *       - in: path
+ *         name: discussionId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Discussion ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               content:
+ *                 type: string
+ *                 minLength: 5
+ *                 maxLength: 2000
+ *                 description: Discussion content
+ *             required:
+ *               - content
+ *     responses:
+ *       200:
+ *         description: Discussion updated successfully
+ *       400:
+ *         description: Bad request - validation error
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - not discussion owner
+ *       404:
+ *         description: Discussion not found
+ */
+router.put(
+  "/:courseId/discussions/:discussionId",
+  isAuth(["student", "instructor", "admin"]),
+  updateDiscussionValidation,
+  validate,
+  courseController.updateDiscussion
+);
+
+/**
+ * @swagger
+ * /api/course/{courseId}/discussions/{discussionId}:
+ *   delete:
+ *     summary: Delete a discussion (discussion owner or admin)
+ *     tags: [Courses]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: courseId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Course ID
+ *       - in: path
+ *         name: discussionId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Discussion ID
+ *     responses:
+ *       200:
+ *         description: Discussion deleted successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - not discussion owner or admin
+ *       404:
+ *         description: Discussion not found
+ */
+router.delete(
+  "/:courseId/discussions/:discussionId",
+  isAuth(["student", "instructor", "admin"]),
+  deleteDiscussionValidation,
+  validate,
+  courseController.deleteDiscussion
 );
 
 export default router;

@@ -8,6 +8,7 @@ import {
 import { NotFoundError } from "../errors/NotFoundError.js";
 import { BadRequestError } from "../errors/BadRequestError.js";
 import { PermissionError } from "../errors/PermissionError.js";
+import notificationService from "./notification.service.js";
 
 const signCertificateUrls = async (certificates) => {
   return Promise.all(
@@ -120,6 +121,18 @@ const issueCertificate = async ({
         },
       });
     });
+
+    // Notify user about certificate issuance
+    await notificationService
+      .createNotification({
+        userId: certificate.userId,
+        type: "system",
+        title: "Certificate Issued",
+        content: `Congratulations! You have been awarded a certificate for completing "${certificate.course.title}".`,
+      })
+      .catch((err) => {
+        console.error("Failed to send certificate notification:", err);
+      });
 
     const [certWithUrl] = await signCertificateUrls([certificate]);
     return certWithUrl;

@@ -297,6 +297,7 @@ const CourseBuilder = ({ open, handleClose, courseId }) => {
                 onCreate={handleOpenCreateQuiz}
                 onEdit={handleOpenEditQuiz}
                 onDelete={handleDeleteQuiz}
+                lessonId={selectedLessonForQuiz?.id}
             />
 
             <QuizFormModal 

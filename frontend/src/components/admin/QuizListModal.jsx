@@ -1,14 +1,31 @@
 import React from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, List, ListItem, ListItemText, 
-    ListItemSecondaryAction, IconButton, Typography, Box, Divider } from '@mui/material';
+    ListItemSecondaryAction, IconButton, Typography, Box, Divider, Tooltip } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import QuizIcon from '@mui/icons-material/Quiz';
+import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
+import AssessmentIcon from '@mui/icons-material/Assessment';
 
-const QuizListModal = ({ open, handleClose, lessonName, quizzes = [], onEdit, onDelete, onCreate }) => {
+const QuizListModal = ({ open, handleClose, lessonName, lessonId, quizzes = [], onEdit, onDelete, onCreate }) => {
     const themeColor = '#97A87A';
+    const navigate = useNavigate();
+
+    const { user } = useSelector(store => store.auth);
+    const userRole = user?.role || 'instructor';
+
+    const handleViewAttempts = (quizId) => {
+        handleClose();
+
+        if (userRole === 'admin') {
+            navigate(`/admin/quiz/${quizId}/attempts`, {state: { lessonId: lessonId }});
+        } else {
+            navigate(`/instructor/quiz/${quizId}/attempts`, {state: { lessonId: lessonId }});
+        }
+    };
 
     return (
         <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
@@ -33,6 +50,12 @@ const QuizListModal = ({ open, handleClose, lessonName, quizzes = [], onEdit, on
                                         secondary={`ID: ${quiz.id}`} 
                                     />
                                     <ListItemSecondaryAction>
+                                        <Tooltip title="View Student Results">
+                                            <IconButton edge="end" onClick={() => handleViewAttempts(quiz.id)} 
+                                                sx={{ mr: 1, color: '#2e7d32', bgcolor: '#e8f5e9' }}>
+                                                <AssessmentIcon />
+                                            </IconButton>
+                                        </Tooltip>
                                         <IconButton edge="end" onClick={() => onEdit(quiz.id)} sx={{ mr: 1, color: themeColor }}>
                                             <EditIcon />
                                         </IconButton>
