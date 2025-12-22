@@ -214,7 +214,7 @@ const createPaymentUrl = async (
   signData = signData.slice(0, -1);
   const signed = crypto
     .createHmac("sha512", vnpayConfig.hashSecret)
-    .update(signData)
+    .update(Buffer.from(signData, 'utf-8'))
     .digest("hex");
 
   vnpParams.vnp_SecureHash = signed;

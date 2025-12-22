@@ -96,7 +96,7 @@ router.get(
 
 /**
  * @swagger
- * /api/quiz/lessons/{lessonId}:
+ * /api/quiz/lesson/{lessonId}:
  *   post:
  *     summary: Create a new quiz for a lesson
  *     tags: [Quizzes]
