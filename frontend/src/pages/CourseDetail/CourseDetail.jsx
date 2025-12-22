@@ -141,6 +141,7 @@ const CourseDetailPage = () => {
             });
 
             if (response.data && response.data.success) {
+                localStorage.setItem('pendingCourseId', course.id);
                 window.location.href = response.data.data.paymentUrl;
             }
         } catch (error) {
