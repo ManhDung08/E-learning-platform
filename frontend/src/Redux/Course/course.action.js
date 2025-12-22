@@ -227,7 +227,7 @@ export const getUserEnrollmentsAction = (page = 1, limit = 10, search = "") => a
     dispatch({ type: GET_USER_ENROLLMENTS_REQUEST });
     try {
         const params = { page, limit, search };
-        const { data } = await api.get('/course/enrollments', { params });
+        const { data } = await api.get('/course/me/enrollments', { params });
         dispatch({ type: GET_USER_ENROLLMENTS_SUCCESS, payload: data.data });
     } catch (error) {
         dispatch({
