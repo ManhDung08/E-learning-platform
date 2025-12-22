@@ -1,13 +1,15 @@
 import React, { useEffect, useState, useRef } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 
 const Videos = () => {
   const { courseId } = useParams();
+  const navigate = useNavigate();
   const [modules, setModules] = useState([]);
   const [selectedModule, setSelectedModule] = useState(null);
   const [lessons, setLessons] = useState([]);
   const [selectedLesson, setSelectedLesson] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [checkingAccess, setCheckingAccess] = useState(true);
   const [error, setError] = useState(null);
   const [note, setNote] = useState("");
   const videoRef = useRef(null);
@@ -27,6 +29,53 @@ const Videos = () => {
       return `${secs}s`;
     }
   };
+
+  // Check if user has access to this course (enrolled)
+  useEffect(() => {
+    const checkAccess = async () => {
+      try {
+        setCheckingAccess(true);
+        const response = await fetch(`http://localhost:3000/api/course/me/enrollments`, {
+          method: 'GET',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (!response.ok) {
+          // If not authenticated or no enrollments, redirect to home
+          navigate('/');
+          return;
+        }
+
+        const result = await response.json();
+        const enrollments = result.data?.enrollments || [];
+        
+        // Check if user is enrolled in this course
+        const isEnrolled = enrollments.some(
+          (enrollment) => enrollment.course?.id === parseInt(courseId)
+        );
+
+        if (!isEnrolled) {
+          // User not enrolled, redirect to home
+          navigate('/');
+          return;
+        }
+
+        // User has access, allow to continue
+        setCheckingAccess(false);
+      } catch (err) {
+        console.error('Error checking access:', err);
+        // On error, redirect to home for safety
+        navigate('/');
+      }
+    };
+
+    if (courseId) {
+      checkAccess();
+    }
+  }, [courseId, navigate]);
 
   // Fetch modules for the course
   useEffect(() => {
@@ -113,47 +162,10 @@ const Videos = () => {
     }
   };
 
-  // helpers for comments per lesson (stored in localStorage)
-  const commentsKey = (id) => `lesson_comments_${id}`;
-
-  const loadComments = (id) => {
-    try {
-      const raw = localStorage.getItem(commentsKey(id));
-      return raw ? JSON.parse(raw) : [];
-    } catch (e) {
-      return [];
-    }
-  };
-
-  const [comments, setComments] = useState(() => selectedLesson ? loadComments(selectedLesson.id) : []);
-  const [commentInput, setCommentInput] = useState("");
-  const [commentAuthor, setCommentAuthor] = useState("");
-
-  // reload comments when changing lesson
-  useEffect(() => {
-    if (!selectedLesson) return;
-    setComments(loadComments(selectedLesson.id));
-  }, [selectedLesson]);
-
-  const addComment = () => {
-    if (!commentInput.trim()) return;
-    const c = {
-      id: Date.now().toString(),
-      author: commentAuthor?.trim() || "Khách",
-      text: commentInput.trim(),
-      createdAt: new Date().toISOString(),
-    };
-    const next = [c, ...comments];
-    setComments(next);
-    localStorage.setItem(commentsKey(selectedLesson.id), JSON.stringify(next));
-    setCommentInput("");
-  };
-
-  const removeComment = (id) => {
-    const next = comments.filter((c) => c.id !== id);
-    setComments(next);
-    localStorage.setItem(commentsKey(selectedLesson.id), JSON.stringify(next));
-  };
+  // Show loading while checking access
+  if (checkingAccess) {
+    return <div className="w-full min-h-screen bg-gray-50 flex items-center justify-center">Đang kiểm tra quyền truy cập...</div>;
+  }
 
   if (loading) return <div className="w-full min-h-screen bg-gray-50 flex items-center justify-center">Đang tải...</div>;
   if (error) return <div className="w-full min-h-screen bg-gray-50 flex items-center justify-center text-red-500">{error}</div>;
@@ -189,49 +201,6 @@ const Videos = () => {
                       </div>
                       <div className="text-sm text-gray-400">ID: {selectedLesson?.id}</div>
                     </div>
-                  </div>
-                </div>
-
-                <div className="bg-white rounded shadow p-4">
-                  <h3 className="font-medium mb-3">Bình luận</h3>
-
-                  <div className="space-y-2 mb-3">
-                    <input
-                      value={commentAuthor}
-                      onChange={(e) => setCommentAuthor(e.target.value)}
-                      placeholder="Tên của bạn (tùy chọn)"
-                      className="w-full border border-gray-200 rounded p-2 text-sm"
-                    />
-                    <textarea
-                      value={commentInput}
-                      onChange={(e) => setCommentInput(e.target.value)}
-                      placeholder="Viết bình luận..."
-                      className="w-full h-24 border border-gray-200 rounded p-2 text-sm resize-y"
-                    />
-                    <div className="flex justify-end">
-                      <button
-                        onClick={addComment}
-                        className="bg-indigo-600 text-white px-3 py-1.5 rounded text-sm hover:bg-indigo-700"
-                      >
-                        Gửi
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="divide-y max-h-56 overflow-y-auto">
-                    {comments.length === 0 && <div className="text-sm text-gray-500">Chưa có bình luận nào.</div>}
-                    {comments.map((c) => (
-                      <div key={c.id} className="py-2 flex justify-between items-start gap-2">
-                        <div>
-                          <div className="text-sm font-medium">{c.author}</div>
-                          <div className="text-sm text-gray-800">{c.text}</div>
-                          <div className="text-xs text-gray-400 mt-1">{new Date(c.createdAt).toLocaleString()}</div>
-                        </div>
-                        <div>
-                          <button className="text-xs text-red-500" onClick={() => removeComment(c.id)}>Xóa</button>
-                        </div>
-                      </div>
-                    ))}
                   </div>
                 </div>
               </>
