@@ -1354,6 +1354,11 @@ const getSwaggerSpecs = () => {
                     description:
                       "Student progress (only for enrolled students)",
                   },
+                  note: {
+                    $ref: "#/components/schemas/LessonNote",
+                    description:
+                      "User's personal note for this lesson (only for enrolled/instructor users who have created a note)",
+                  },
                 },
               },
             ],
@@ -1472,6 +1477,105 @@ const getSwaggerSpecs = () => {
                 description: "Number of seconds watched",
               },
             },
+          },
+          // Lesson Note Schemas
+          LessonNote: {
+            type: "object",
+            description: "User's personal note for a lesson",
+            properties: {
+              id: {
+                type: "integer",
+                example: 1,
+                description: "Note ID",
+              },
+              content: {
+                type: "string",
+                example: "Remember to review the forEach method",
+                description: "Note content",
+              },
+              createdAt: {
+                type: "string",
+                format: "date-time",
+                description: "Creation timestamp",
+              },
+              updatedAt: {
+                type: "string",
+                format: "date-time",
+                description: "Last update timestamp",
+              },
+            },
+            required: ["id", "content", "createdAt", "updatedAt"],
+          },
+          LessonNoteWithLesson: {
+            type: "object",
+            description: "User's note with lesson context",
+            properties: {
+              id: {
+                type: "integer",
+                example: 1,
+                description: "Note ID",
+              },
+              content: {
+                type: "string",
+                example: "Remember to review the forEach method",
+                description: "Note content",
+              },
+              createdAt: {
+                type: "string",
+                format: "date-time",
+                description: "Creation timestamp",
+              },
+              updatedAt: {
+                type: "string",
+                format: "date-time",
+                description: "Last update timestamp",
+              },
+              lesson: {
+                type: "object",
+                description: "Associated lesson information",
+                properties: {
+                  id: {
+                    type: "integer",
+                    example: 5,
+                    description: "Lesson ID",
+                  },
+                  title: {
+                    type: "string",
+                    example: "Array Methods in JavaScript",
+                    description: "Lesson title",
+                  },
+                  order: {
+                    type: "integer",
+                    example: 3,
+                    description: "Lesson order in module",
+                  },
+                  module: {
+                    type: "object",
+                    description: "Module information",
+                    properties: {
+                      id: {
+                        type: "integer",
+                        example: 2,
+                        description: "Module ID",
+                      },
+                      title: {
+                        type: "string",
+                        example: "JavaScript Fundamentals",
+                        description: "Module title",
+                      },
+                      order: {
+                        type: "integer",
+                        example: 1,
+                        description: "Module order in course",
+                      },
+                    },
+                    required: ["id", "title", "order"],
+                  },
+                },
+                required: ["id", "title", "order", "module"],
+              },
+            },
+            required: ["id", "content", "createdAt", "updatedAt", "lesson"],
           },
           Quiz: {
             type: "object",

@@ -8,36 +8,37 @@ datasource db {
 }
 
 model User {
-  id              Int              @id @default(autoincrement())
-  email           String           @unique
-  passwordHash    String?
-  googleId        String?          @unique
-  username        String           @unique
-  profileImageUrl String?
-  firstName       String?
-  lastName        String?
-  gender          Gender?
-  dateOfBirth     DateTime?
-  phoneNumber     String?
-  role            UserRole         @default(student)
-  emailVerified          Boolean   @default(false)
-  verificationToken      String?   @unique
-  verificationTokenExpiry DateTime?
-  resetPasswordToken       String?   @unique
+  id                       Int              @id @default(autoincrement())
+  email                    String           @unique
+  passwordHash             String?
+  googleId                 String?          @unique
+  username                 String           @unique
+  profileImageUrl          String?
+  firstName                String?
+  lastName                 String?
+  gender                   Gender?
+  dateOfBirth              DateTime?
+  phoneNumber              String?
+  role                     UserRole         @default(student)
+  emailVerified            Boolean          @default(false)
+  verificationToken        String?          @unique
+  verificationTokenExpiry  DateTime?
+  resetPasswordToken       String?          @unique
   resetPasswordTokenExpiry DateTime?
-  isActive        Boolean          @default(true)
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-  certificates    Certificate[]
-  courses         Course[]         @relation("InstructorCourses")
-  discussions     Discussion[]
-  enrollments     Enrollment[]
-  lessonProgress  LessonProgress[]
-  notifications   Notification[]
-  payments        Payment[]
-  quizAttempts    QuizAttempt[]
-  reviews         Review[]
-  supportTickets  SupportTicket[]
+  isActive                 Boolean          @default(true)
+  createdAt                DateTime         @default(now())
+  updatedAt                DateTime         @updatedAt
+  certificates             Certificate[]
+  courses                  Course[]         @relation("InstructorCourses")
+  discussions              Discussion[]
+  enrollments              Enrollment[]
+  lessonProgress           LessonProgress[]
+  lessonNotes              LessonNote[]
+  notifications            Notification[]
+  payments                 Payment[]
+  quizAttempts             QuizAttempt[]
+  reviews                  Review[]
+  supportTickets           SupportTicket[]
 
   @@index([email])
   @@index([role])
@@ -137,6 +138,7 @@ model Lesson {
   updatedAt       DateTime         @updatedAt
   module          Module           @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   lessonProgress  LessonProgress[]
+  lessonNotes     LessonNote[]
   quizzes         Quiz[]
 
   @@unique([moduleId, order])
@@ -152,6 +154,21 @@ model LessonProgress {
   watchedSeconds Int?
   lesson         Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
   user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+  @@index([userId])
+  @@index([lessonId])
+}
+
+model LessonNote {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  lessonId  Int
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  lesson    Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, lessonId])
   @@index([userId])
