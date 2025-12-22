@@ -84,6 +84,28 @@ const getLessonsByModuleId = async (moduleId, userId, userRole) => {
     progressMap = new Map(allProgress.map((p) => [p.lessonId, p]));
   }
 
+  // Get user's notes for all lessons if user is enrolled or instructor
+  let notesMap = new Map();
+  if (userId && (isEnrolled || isInstructor) && lessons.length > 0) {
+    const lessonIds = lessons.map((l) => l.id);
+
+    const allNotes = await prisma.lessonNote.findMany({
+      where: {
+        userId,
+        lessonId: { in: lessonIds },
+      },
+      select: {
+        lessonId: true,
+        id: true,
+        content: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    notesMap = new Map(allNotes.map((n) => [n.lessonId, n]));
+  }
+
   return await Promise.all(
     lessons.map(async (lesson) => {
       // Generate signed URL for video if exists
@@ -121,6 +143,14 @@ const getLessonsByModuleId = async (moduleId, userId, userRole) => {
           lastAccessedAt: null,
           watchedSeconds: null,
         };
+      }
+
+      // Include user's note if available
+      if (userId && (isEnrolled || isInstructor)) {
+        const note = notesMap.get(lesson.id);
+        if (note) {
+          lessonData.note = note;
+        }
       }
 
       return lessonData;
@@ -197,6 +227,25 @@ const getLessonById = async (lessonId, userId, userRole) => {
     });
   }
 
+  // Get user's note for this lesson if user is enrolled or instructor
+  let note = null;
+  if (userId && (isEnrolled || isInstructor)) {
+    note = await prisma.lessonNote.findUnique({
+      where: {
+        userId_lessonId: {
+          userId,
+          lessonId: parsedLessonId,
+        },
+      },
+      select: {
+        id: true,
+        content: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+  }
+
   // Generate signed URL for video if exists
   let videoUrl = null;
   if (lesson.videoKey) {
@@ -242,6 +291,7 @@ const getLessonById = async (lessonId, userId, userRole) => {
         watchedSeconds: null,
       },
     }),
+    ...(note && { note }),
   };
 };
 
