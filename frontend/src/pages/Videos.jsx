@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 
-import { useDispatch } from "react-redux";
 import LessonQuiz from "../components/lesson/LessonQuiz";
 import api from "../Redux/api";
 
@@ -21,6 +20,7 @@ const Videos = () => {
   const [noteSaving, setNoteSaving] = useState(false);
   const [noteError, setNoteError] = useState(null);
   const videoRef = useRef(null);
+  const lastUpdateTimeRef = useRef(0);
 
   // Format duration from seconds to readable format (e.g., "5:30" or "1h 5m 30s")
   const formatDuration = (seconds) => {
@@ -145,6 +145,97 @@ const Videos = () => {
     fetchLessons();
   }, [selectedModule]);
 
+  // Update lesson progress periodically during video playback
+  const updateLessonProgress = async (lessonId, watchedSeconds, isCompleted = false) => {
+    try {
+      await api.patch(`/lesson/${lessonId}/progress`, {
+        watchedSeconds,
+        isCompleted
+      });
+    } catch (error) {
+      console.error('Error updating lesson progress:', error);
+    }
+  };
+
+  // Setup video progress tracking
+  useEffect(() => {
+    if (!selectedLesson || !videoRef.current) return;
+
+    const video = videoRef.current;
+
+    // Resume from last watched position
+    if (selectedLesson.progress?.watchedSeconds) {
+      video.currentTime = selectedLesson.progress.watchedSeconds;
+    }
+
+    const handleTimeUpdate = () => {
+      const currentTime = Math.floor(video.currentTime);
+      const duration = Math.floor(video.duration);
+
+      // Update progress every 10 seconds
+      if (currentTime - lastUpdateTimeRef.current >= 10) {
+        updateLessonProgress(selectedLesson.id, currentTime);
+        lastUpdateTimeRef.current = currentTime;
+        
+        // Update local lesson state to reflect progress
+        setLessons(prevLessons => 
+          prevLessons.map(l => 
+            l.id === selectedLesson.id 
+              ? { ...l, progress: { ...l.progress, watchedSeconds: currentTime, lastAccessedAt: new Date() } }
+              : l
+          )
+        );
+      }
+
+      // Check if video is near completion (95% watched)
+      if (duration > 0 && currentTime >= duration * 0.95 && !selectedLesson.progress?.isCompleted) {
+        updateLessonProgress(selectedLesson.id, currentTime, true);
+        
+        // Update local lesson state to mark as completed
+        setLessons(prevLessons => 
+          prevLessons.map(l => 
+            l.id === selectedLesson.id 
+              ? { ...l, progress: { ...l.progress, isCompleted: true, watchedSeconds: currentTime } }
+              : l
+          )
+        );
+        
+        setSelectedLesson(prev => ({
+          ...prev,
+          progress: { ...prev.progress, isCompleted: true, watchedSeconds: currentTime }
+        }));
+      }
+    };
+
+    const handleEnded = () => {
+      const duration = Math.floor(video.duration);
+      updateLessonProgress(selectedLesson.id, duration, true);
+      
+      // Mark as completed
+      setLessons(prevLessons => 
+        prevLessons.map(l => 
+          l.id === selectedLesson.id 
+            ? { ...l, progress: { ...l.progress, isCompleted: true, watchedSeconds: duration } }
+            : l
+        )
+      );
+      
+      setSelectedLesson(prev => ({
+        ...prev,
+        progress: { ...prev.progress, isCompleted: true, watchedSeconds: duration }
+      }));
+    };
+
+    video.addEventListener('timeupdate', handleTimeUpdate);
+    video.addEventListener('ended', handleEnded);
+
+    return () => {
+      video.removeEventListener('timeupdate', handleTimeUpdate);
+      video.removeEventListener('ended', handleEnded);
+      lastUpdateTimeRef.current = 0;
+    };
+  }, [selectedLesson]);
+
   // Load saved notes for the current lesson from API
   useEffect(() => {
     if (!selectedLesson) {
@@ -244,10 +335,21 @@ const Videos = () => {
   };
 
   const onSelectLesson = (lesson) => {
+    // Save current progress before switching
+    if (selectedLesson && videoRef.current && !videoRef.current.paused) {
+      const currentTime = Math.floor(videoRef.current.currentTime);
+      updateLessonProgress(selectedLesson.id, currentTime);
+    }
+    
     setSelectedLesson(lesson);
     if (videoRef.current) {
-      try { videoRef.current.pause(); } catch (e) {}
+      try { 
+        videoRef.current.pause(); 
+      } catch {
+        // Ignore errors if video cannot be paused
+      }
     }
+    lastUpdateTimeRef.current = 0;
   };
 
   const handleNextLesson = () => {
@@ -297,10 +399,42 @@ const Videos = () => {
                   </div>
 
                   <div className="p-4 bg-white border-t">
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <h2 className="text-lg font-semibold">{selectedLesson?.title}</h2>
+                    <div className="flex items-start justify-between gap-4 mb-3">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3">
+                          <h2 className="text-lg font-semibold">{selectedLesson?.title}</h2>
+                          {selectedLesson?.progress?.isCompleted && (
+                            <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-full">
+                              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
+                              </svg>
+                              Completed
+                            </span>
+                          )}
+                        </div>
                         <p className="text-sm text-gray-500 mt-1">Duration: {formatDuration(selectedLesson?.durationSeconds)}</p>
+                        
+                        {/* Progress Bar */}
+                        {selectedLesson?.durationSeconds > 0 && (
+                          <div className="mt-3">
+                            <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
+                              <span>Progress: {formatDuration(selectedLesson?.progress?.watchedSeconds || 0)} / {formatDuration(selectedLesson?.durationSeconds)}</span>
+                              <span className="font-semibold">
+                                {Math.min(100, Math.round(((selectedLesson?.progress?.watchedSeconds || 0) / selectedLesson?.durationSeconds) * 100))}%
+                              </span>
+                            </div>
+                            <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                              <div 
+                                className={`h-full transition-all duration-300 ${
+                                  selectedLesson?.progress?.isCompleted ? 'bg-green-500' : 'bg-blue-500'
+                                }`}
+                                style={{ 
+                                  width: `${Math.min(100, ((selectedLesson?.progress?.watchedSeconds || 0) / selectedLesson?.durationSeconds) * 100)}%` 
+                                }}
+                              />
+                            </div>
+                          </div>
+                        )}
                       </div>
                       <div className="text-sm text-gray-400">ID: {selectedLesson?.id}</div>
                     </div>
@@ -345,22 +479,53 @@ const Videos = () => {
                   <h3 className="font-medium mb-3 pb-2 border-b border-gray-100">Danh sách video trong module</h3>
                   <div className="mt-2" style={{ maxHeight: '220px', overflowY: 'auto' }}>
                     <ul className="space-y-3 px-1">
-                      {lessons.map((l) => (
-                        <li
-                          key={l.id}
-                          className={`flex items-center gap-3 p-2 rounded-md cursor-pointer transition-shadow ${l.id === selectedLesson?.id ? 'bg-indigo-50 shadow-sm ring-1 ring-indigo-200 border border-indigo-100' : 'hover:shadow-sm hover:bg-gray-50'}`}
-                          onClick={() => onSelectLesson(l)}
-                        >
-                          <div className="w-20 h-12 bg-gray-100 rounded flex items-center justify-center text-xs text-gray-500 overflow-hidden">
-                            {l.videoUrl ? 'Video' : 'No Video'}
-                          </div>
-                          <div className="flex-1">
-                            <div className="font-medium text-sm text-gray-800">{l.title}</div>
-                            <div className="text-xs text-gray-500">{formatDuration(l.durationSeconds)}</div>
-                          </div>
-                          <div className="text-xs text-indigo-600 font-medium">Play</div>
-                        </li>
-                      ))}
+                      {lessons.map((l) => {
+                        const progressPercent = l.durationSeconds > 0 
+                          ? Math.min(100, ((l.progress?.watchedSeconds || 0) / l.durationSeconds) * 100)
+                          : 0;
+                        
+                        return (
+                          <li
+                            key={l.id}
+                            className={`relative flex items-center gap-3 p-2 rounded-md cursor-pointer transition-shadow ${l.id === selectedLesson?.id ? 'bg-indigo-50 shadow-sm ring-1 ring-indigo-200 border border-indigo-100' : 'hover:shadow-sm hover:bg-gray-50'}`}
+                            onClick={() => onSelectLesson(l)}
+                          >
+                            <div className="w-20 h-12 bg-gray-100 rounded flex items-center justify-center text-xs text-gray-500 overflow-hidden relative">
+                              {l.videoUrl ? 'Video' : 'No Video'}
+                              {l.progress?.isCompleted && (
+                                <div className="absolute inset-0 bg-green-500 bg-opacity-20 flex items-center justify-center">
+                                  <svg className="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
+                                  </svg>
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <div className="font-medium text-sm text-gray-800 truncate">{l.title}</div>
+                                {l.progress?.isCompleted && (
+                                  <svg className="w-4 h-4 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
+                                  </svg>
+                                )}
+                              </div>
+                              <div className="text-xs text-gray-500">{formatDuration(l.durationSeconds)}</div>
+                              {/* Mini progress bar */}
+                              {l.durationSeconds > 0 && (
+                                <div className="w-full h-1 bg-gray-200 rounded-full overflow-hidden mt-1">
+                                  <div 
+                                    className={`h-full transition-all ${l.progress?.isCompleted ? 'bg-green-500' : 'bg-blue-400'}`}
+                                    style={{ width: `${progressPercent}%` }}
+                                  />
+                                </div>
+                              )}
+                            </div>
+                            <div className="text-xs text-indigo-600 font-medium flex-shrink-0">
+                              {l.progress?.isCompleted ? 'Replay' : 'Play'}
+                            </div>
+                          </li>
+                        );
+                      })}
                     </ul>
                   </div>
                 </div>
