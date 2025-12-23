@@ -39,17 +39,26 @@ const verifyVNPaySignature = (vnpParams, secureHash) => {
   delete paramsCopy["vnp_SecureHash"];
   delete paramsCopy["vnp_SecureHashType"];
 
-  const sortedParams = sortObject(paramsCopy);
-  let signData = "";
+  // Sort parameters by key and build sign data
+  const sortedKeys = Object.keys(paramsCopy).sort();
 
-  for (let key in sortedParams) {
-    signData += key + "=" + sortedParams[key] + "&";
+  const signDataParts = [];
+  for (let key of sortedKeys) {
+    const value = paramsCopy[key];
+    // Only include non-empty values
+    if (value !== "" && value !== undefined && value !== null) {
+      // URL encode both key and value, with + for spaces
+      const encodedKey = encodeURIComponent(key);
+      const encodedValue = encodeURIComponent(value).replace(/%20/g, "+");
+      signDataParts.push(`${encodedKey}=${encodedValue}`);
+    }
   }
 
-  signData = signData.slice(0, -1);
+  const signData = signDataParts.join("&");
+
   const signed = crypto
     .createHmac("sha512", vnpayConfig.hashSecret)
-    .update(signData)
+    .update(Buffer.from(signData, "utf-8"))
     .digest("hex");
 
   return signed === secureHash;
@@ -214,7 +223,7 @@ const createPaymentUrl = async (
   signData = signData.slice(0, -1);
   const signed = crypto
     .createHmac("sha512", vnpayConfig.hashSecret)
-    .update(Buffer.from(signData, 'utf-8'))
+    .update(Buffer.from(signData, "utf-8"))
     .digest("hex");
 
   vnpParams.vnp_SecureHash = signed;
@@ -254,18 +263,9 @@ const verifyPayment = async (vnpParams) => {
     throw new BadRequestError("Invalid payment signature");
   }
 
-  // Extract payment ID from transaction reference
-  const paymentIdMatch = vnp_TxnRef.match(/^PAY(\d+)/);
-  if (!paymentIdMatch) {
-    console.error("Invalid transaction reference format:", vnp_TxnRef);
-    throw new BadRequestError("Invalid transaction reference format");
-  }
-
-  const paymentId = parseInt(paymentIdMatch[1]);
-
-  // Find the payment record with detailed logging
+  // Find the payment record by transaction reference (as string)
   const payment = await prisma.payment.findUnique({
-    where: { id: paymentId },
+    where: { transactionRef: vnp_TxnRef },
     include: {
       user: {
         select: { id: true, email: true, username: true },
@@ -277,25 +277,17 @@ const verifyPayment = async (vnpParams) => {
   });
 
   if (!payment) {
-    console.error("Payment record not found for ID:", paymentId);
-    throw new NotFoundError("Payment record not found");
-  }
-
-  // Verify the transaction reference matches our stored value
-  if (payment.transactionRef !== vnp_TxnRef) {
-    console.error("Transaction reference mismatch:", {
-      stored: payment.transactionRef,
-      received: vnp_TxnRef,
-    });
-    throw new BadRequestError(
-      "Transaction reference mismatch - possible fraud attempt"
+    console.error(
+      "Payment record not found for transaction reference:",
+      vnp_TxnRef
     );
+    throw new NotFoundError("Payment record not found");
   }
 
   // Check if payment was already processed
   if (payment.status !== "pending") {
     console.log("Payment already processed:", {
-      paymentId,
+      transactionRef: vnp_TxnRef,
       currentStatus: payment.status,
     });
     return {
@@ -317,10 +309,10 @@ const verifyPayment = async (vnpParams) => {
 
   // Process payment result
   if (vnp_ResponseCode === "00") {
-    console.log("Processing successful payment:", paymentId);
+    console.log("Processing successful payment:", vnp_TxnRef);
     const updatedPayment = await prisma.$transaction(async (tx) => {
       const payment = await tx.payment.update({
-        where: { id: paymentId },
+        where: { transactionRef: vnp_TxnRef },
         data: { status: "success" },
         include: {
           user: { select: { id: true, email: true, username: true } },
@@ -353,7 +345,7 @@ const verifyPayment = async (vnpParams) => {
       content: `You have successfully enrolled in "${updatedPayment.course.title}". You can now start learning!`,
     });
 
-    console.log("Payment processed successfully:", paymentId);
+    console.log("Payment processed successfully:", vnp_TxnRef);
     return {
       status: "success",
       message: "Payment successful and course enrollment completed",
@@ -374,11 +366,11 @@ const verifyPayment = async (vnpParams) => {
     };
   } else {
     console.log("Processing failed payment:", {
-      paymentId,
+      transactionRef: vnp_TxnRef,
       responseCode: vnp_ResponseCode,
     });
     const updatedPayment = await prisma.payment.update({
-      where: { id: paymentId },
+      where: { transactionRef: vnp_TxnRef },
       data: { status: "failed" },
       include: {
         course: { select: { id: true, title: true } },
