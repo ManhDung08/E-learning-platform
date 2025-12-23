@@ -84,20 +84,13 @@ const InstructorCourses = () => {
     };
 
     const handleFormSubmit = (data) => {
-        const formData = new FormData();
-        formData.append('title', data.title);
-        formData.append('description', data.description);
-        formData.append('priceVND', data.priceVND);
         
-        if (data.imageFile) {
-            formData.append('image', data.imageFile);
-        }
-
+        dispatch(clearCourseMessage());
+    
         if (selectedCourse) {
-            if(data.isPublished !== undefined) formData.append('isPublished', data.isPublished);
-            dispatch(updateCourseAction(selectedCourse.id, formData));
+            dispatch(updateCourseAction(selectedCourse.id, data));
         } else {
-            dispatch(createCourseAction(formData));
+            dispatch(createCourseAction(data));
         }
     };
 

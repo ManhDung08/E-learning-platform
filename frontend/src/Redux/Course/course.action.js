@@ -148,7 +148,6 @@ export const createCourseAction = (courseData) => async (dispatch) => {
     }
 };
 
-// src/Redux/Admin/admin.action.js
 
 export const updateCourseAction = (courseId, courseData) => async (dispatch) => {
     dispatch({ type: UPDATE_COURSE_REQUEST });
@@ -157,19 +156,14 @@ export const updateCourseAction = (courseId, courseData) => async (dispatch) => 
             headers: {} 
         };
 
-        // 👇 LOGIC CHUẨN:
         if (courseData instanceof FormData) {
-            // QUAN TRỌNG: Set là undefined để Axios/Browser tự động điền 
-            // "multipart/form-data; boundary=----WebKitFormBoundary..."
             config.headers["Content-Type"] = undefined; 
         } else {
-            // Nếu là JSON thì set json
             config.headers["Content-Type"] = "application/json";
         }
 
-        console.log("🚀 Đang gửi request update...");
+        console.log("Đang gửi request update...");
 
-        // Debug log (nếu muốn soi dữ liệu trong FormData)
         if (courseData instanceof FormData) {
              for (let pair of courseData.entries()) {
                  console.log(`FormData Check: ${pair[0]} = ${pair[1]}`); 
@@ -178,15 +172,14 @@ export const updateCourseAction = (courseId, courseData) => async (dispatch) => 
 
         const { data } = await api.put(`/course/${courseId}`, courseData, config);
 
-        console.log("✅ Update thành công:", data);
+        console.log("Update thành công:", data);
         dispatch({ type: UPDATE_COURSE_SUCCESS, payload: data });
         
-        // Refresh lại danh sách
         dispatch(getAllCoursesAction());
         dispatch(getInstructorCoursesAction());
 
     } catch (error) {
-        console.error("❌ Update thất bại:", error);
+        console.error("Update thất bại:", error);
         dispatch({
             type: UPDATE_COURSE_FAILURE,
             payload: error.response?.data?.message || "Lỗi cập nhật khóa học"
