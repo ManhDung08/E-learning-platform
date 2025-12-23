@@ -9,6 +9,7 @@ import {
   extractKeyFromUrl,
   getSignedUrlForDownload,
 } from "../utils/aws.util.js";
+import { getValidatedVideoDuration } from "../utils/video.util.js";
 import notificationService from "./notification.service.js";
 
 const getLessonsByModuleId = async (moduleId, userId, userRole) => {
@@ -359,13 +360,37 @@ const createLesson = async (
     );
   }
 
+  // Extract video duration if video file is provided
+  let extractedDuration = durationSeconds;
+  if (videoFile) {
+    try {
+      extractedDuration = await getValidatedVideoDuration(
+        videoFile.buffer,
+        videoFile.originalname,
+        durationSeconds
+      );
+      console.log(
+        `Auto-detected video duration: ${extractedDuration} seconds for lesson "${title}"`
+      );
+    } catch (error) {
+      console.error("Failed to extract video duration:", error);
+      // Fall back to provided duration if extraction fails
+      if (!durationSeconds) {
+        throw new BadRequestError(
+          "Failed to detect video duration. Please provide duration manually.",
+          "video_duration_extraction_failed"
+        );
+      }
+    }
+  }
+
   const lesson = await prisma.lesson.create({
     data: {
       moduleId: parsedModuleId,
       title: title.trim(),
       content,
       videoKey: null, // Will be updated after video upload
-      durationSeconds,
+      durationSeconds: extractedDuration,
       order: lessonOrder,
     },
     select: {
@@ -565,6 +590,29 @@ const updateLesson = async (
 
   if (durationSeconds !== undefined) {
     updateData.durationSeconds = durationSeconds;
+  }
+
+  // Extract video duration if new video file is provided
+  if (videoFile) {
+    try {
+      const extractedDuration = await getValidatedVideoDuration(
+        videoFile.buffer,
+        videoFile.originalname,
+        durationSeconds
+      );
+      updateData.durationSeconds = extractedDuration;
+      console.log(
+        `Auto-detected video duration: ${extractedDuration} seconds for lesson update "${title || lesson.title}"`
+      );
+    } catch (error) {
+      console.error("Failed to extract video duration on update:", error);
+      // Continue with provided duration or existing duration
+      if (durationSeconds === undefined) {
+        console.warn(
+          "Video duration extraction failed and no duration provided. Duration will remain unchanged."
+        );
+      }
+    }
   }
 
   const needsReorder = order !== undefined && order !== lesson.order;
