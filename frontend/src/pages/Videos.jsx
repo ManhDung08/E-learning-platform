@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 
 import { useDispatch } from "react-redux";
 import LessonQuiz from "../components/lesson/LessonQuiz";
+import api from "../Redux/api";
 
 const Videos = () => {
   const { courseId } = useParams();
@@ -15,6 +16,10 @@ const Videos = () => {
   const [checkingAccess, setCheckingAccess] = useState(true);
   const [error, setError] = useState(null);
   const [note, setNote] = useState("");
+  const [savedNote, setSavedNote] = useState(""); // Track saved note content
+  const [noteLoading, setNoteLoading] = useState(false);
+  const [noteSaving, setNoteSaving] = useState(false);
+  const [noteError, setNoteError] = useState(null);
   const videoRef = useRef(null);
 
   // Format duration from seconds to readable format (e.g., "5:30" or "1h 5m 30s")
@@ -140,19 +145,93 @@ const Videos = () => {
     fetchLessons();
   }, [selectedModule]);
 
-  // Load saved notes for the current lesson
+  // Load saved notes for the current lesson from API
   useEffect(() => {
-    if (!selectedLesson) return;
-    const saved = localStorage.getItem(`lesson_notes_${selectedLesson.id}`) || "";
-    setNote(saved);
+    if (!selectedLesson) {
+      setNote("");
+      setSavedNote("");
+      return;
+    }
+
+    const fetchNote = async () => {
+      try {
+        setNoteLoading(true);
+        setNoteError(null);
+        const response = await api.get(`/lessonNote/lesson/${selectedLesson.id}`);
+        
+        if (response.data && response.data.success) {
+          const noteContent = response.data.data?.content || "";
+          setNote(noteContent);
+          setSavedNote(noteContent);
+        } else {
+          setNote("");
+          setSavedNote("");
+        }
+      } catch (error) {
+        // If note doesn't exist (404), that's fine - just set empty note
+        if (error.response?.status === 404) {
+          setNote("");
+          setSavedNote("");
+        } else {
+          console.error("Error fetching note:", error);
+          setNoteError("Không thể tải ghi chú");
+        }
+      } finally {
+        setNoteLoading(false);
+      }
+    };
+
+    fetchNote();
   }, [selectedLesson]);
 
-  // Save notes on change
-  useEffect(() => {
+  // Handle save note
+  const handleSaveNote = async () => {
     if (!selectedLesson) return;
-    const key = `lesson_notes_${selectedLesson.id}`;
-    localStorage.setItem(key, note);
-  }, [note, selectedLesson]);
+
+    try {
+      setNoteSaving(true);
+      setNoteError(null);
+
+      const noteContent = note.trim();
+
+      const response = await api.put(`/lessonNote/lesson/${selectedLesson.id}`, {
+        content: noteContent
+      });
+
+      if (response.data && response.data.success) {
+        setSavedNote(noteContent);
+        console.log("Note saved successfully");
+      }
+    } catch (error) {
+      console.error("Error saving note:", error);
+      setNoteError("Không thể lưu ghi chú. Vui lòng thử lại.");
+    } finally {
+      setNoteSaving(false);
+    }
+  };
+
+  // Handle delete note
+  const handleDeleteNote = async () => {
+    if (!selectedLesson) return;
+
+    try {
+      setNoteSaving(true);
+      setNoteError(null);
+      await api.delete(`/lessonNote/lesson/${selectedLesson.id}`);
+      setNote("");
+      setSavedNote("");
+    } catch (error) {
+      console.error("Error deleting note:", error);
+      // Even if delete fails, clear local state
+      setNote("");
+      setSavedNote("");
+      if (error.response?.status !== 404) {
+        setNoteError("Không thể xóa ghi chú");
+      }
+    } finally {
+      setNoteSaving(false);
+    }
+  };
 
   const onSelectModule = (module) => {
     setSelectedModule(module);
@@ -284,27 +363,55 @@ const Videos = () => {
               {/* Notes */}
               {selectedLesson && (
                 <div className="bg-white rounded shadow p-3" style={{ maxHeight: '50vh', overflowY: 'auto' }}>
-                  <h3 className="font-medium mb-3">Ghi chú</h3>
                   <div className="flex items-center justify-between mb-3">
-                    <div />
-                    <div className="flex items-center gap-2">
-                      <button
-                        className="text-sm text-red-600 hover:underline"
-                        onClick={() => { setNote(""); localStorage.removeItem(`lesson_notes_${selectedLesson.id}`); }}
-                      >
-                        Xóa
-                      </button>
-                      <span className="text-xs text-gray-400">(Tự lưu)</span>
-                    </div>
+                    <h3 className="font-medium">Ghi chú</h3>
+                    {noteError && (
+                      <span className="text-xs text-red-500">{noteError}</span>
+                    )}
                   </div>
 
-                  <textarea
-                    value={note}
-                    onChange={(e) => setNote(e.target.value)}
-                    placeholder="Ghi chú cho video này..."
-                    className="w-full h-56 border border-gray-200 rounded p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200"
-                  />
-                  <div className="text-right mt-2 text-xs text-gray-500">Ghi chú được lưu tự động vào trình duyệt</div>
+                  {noteLoading ? (
+                    <div className="w-full h-56 flex items-center justify-center border border-gray-200 rounded">
+                      <span className="text-sm text-gray-500">Đang tải ghi chú...</span>
+                    </div>
+                  ) : (
+                    <>
+                      <textarea
+                        value={note}
+                        onChange={(e) => {
+                          setNote(e.target.value);
+                          setNoteError(null);
+                        }}
+                        placeholder="Ghi chú cho video này..."
+                        className="w-full h-56 border border-gray-200 rounded p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                        disabled={noteLoading}
+                      />
+                      <div className="flex items-center justify-between mt-3">
+                        <button
+                          className="text-sm text-red-600 hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
+                          onClick={handleDeleteNote}
+                          disabled={noteSaving || noteLoading || (!note && !savedNote)}
+                        >
+                          Xóa
+                        </button>
+                        <div className="flex items-center gap-2">
+                          {noteSaving && (
+                            <span className="text-xs text-blue-500">Đang lưu...</span>
+                          )}
+                          {!noteSaving && note.trim() === savedNote && savedNote && (
+                            <span className="text-xs text-green-500">Đã lưu</span>
+                          )}
+                          <button
+                            className="px-4 py-1.5 bg-indigo-600 text-white text-sm rounded hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            onClick={handleSaveNote}
+                            disabled={noteSaving || noteLoading || note.trim() === savedNote}
+                          >
+                            {noteSaving ? "Đang lưu..." : "Lưu"}
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
             </div>
