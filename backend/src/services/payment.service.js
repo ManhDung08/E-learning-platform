@@ -39,17 +39,26 @@ const verifyVNPaySignature = (vnpParams, secureHash) => {
   delete paramsCopy["vnp_SecureHash"];
   delete paramsCopy["vnp_SecureHashType"];
 
-  const sortedParams = sortObject(paramsCopy);
-  let signData = "";
+  // Sort parameters by key and build sign data
+  const sortedKeys = Object.keys(paramsCopy).sort();
 
-  for (let key in sortedParams) {
-    signData += key + "=" + sortedParams[key] + "&";
+  const signDataParts = [];
+  for (let key of sortedKeys) {
+    const value = paramsCopy[key];
+    // Only include non-empty values
+    if (value !== "" && value !== undefined && value !== null) {
+      // URL encode both key and value, with + for spaces
+      const encodedKey = encodeURIComponent(key);
+      const encodedValue = encodeURIComponent(value).replace(/%20/g, "+");
+      signDataParts.push(`${encodedKey}=${encodedValue}`);
+    }
   }
 
-  signData = signData.slice(0, -1);
+  const signData = signDataParts.join("&");
+
   const signed = crypto
     .createHmac("sha512", vnpayConfig.hashSecret)
-    .update(signData)
+    .update(Buffer.from(signData, "utf-8"))
     .digest("hex");
 
   return signed === secureHash;
