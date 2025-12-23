@@ -165,6 +165,21 @@ const Videos = () => {
     }
   };
 
+  const handleNextLesson = () => {
+    if (!selectedLesson || !lessons.length) return;
+
+    const currentIndex = lessons.findIndex(l => l.id === selectedLesson.id);
+    
+    if (currentIndex !== -1 && currentIndex < lessons.length - 1) {
+        const nextLesson = lessons[currentIndex + 1];
+        onSelectLesson(nextLesson);
+        
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+        alert("Chúc mừng! Bạn đã hoàn thành module này.");
+    }
+  };
+
   // Show loading while checking access
   if (checkingAccess) {
     return <div className="w-full min-h-screen bg-gray-50 flex items-center justify-center">Đang kiểm tra quyền truy cập...</div>;
@@ -211,7 +226,7 @@ const Videos = () => {
                   <h3 className="text-lg font-bold mb-4 border-b pb-2 text-gray-700">
                     Quiz for Lesson
                   </h3>
-                  <LessonQuiz key={selectedLesson.id} lessonId={selectedLesson.id} />
+                  <LessonQuiz key={selectedLesson.id} lessonId={selectedLesson.id} onNextLesson={handleNextLesson} />
                 </div>
               </>
             )}
