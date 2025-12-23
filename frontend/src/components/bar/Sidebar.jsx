@@ -31,7 +31,7 @@ const studentMenu = [
   {
     title: "My Courses",
     icon: <CoursesIcon/>,
-    path: "/courses"
+    path: "/my-course"
   },
   {
     title: "Live Class",

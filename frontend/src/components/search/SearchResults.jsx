@@ -58,9 +58,11 @@ const SearchResultsPage = () => {
                 {loadingCourses ? (
                     <p className="text-gray-500">Searching for courses...</p>
                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
                         {courses.length > 0 ? courses.map(course => (
-                            <CourseCard key={course.id} course={course} />
+                            <div key={course.id} className="w-full"> 
+                                <CourseCard course={course} />
+                            </div>
                         )) : (
                             <p className="text-gray-400 text-sm italic col-span-full">
                                 No courses found matching "{keyword}".

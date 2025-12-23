@@ -18,6 +18,7 @@ import InstructorCourses from '../Instructor/InstructorCourses';
 import SearchResultsPage from '../../components/search/SearchResults';
 import LessonQuiz from '../../components/lesson/LessonQuiz';
 import AllQuizAttempts from '../../components/lesson/AllQuizAttempts';
+import MyCourses from '../MyCourses/MyCourses';
 
 const HomePage = () => {
   
@@ -73,7 +74,8 @@ const HomePage = () => {
               {/* student */}
               <Route path="/" element={<MiddleHome />} />
               <Route path="/dashboard" element={<MiddleHome />} />
-              <Route path="/courses" element={<LessonQuiz lessonId={13} />} />
+              {/* <Route path="/my-course" element={<LessonQuiz lessonId={13} />} /> */}
+              <Route path="/my-course" element={<MyCourses />} />
               <Route path="/instructors" element={<InstructorsList />} />
               <Route path="/instructors/:id" element={<InstructorDetail />} />
               <Route path="/search" element={<SearchResultsPage />} />
