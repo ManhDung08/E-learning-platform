@@ -1,87 +1,97 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Box, Container, Typography, Button, CircularProgress, Paper } from '@mui/material';
+import { Box, Container, Typography, Button, Paper, CircularProgress } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorIcon from '@mui/icons-material/Error';
-import { verifyPayment } from '../../services/paymentService';
 
-const PaymentResult = () => {
+
+
+const PaymentResultPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [status, setStatus] = useState('loading'); // 'loading' | 'success' | 'failed'
+  
+
+  const [status, setStatus] = useState('loading'); 
   const [message, setMessage] = useState('');
 
   useEffect(() => {
-    const verify = async () => {
-      // 1. Lấy query params từ URL (vnp_Amount, vnp_ResponseCode,...)
-      const searchParams = new URLSearchParams(location.search);
-      const params = Object.fromEntries(searchParams.entries());
+    const handlePaymentResult = () => {
+        const searchParams = new URLSearchParams(location.search);
 
-      // Nếu không có params thì không phải redirect từ VNPay
-      if (Object.keys(params).length === 0) {
-        setStatus('failed');
-        setMessage('Không tìm thấy thông tin giao dịch.');
-        return;
-      }
 
-      try {
-        // 2. Gọi API POST /api/payment/verify để check với Backend
-        await verifyPayment(params);
+      const isSuccessNew = searchParams.get('success') === 'true';
+      const isSuccessVnp = searchParams.get('vnp_ResponseCode') === '00';
+
+      const msgParam = searchParams.get('message');
+      const decodedMessage = msgParam ? decodeURIComponent(msgParam) : '';
+
+   
+        if (isSuccessNew || isSuccessVnp) {
+            setStatus('success');
+            setMessage(decodedMessage || 'Thanh toán thành công! Khóa học đã được kích hoạt.');
+            
         
-        // Nếu API không ném lỗi -> Thành công
-        setStatus('success');
-      } catch (error) {
-        console.error(error);
-        setStatus('failed');
-        // Backend có thể trả về message lỗi cụ thể
-        setMessage(error.response?.data?.message || 'Giao dịch thất bại hoặc lỗi xác thực.');
-      }
+            localStorage.removeItem('pendingCourseId'); 
+        } else {
+            setStatus('failed');
+            setMessage(decodedMessage || 'Giao dịch thất bại hoặc bị hủy.');
+        }
     };
 
-    verify();
+  
+    handlePaymentResult();
   }, [location.search]);
 
-  // Giao diện Loading
+
+
   if (status === 'loading') {
     return (
-      <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center" height="60vh">
-        <CircularProgress />
-        <Typography variant="h6" sx={{ mt: 2 }}>Đang xác thực giao dịch...</Typography>
-      </Box>
+        <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center" height="60vh">
+          <CircularProgress size={60} thickness={4} />
+          <Typography variant="h6" sx={{ mt: 3, color: 'text.secondary' }}>
+              Đang xác nhận kết quả thanh toán...
+          </Typography>
+        </Box>
     );
   }
 
-  // Giao diện Thành công/Thất bại
   return (
-    <Container maxWidth="sm" sx={{ mt: 8 }}>
-      <Paper elevation={3} sx={{ p: 5, textAlign: 'center', borderRadius: 3 }}>
-        {status === 'success' ? (
+    <Container maxWidth="sm" sx={{ mt: 8, mb: 8 }}>
+      <Paper elevation={3} sx={{ p: 5, textAlign: 'center', borderRadius: 4 }}>
+
+        {status === 'success' && (
           <>
             <CheckCircleIcon color="success" sx={{ fontSize: 80, mb: 2 }} />
             <Typography variant="h4" color="success.main" gutterBottom fontWeight="bold">
               Thanh toán thành công!
             </Typography>
-            <Typography variant="body1" paragraph>
-              Cảm ơn bạn đã mua khóa học. Bạn có thể bắt đầu học ngay bây giờ.
+            <Typography variant="body1" paragraph color="text.secondary">
+              {message}
             </Typography>
-            <Button 
-              variant="contained" 
-              onClick={() => navigate('/my-courses')} // Điều hướng về trang khóa học của tôi
-              sx={{ mt: 2 }}
-            >
-              Vào khóa học ngay
-            </Button>
+            <Box mt={4}>
+                <Button 
+                    variant="contained" 
+                    size="large" 
+                    onClick={() => navigate('/my-course')} 
+                    sx={{ borderRadius: 20, px: 4 }}
+                >
+                  Vào học ngay
+                </Button>
+            </Box>
           </>
-        ) : (
+        )}
+
+       
+        {status === 'failed' && (
           <>
             <ErrorIcon color="error" sx={{ fontSize: 80, mb: 2 }} />
             <Typography variant="h4" color="error.main" gutterBottom fontWeight="bold">
-              Thanh toán thất bại
+              Giao dịch thất bại
             </Typography>
             <Typography variant="body1" color="text.secondary" paragraph>
-              {message || "Có lỗi xảy ra trong quá trình xử lý giao dịch."}
+              {message}
             </Typography>
-            <Box sx={{ mt: 3, display: 'flex', gap: 2, justifyContent: 'center' }}>
+            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', mt: 3 }}>
                 <Button variant="outlined" onClick={() => navigate('/')}>
                     Về trang chủ
                 </Button>
@@ -96,4 +106,4 @@ const PaymentResult = () => {
   );
 };
 
-export default PaymentResult;
+export default PaymentResultPage;

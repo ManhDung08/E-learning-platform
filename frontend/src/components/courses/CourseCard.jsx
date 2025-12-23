@@ -20,7 +20,7 @@ const CourseCard = ({ course }) => {
     };
 
     const instructorName = course.instructor
-        ? `${course.instructor.lastName} ${course.instructor.firstName}` // Đảo lại Họ Tên cho chuẩn VN
+        ? `${course.instructor.lastName} ${course.instructor.firstName}` 
         : 'Giảng viên ẩn';
 
     const instructorAvatar = course.instructor?.profileImageUrl

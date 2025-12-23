@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { User, Mail, Phone, Calendar, Users, BookOpen, Award, Lock, Check, Edit2, Save, X } from 'lucide-react';
+
+import { useNavigate } from 'react-router-dom';
+
+import { User, Mail, Phone, Calendar, Users, BookOpen, Award, Lock, Check, Edit2, Save, X, ArrowLeft } from 'lucide-react';
 import InputField from '../components/InputField';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
 import CourseCard from '../components/courses/CourseCard';
 
 
-
-
-// Di chuyển ToggleSwitch ra ngoài
 const ToggleSwitch = ({ enabled, onToggle }) => (
   <button
     onClick={onToggle}
@@ -20,6 +20,9 @@ const ToggleSwitch = ({ enabled, onToggle }) => (
 );
 
 function AccountProfile() {
+  
+  const navigate = useNavigate();
+
   const [activeTab, setActiveTab] = useState(0);
   const [isEditing, setIsEditing] = useState(false);
   const [showAlert, setShowAlert] = useState(false);
@@ -40,10 +43,6 @@ function AccountProfile() {
   //Dialog xac nhan doi mat khau
   const [openDialog, setOpenDialog] = useState(false);
   const [dialogMessage, setDialogMessage] = useState('');
-
-
-
-
 
   const [notifications, setNotifications] = useState({
     emailNotifications: true,
@@ -178,14 +177,14 @@ function AccountProfile() {
         uploadedImageUrl = uploadResult.data.profileImageUrl + '?t=' + Date.now();
       }
 
-      // 2. Gửi update profile (API này không trả về avatar)
+     
       const response = await fetch('http://localhost:3000/api/user/update-profile', {
         method: 'PUT',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...editedProfile,
-          profileImageUrl: uploadedImageUrl   // gửi lên để backend ghi vào DB nếu muốn
+          profileImageUrl: uploadedImageUrl  
         })
       });
 
@@ -195,20 +194,20 @@ function AccountProfile() {
 
       const result = await response.json();
 
-      // 3. Tạo object hợp nhất: lấy thông tin từ API nhưng giữ avatar mới
+      
       const updatedData = {
         ...result.data,
         profileImageUrl: uploadedImageUrl
       };
 
-      // 4. Cập nhật state
+     
       setProfile(prev => ({ ...prev, ...updatedData }));
       setEditedProfile(prev => ({ ...prev, ...updatedData }));
 
-      // 5. Update preview của avatar
+      
       setAvatarPreview(uploadedImageUrl);
 
-      // 6. Reset trạng thái
+     
       setIsEditing(false);
       setAvatarFile(null);
 
@@ -277,7 +276,7 @@ function AccountProfile() {
         return;
       }
 
-      // Thành công
+  
       setDialogMessage("Đổi mật khẩu thành công!");
       setOpenDialog(true);
 
@@ -292,7 +291,7 @@ function AccountProfile() {
     setOpenDialog(false);
 
     if (dialogMessage === "Đổi mật khẩu thành công!") {
-      // Reset lại 3 input
+     
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
@@ -342,7 +341,7 @@ function AccountProfile() {
 
   const tabs = [
     { id: 0, label: 'Thông tin cá nhân', icon: User },
-    { id: 1, label: 'Khóa học của tôi', icon: BookOpen },
+    // { id: 1, label: 'Khóa học của tôi', icon: BookOpen },
     { id: 2, label: 'Chứng chỉ', icon: Award },
     { id: 3, label: 'Bảo mật', icon: Lock }
   ];
@@ -367,12 +366,20 @@ function AccountProfile() {
           </div>
           <h2 className="text-xl font-bold text-gray-900 mb-2">Có lỗi xảy ra</h2>
           <p className="text-red-600 mb-6">{error || 'Không thể tải thông tin'}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-          >
-            Thử lại
-          </button>
+          <div className="flex gap-3 justify-center">
+             <button
+              onClick={() => navigate('/')}
+              className="px-6 py-2.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+            >
+              Về trang chủ
+            </button>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            >
+              Thử lại
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -381,6 +388,18 @@ function AccountProfile() {
   return (
     <div className="min-h-screen bg-gray-50 py-4 sm:py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+       
+        <button
+          onClick={() => navigate('/')}
+          className="flex items-center gap-2 text-gray-600 hover:text-blue-600 mb-4 transition-colors group"
+        >
+          <div className="p-2 bg-white rounded-full shadow-sm group-hover:shadow-md transition-all">
+            <ArrowLeft className="h-5 w-5" />
+          </div>
+          <span className="font-medium">Trở về trang chủ</span>
+        </button>
+
         {showAlert && (
           <div className="mb-4 sm:mb-6 bg-green-50 border border-green-200 rounded-lg p-3 sm:p-4 flex items-center gap-3">
             <Check className="h-5 w-5 text-green-600 flex-shrink-0" />
@@ -546,7 +565,7 @@ function AccountProfile() {
               </div>
             )}
 
-            {activeTab === 1 && (
+            {/* {activeTab === 1 && (
               <div>
                 <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-1">Khóa học đang học ({courses.length})</h2>
                 <div className="h-1 w-16 bg-blue-600 rounded-full mb-4 sm:mb-6"></div>
@@ -555,39 +574,9 @@ function AccountProfile() {
                   {courses.map((course) => (
                     <CourseCard key={course.id} course={course} />
                   ))}
-                  {/* {courses.map((course) => (
-                    <div
-                      key={course.id}
-                      className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
-                    >
-                      <img
-                        src={course.image}
-                        alt={course.title}
-                        className="w-full h-40 sm:h-48 object-cover"
-                      />
-                      <div className="p-4 sm:p-5">
-                        <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-2">{course.title}</h3>
-                        <p className="text-sm text-gray-600 mb-1">Giảng viên: {course.instructor}</p>
-                        <p className="text-xs text-gray-500 mb-3 sm:mb-4">Đăng ký: {formatDate(course.enrolledAt)}</p>
-
-                        <div>
-                          <div className="flex justify-between items-center mb-2">
-                            <span className="text-sm font-semibold text-gray-700">Tiến độ</span>
-                            <span className="text-sm font-bold text-blue-600">{course.progress}%</span>
-                          </div>
-                          <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div
-                              className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all duration-500"
-                              style={{ width: `${course.progress}%` }}
-                            ></div>
-                          </div>
-                        </div>
-                      </div>
-                    </div> */}
-                  {/* ))} */}
                 </div>
               </div>
-            )}
+            )} */}
 
             {activeTab === 2 && (
               <div>
