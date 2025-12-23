@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
@@ -6,7 +6,7 @@ import {
   Box, Container, Accordion, AccordionSummary, AccordionDetails, 
   Rating, Button, Grid, Typography, Avatar, Chip,
   Dialog, DialogTitle, DialogContent, DialogActions, Radio, RadioGroup, FormControlLabel, FormControl, CircularProgress,
-  Tabs, Tab, TextField, IconButton, Tooltip, Snackbar, Alert
+  Tabs, Tab, TextField, IconButton, Tooltip, Snackbar, Alert, LinearProgress, Pagination, Stack
 } from '@mui/material';
 import { 
   ExpandMore, PlayCircleOutline, Star, Update, Lock, ReceiptLong, 
@@ -45,27 +45,39 @@ const CourseDetailPage = () => {
   
   // --- STATE UI ---
   const [activeTab, setActiveTab] = useState(0);
-  const [reviews, setReviews] = useState([]);
   const [openPaymentModal, setOpenPaymentModal] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('vnpay');
   const [isProcessing, setIsProcessing] = useState(false);
   const [expandedModules, setExpandedModules] = useState({});
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
-  // --- STATE CRUD CHUNG (Dùng cho cả Discussion và Reply khi Edit/Delete) ---
+  // --- STATE REVIEWS ---
+  const [reviews, setReviews] = useState([]);
+  const [reviewPage, setReviewPage] = useState(1);
+  const [totalReviewPages, setTotalReviewPages] = useState(1);
+  const [reviewRating, setReviewRating] = useState(5); 
+  const [reviewComment, setReviewComment] = useState(''); 
+  const [editingReviewId, setEditingReviewId] = useState(null); 
+
+  // --- STATE DISCUSSIONS ---
   const [discussions, setDiscussions] = useState([]);
-  const [mainInputContent, setMainInputContent] = useState(''); // Nội dung cho ô nhập chính (Tạo mới / Sửa)
-  const [editingId, setEditingId] = useState(null); // ID của item đang sửa (có thể là discussionId hoặc replyId)
+  const [discPage, setDiscPage] = useState(1);
+  const [totalDiscPages, setTotalDiscPages] = useState(1);
+  const [discContent, setDiscContent] = useState(''); 
+  const [editingDiscId, setEditingDiscId] = useState(null); // Dùng chung cho cả Discussion và Reply
+  const [replyingToId, setReplyingToId] = useState(null); 
+  const [replyInputContent, setReplyInputContent] = useState(''); 
 
-  // --- STATE RIÊNG CHO TẠO REPLY MỚI ---
-  const [replyingToId, setReplyingToId] = useState(null); // ID của bài gốc đang được reply
-  const [replyInputContent, setReplyInputContent] = useState(''); // Nội dung form reply nhỏ
-
-  // Check enrollment
-  const isEnrolled = React.useMemo(() => {
+  const isEnrolled = useMemo(() => {
     if (!course || !userEnrollments) return false;
     return userEnrollments.some(e => e.course && String(e.course.id) === String(course.id));
   }, [course, userEnrollments]);
+
+  const calculatedRating = useMemo(() => {
+      if (!reviews || reviews.length === 0) return 0;
+      const total = reviews.reduce((acc, curr) => acc + curr.rating, 0);
+      return (total / reviews.length).toFixed(1);
+  }, [reviews]);
 
   useEffect(() => { dispatch(getUserEnrollmentsAction()); }, [dispatch]);
 
@@ -80,106 +92,165 @@ const CourseDetailPage = () => {
     if (slug) fetchCourseDetail();
   }, [slug]);
 
-  useEffect(() => {
-    if (!course) return;
-    if (activeTab === 1) fetchReviews();
-    if (activeTab === 2) fetchDiscussions();
-  }, [activeTab, course]);
-
-  const fetchReviews = async () => {
-    try {
-        const res = await api.get(`/api/course/${course.id}/reviews`);
-        if(res.data.success) setReviews(Array.isArray(res.data.data) ? res.data.data : []);
-    } catch (e) { console.error(e); }
-  };
-
   // ============================================================
-  // LOGIC CRUD THỐNG NHẤT
+  // API FUNCTIONS (FETCH DATA)
   // ============================================================
 
-  // 1. GET LIST
-  const fetchDiscussions = async () => {
+  const fetchReviews = async (page = 1) => {
     if (!course) return;
     try {
-        const res = await api.get(`/api/course/${course.id}/discussions`, {
-            params: { page: 1, limit: 50, sortOrder: 'desc' }
+        const res = await api.get(`/api/course/${course.id}/reviews`, {
+            params: { page: page, limit: 10, sortBy: 'createdAt', sortOrder: 'desc' } 
         });
-        if(res.data.success) {
+        if(res.data.success && res.data.data) {
+            setReviews(res.data.data.reviews || []);
+            // Cập nhật thông tin phân trang từ API
+            if (res.data.data.pagination) {
+                setTotalReviewPages(res.data.data.pagination.totalPages);
+            }
+        }
+    } catch (e) { console.error("Lỗi fetch review", e); }
+  };
+
+  const fetchDiscussions = async (page = 1) => {
+    if (!course) return;
+    try {
+        const res = await api.get(`/api/course/${course.id}/discussions`, { 
+            params: { page: page, limit: 10, sortOrder: 'desc' } 
+        });
+        if(res.data.success && res.data.data) {
+            // Xử lý linh hoạt cấu trúc trả về
             const data = res.data.data;
-            if (Array.isArray(data)) setDiscussions(data);
-            else if (data?.content) setDiscussions(data.content);
-            else if (data?.discussions) setDiscussions(data.discussions);
-            else setDiscussions([]);
+            let list = [];
+            let pagination = {};
+
+            if (Array.isArray(data)) {
+                list = data;
+            } else {
+                list = data.content || data.discussions || [];
+                pagination = data.pagination || {};
+            }
+            
+            setDiscussions(list);
+            if (pagination.totalPages) {
+                setTotalDiscPages(pagination.totalPages);
+            } else if (data.totalPages) { // Trường hợp Spring Boot trả về trực tiếp
+                setTotalDiscPages(data.totalPages);
+            }
         }
     } catch (e) { console.error(e); }
   };
 
-  // 2. SUBMIT FORM CHÍNH (Xử lý Tạo Discussion Mới HOẶC Sửa Bất Kỳ Item Nào)
-  const handleMainSubmit = async () => {
-    if (!mainInputContent.trim()) return showSnackbar("Vui lòng nhập nội dung!", "warning");
-    
-    try {
-        if (editingId) {
-            // MODE SỬA: Gọi PUT vào ID đang sửa (bất kể là discussion hay reply)
-            // PUT /api/course/{cid}/discussions/{anyId}
-            await api.put(`/api/course/${course.id}/discussions/${editingId}`, { content: mainInputContent });
-            showSnackbar("Đã cập nhật thành công!");
-        } else {
-            // MODE TẠO MỚI (DISCUSSION): Gọi POST
-            await api.post(`/api/course/${course.id}/discussions`, { content: mainInputContent });
-            showSnackbar("Đã đăng thảo luận mới!");
-        }
-        
-        // Reset
-        setMainInputContent('');
-        setEditingId(null);
-        fetchDiscussions();
-    } catch (error) { 
-        showSnackbar(error.response?.data?.message || "Có lỗi xảy ra.", "error"); 
-    }
-  };
+  // ============================================================
+  // ACTION HANDLERS
+  // ============================================================
 
-  // 3. XÓA BẤT KỲ (Discussion hoặc Reply)
-  const handleDeleteAny = async (id) => {
-      if(!window.confirm("Bạn có chắc chắn muốn xóa nội dung này?")) return;
+  // --- REVIEW HANDLERS ---
+  const handleSubmitReview = async () => {
+      if (!reviewComment.trim()) return showSnackbar("Vui lòng nhập nội dung đánh giá", "warning");
       try {
-          // DELETE /api/course/{cid}/discussions/{anyId}
-          await api.delete(`/api/course/${course.id}/discussions/${id}`);
-          showSnackbar("Đã xóa thành công.");
-          fetchDiscussions();
-      } catch (error) { 
-          showSnackbar("Không thể xóa (Bạn không phải người đăng).", "error"); 
+          if (editingReviewId) {
+              await api.put(`/api/course/${course.id}/reviews/${editingReviewId}`, {
+                  rating: reviewRating,
+                  comment: reviewComment
+              });
+              showSnackbar("Đã cập nhật đánh giá!");
+          } else {
+              await api.post(`/api/course/${course.id}/reviews`, {
+                  rating: reviewRating,
+                  comment: reviewComment
+              });
+              showSnackbar("Đã gửi đánh giá thành công!");
+              setReviewPage(1); // Về trang 1 sau khi đăng mới
+          }
+          setEditingReviewId(null);
+          setReviewComment('');
+          setReviewRating(5);
+          fetchReviews(editingReviewId ? reviewPage : 1); 
+      } catch (error) {
+          if (error.response?.status === 409) showSnackbar("Bạn đã đánh giá khóa học này rồi!", "error");
+          else showSnackbar(error.response?.data?.message || "Lỗi khi gửi đánh giá.", "error");
       }
   };
 
-  // 4. TẠO REPLY MỚI (Vẫn dùng API riêng biệt này)
+  const handleDeleteReview = async (reviewId) => {
+      if (!window.confirm("Xóa đánh giá này?")) return;
+      try {
+          await api.delete(`/api/course/${course.id}/reviews/${reviewId}`);
+          showSnackbar("Đã xóa đánh giá.");
+          fetchReviews(reviewPage); 
+      } catch (error) { showSnackbar("Không thể xóa đánh giá này.", "error"); }
+  };
+
+  // --- DISCUSSION HANDLERS ---
+  const handleSubmitDiscussion = async () => {
+    if (!discContent.trim()) return showSnackbar("Vui lòng nhập nội dung!", "warning");
+    try {
+        if (editingDiscId) {
+            // Sửa (Dùng chung cho cả Discussion và Reply)
+            await api.put(`/api/course/${course.id}/discussions/${editingDiscId}`, { content: discContent });
+            showSnackbar("Đã cập nhật!");
+        } else {
+            // Tạo mới Discussion
+            await api.post(`/api/course/${course.id}/discussions`, { content: discContent });
+            showSnackbar("Đã đăng thảo luận!");
+            setDiscPage(1); // Về trang 1
+        }
+        setDiscContent('');
+        setEditingDiscId(null);
+        fetchDiscussions(editingDiscId ? discPage : 1); 
+    } catch (error) { showSnackbar("Lỗi khi gửi nội dung.", "error"); }
+  };
+
+  const handleDeleteAny = async (id) => {
+      if(!window.confirm("Xóa nội dung này?")) return;
+      try {
+          // API dùng chung để xóa Discussion hoặc Reply
+          await api.delete(`/api/course/${course.id}/discussions/${id}`);
+          showSnackbar("Đã xóa.");
+          fetchDiscussions(discPage); 
+      } catch (error) { showSnackbar("Không thể xóa.", "error"); }
+  };
+
   const handleCreateReply = async (parentDiscId) => {
     if (!replyInputContent.trim()) return showSnackbar("Nhập nội dung trả lời!", "warning");
     try {
-        // POST .../reply
         await api.post(`/api/course/${course.id}/discussions/${parentDiscId}/reply`, { content: replyInputContent });
         showSnackbar("Đã gửi trả lời!");
         setReplyInputContent('');
         setReplyingToId(null);
-        fetchDiscussions();
+        fetchDiscussions(discPage); // Refresh lại trang hiện tại
     } catch (error) { showSnackbar("Lỗi gửi trả lời.", "error"); }
   };
 
   // ============================================================
-  // UI HELPERS
+  // EFFECTS & HELPERS
   // ============================================================
   
-  // Đưa nội dung lên form chính để sửa
-  const startEditing = (id, currentContent) => {
-      setEditingId(id);
-      setMainInputContent(currentContent);
-      // Cuộn lên form chính
-      document.getElementById('main-discussion-form')?.scrollIntoView({ behavior: 'smooth' });
-  };
+  useEffect(() => {
+    if (!course) return;
+    if (activeTab === 1) fetchReviews(reviewPage);
+  }, [activeTab, course, reviewPage]);
 
-  const cancelEditing = () => {
-      setEditingId(null);
-      setMainInputContent('');
+  useEffect(() => {
+    if (!course) return;
+    if (activeTab === 2) fetchDiscussions(discPage);
+  }, [activeTab, course, discPage]);
+
+  // UI Helpers
+  const startEditReview = (review) => {
+      setEditingReviewId(review.id);
+      setReviewRating(review.rating);
+      setReviewComment(review.comment);
+      document.getElementById('review-form')?.scrollIntoView({ behavior: 'smooth' });
+  };
+  const cancelEditReview = () => { setEditingReviewId(null); setReviewComment(''); setReviewRating(5); };
+  
+  // Dùng chung cho sửa Discussion và Reply
+  const startEditingDisc = (id, currentContent) => {
+      setEditingDiscId(id);
+      setDiscContent(currentContent);
+      document.getElementById('discussion-form')?.scrollIntoView({ behavior: 'smooth' });
   };
 
   const showSnackbar = (message, severity = 'success') => setSnackbar({ open: true, message, severity });
@@ -199,14 +270,15 @@ const CourseDetailPage = () => {
     const all = {}; course?.modules?.forEach((_, i) => { all[i] = true; }); setExpandedModules(all);
   };
 
+  // --- RENDER ---
   if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 10 }}><CircularProgress /></Box>;
   if (!course) return <Container sx={{ mt: 10, textAlign: 'center' }}><Typography variant="h5">Không tìm thấy khóa học</Typography></Container>;
 
-  const { title, description, priceVND, image, updatedAt, enrollmentCount, totalLessons, totalDuration, averageRating, instructor, modules } = course;
+  const { title, description, priceVND, image, updatedAt, enrollmentCount, totalLessons, totalDuration, instructor, modules } = course;
 
   return (
     <Box sx={{ bgcolor: '#fff', minHeight: '100vh', pb: 10 }}>
-      {/* HEADER SECTION (Giữ nguyên) */}
+      {/* HEADER SECTION - Giữ nguyên */}
       <Box sx={{ position: 'relative', color: 'white', py: 10, overflow: 'hidden', minHeight: '400px', display: 'flex', alignItems: 'center' }}>
         <Box sx={{ position: 'absolute', inset: 0, backgroundImage: `url(${image})`, backgroundSize: 'cover', backgroundPosition: 'center', filter: 'brightness(0.3) blur(4px)', transform: 'scale(1.1)', zIndex: 0 }} />
         <Container maxWidth="md" sx={{ position: 'relative', zIndex: 1 }}>
@@ -215,7 +287,9 @@ const CourseDetailPage = () => {
               <Typography variant="h3" fontWeight="bold" mb={2} sx={{ fontSize: { xs: '2rem', md: '2.8rem' }, textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>{title}</Typography>
               <Typography variant="body1" mb={3} sx={{ color: '#e0e0e0', fontSize: '1.1rem', lineHeight: 1.6 }}>{description}</Typography>
               <Box display="flex" gap={3} alignItems="center" mb={3} flexWrap="wrap">
-                <Box display="flex" alignItems="center" color="#f3ca8c" fontWeight="bold"><span style={{ marginRight: 4, fontSize: '1.2rem' }}>{averageRating || 0}</span> <Star /></Box>
+                <Box display="flex" alignItems="center" color="#f3ca8c" fontWeight="bold">
+                    <span style={{ marginRight: 4, fontSize: '1.2rem' }}>{calculatedRating}</span> <Star />
+                </Box>
                 <Typography sx={{ color: '#fff', opacity: 0.9 }}>{(enrollmentCount || 0).toLocaleString()} học viên</Typography>
                 <Typography sx={{ color: '#fff', opacity: 0.9 }}>Cập nhật: {new Date(updatedAt).toLocaleDateString('vi-VN')}</Typography>
               </Box>
@@ -277,24 +351,73 @@ const CourseDetailPage = () => {
         {/* TAB 1: ĐÁNH GIÁ */}
         <div hidden={activeTab !== 1}>
             {activeTab === 1 && (
-                <Grid container spacing={2}>
-                    {reviews && reviews.length > 0 ? reviews.map((rev) => (
-                        <Grid item xs={12} key={rev.id}>
-                            <Box sx={{ p: 2, bgcolor: '#f9fafb', borderRadius: 2 }}>
+                <Box>
+                    {/* Thống kê */}
+                    <Box display="flex" alignItems="center" gap={4} mb={4} p={3} bgcolor="#f8f9fa" borderRadius={2}>
+                        <Box textAlign="center">
+                            <Typography variant="h2" fontWeight="bold" color="#b4690e">{calculatedRating}</Typography>
+                            <Rating value={Number(calculatedRating)} precision={0.1} readOnly size="large" />
+                            <Typography variant="caption" display="block">Đánh giá trung bình</Typography>
+                        </Box>
+                        <Box flex={1}>
+                            <Typography variant="body2">Dựa trên {reviews.length} đánh giá</Typography>
+                            <LinearProgress variant="determinate" value={reviews.length > 0 ? 100 : 0} sx={{ mt: 1, height: 8, borderRadius: 4, bgcolor: '#e0e0e0', '& .MuiLinearProgress-bar': { bgcolor: '#b4690e' } }} />
+                        </Box>
+                    </Box>
+
+                    {/* Form Review */}
+                    {isEnrolled && (
+                        <Box id="review-form" mb={4} p={3} border="1px solid #ddd" borderRadius={2}>
+                            <Typography variant="h6" mb={2}>{editingReviewId ? "Chỉnh sửa đánh giá" : "Viết đánh giá"}</Typography>
+                            <Box display="flex" flexDirection="column" gap={2}>
+                                <Box display="flex" alignItems="center" gap={1}>
+                                    <Rating value={reviewRating} onChange={(e, val) => setReviewRating(val)} size="large" />
+                                </Box>
+                                <TextField fullWidth multiline rows={3} placeholder="Chia sẻ cảm nghĩ..." value={reviewComment} onChange={(e) => setReviewComment(e.target.value)} />
                                 <Box display="flex" gap={2}>
+                                    <Button variant="contained" onClick={handleSubmitReview} sx={{ bgcolor: '#1c1d1f' }}>{editingReviewId ? "Cập nhật" : "Gửi"}</Button>
+                                    {editingReviewId && <Button variant="outlined" color="error" onClick={cancelEditReview}>Hủy</Button>}
+                                </Box>
+                            </Box>
+                        </Box>
+                    )}
+
+                    {/* Danh sách Reviews */}
+                    <Stack spacing={2} mb={3}>
+                        {reviews && reviews.length > 0 ? reviews.map((rev) => (
+                            <Box key={rev.id} sx={{ p: 2, bgcolor: editingReviewId === rev.id ? '#e3f2fd' : '#f9fafb', borderRadius: 2, border: editingReviewId === rev.id ? '1px solid #2196f3' : 'none' }}>
+                                <Box display="flex" gap={2} alignItems="flex-start">
                                     <Avatar src={rev.user?.profileImageUrl}>{(rev.user?.firstName && rev.user.firstName[0]) || "?"}</Avatar>
-                                    <Box>
-                                        <Typography fontWeight="bold">{rev.user ? `${rev.user.lastName || ''} ${rev.user.firstName || ''}` : "Người dùng"}</Typography>
-                                        <Rating value={rev.rating || 5} readOnly size="small" />
+                                    <Box flex={1}>
+                                        <Box display="flex" justifyContent="space-between">
+                                            <Box>
+                                                <Typography fontWeight="bold">{rev.user ? `${rev.user.lastName} ${rev.user.firstName}` : "Người dùng"}</Typography>
+                                                <Rating value={rev.rating} readOnly size="small" />
+                                            </Box>
+                                            {currentUser && rev.user && (String(currentUser.id) === String(rev.user.id)) && (
+                                                <Box>
+                                                    <Tooltip title="Sửa"><IconButton size="small" color="primary" onClick={() => startEditReview(rev)}><EditIcon fontSize="small" /></IconButton></Tooltip>
+                                                    <Tooltip title="Xóa"><IconButton size="small" color="error" onClick={() => handleDeleteReview(rev.id)}><DeleteIcon fontSize="small" /></IconButton></Tooltip>
+                                                </Box>
+                                            )}
+                                        </Box>
+                                        <Typography mt={1} variant="body2">{rev.comment}</Typography>
+                                        <Typography variant="caption" color="text.secondary" mt={1} display="block">{new Date(rev.createdAt).toLocaleString('vi-VN')}</Typography>
                                     </Box>
                                 </Box>
-                                <Typography mt={1} variant="body2">{rev.comment}</Typography>
                             </Box>
-                        </Grid>
-                    )) : (
-                        <Grid item xs={12}><Typography fontStyle="italic" color="text.secondary">Chưa có đánh giá nào.</Typography></Grid>
+                        )) : (
+                            <Typography fontStyle="italic" color="text.secondary">Chưa có đánh giá nào.</Typography>
+                        )}
+                    </Stack>
+
+                    {/* Phân trang Reviews */}
+                    {totalReviewPages > 1 && (
+                        <Box display="flex" justifyContent="center" mt={2}>
+                            <Pagination count={totalReviewPages} page={reviewPage} onChange={(e, v) => setReviewPage(v)} color="primary" />
+                        </Box>
                     )}
-                </Grid>
+                </Box>
             )}
         </div>
 
@@ -302,102 +425,91 @@ const CourseDetailPage = () => {
         <div hidden={activeTab !== 2}>
             {activeTab === 2 && (
                 <Box>
-                    {/* KHUNG NHẬP LIỆU CHÍNH (Dùng cho Tạo mới và Sửa) */}
-                    <Box id="main-discussion-form" mb={4} p={3} bgcolor="#f8f9fa" borderRadius={2} border={editingId ? "2px solid #1976d2" : "1px solid #eee"}>
-                        <Typography variant="h6" mb={2} color={editingId ? "primary" : "text.primary"}>
-                            {editingId ? "Chỉnh sửa nội dung" : "Đặt câu hỏi mới"}
-                        </Typography>
+                    <Box id="discussion-form" mb={4} p={3} bgcolor="#f8f9fa" borderRadius={2} border={editingDiscId ? "2px solid #1976d2" : "1px solid #eee"}>
+                        <Typography variant="h6" mb={2} color={editingDiscId ? "primary" : "text.primary"}>{editingDiscId ? "Chỉnh sửa nội dung" : "Đặt câu hỏi mới"}</Typography>
                         <TextField 
-                            fullWidth multiline rows={3} 
-                            placeholder={editingId ? "Cập nhật nội dung..." : "Bạn đang thắc mắc điều gì? Hãy chia sẻ tại đây..."}
-                            variant="outlined" sx={{ bgcolor: 'white' }} 
-                            value={mainInputContent} onChange={(e) => setMainInputContent(e.target.value)}
+                            fullWidth multiline rows={3} placeholder={editingDiscId ? "Cập nhật nội dung..." : "Bạn đang thắc mắc điều gì..."}
+                            variant="outlined" sx={{ bgcolor: 'white' }} value={discContent} onChange={(e) => setDiscContent(e.target.value)}
                         />
                         <Box mt={2} display="flex" gap={2}>
-                            <Button variant="contained" endIcon={editingId ? <Update /> : <Send />} sx={{ bgcolor: editingId ? '#1976d2' : '#1c1d1f' }} onClick={handleMainSubmit}>
-                                {editingId ? "Cập nhật" : "Gửi câu hỏi"}
-                            </Button>
-                            {editingId && <Button variant="outlined" startIcon={<CancelIcon />} color="error" onClick={cancelEditing}>Hủy bỏ</Button>}
+                            <Button variant="contained" endIcon={editingDiscId ? <Update /> : <Send />} sx={{ bgcolor: editingDiscId ? '#1976d2' : '#1c1d1f' }} onClick={handleSubmitDiscussion}>{editingDiscId ? "Cập nhật" : "Gửi"}</Button>
+                            {editingDiscId && <Button variant="outlined" startIcon={<CancelIcon />} color="error" onClick={() => { setEditingDiscId(null); setDiscContent(''); }}>Hủy bỏ</Button>}
                         </Box>
                     </Box>
 
-                    {/* DANH SÁCH THẢO LUẬN */}
-                    {discussions && discussions.length > 0 ? discussions.map((disc) => (
-                        <Box key={disc.id} sx={{ mb: 2, p: 2, border: '1px solid #eee', borderRadius: 2, bgcolor: editingId === disc.id ? '#e3f2fd' : 'white' }}>
-                            <Box display="flex" gap={2} alignItems="flex-start">
-                                <Avatar src={disc.user?.profileImageUrl} alt={disc.user?.firstName}>{(disc.user?.firstName && disc.user.firstName[0]) || "?"}</Avatar>
-                                <Box flex={1}>
-                                    <Box display="flex" justifyContent="space-between" alignItems="center">
-                                        <Typography variant="subtitle2" fontWeight="bold">
-                                            {disc.user ? `${disc.user.lastName || ''} ${disc.user.firstName || ''}` : "Người dùng"}
-                                            <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 1, fontWeight: 'normal' }}>
-                                                • {disc.createdAt ? new Date(disc.createdAt).toLocaleString('vi-VN') : ""}
+                    {/* List Discussions */}
+                    <Stack spacing={2} mb={3}>
+                        {discussions && discussions.length > 0 ? discussions.map((disc) => (
+                            <Box key={disc.id} sx={{ mb: 2, p: 2, border: '1px solid #eee', borderRadius: 2, bgcolor: editingDiscId === disc.id ? '#e3f2fd' : 'white' }}>
+                                <Box display="flex" gap={2} alignItems="flex-start">
+                                    <Avatar src={disc.user?.profileImageUrl} alt={disc.user?.firstName}>{(disc.user?.firstName && disc.user.firstName[0]) || "?"}</Avatar>
+                                    <Box flex={1}>
+                                        <Box display="flex" justifyContent="space-between" alignItems="center">
+                                            <Typography variant="subtitle2" fontWeight="bold">
+                                                {disc.user ? `${disc.user.lastName} ${disc.user.firstName}` : "Người dùng"}
+                                                <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 1, fontWeight: 'normal' }}> • {disc.createdAt ? new Date(disc.createdAt).toLocaleString('vi-VN') : ""}</Typography>
                                             </Typography>
-                                        </Typography>
+                                            {/* Sửa/Xóa Discussion */}
+                                            {currentUser && disc.user && (String(currentUser.id) === String(disc.user.id)) && (
+                                                <Box>
+                                                    <Tooltip title="Sửa"><IconButton size="small" onClick={() => startEditingDisc(disc.id, disc.content)} color="primary"><EditIcon fontSize="small" /></IconButton></Tooltip>
+                                                    <Tooltip title="Xóa"><IconButton size="small" onClick={() => handleDeleteAny(disc.id)} color="error"><DeleteIcon fontSize="small" /></IconButton></Tooltip>
+                                                </Box>
+                                            )}
+                                        </Box>
+                                        <Typography variant="body1" mt={1} sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{disc.content}</Typography>
+                                        <Button size="small" startIcon={<ReplyIcon fontSize="small"/>} sx={{ mt: 1, color: 'text.secondary', textTransform: 'none' }} onClick={() => setReplyingToId(replyingToId === disc.id ? null : disc.id)}>Trả lời</Button>
                                         
-                                        {/* Actions cho Discussion Chính */}
-                                        {currentUser && disc.user && (String(currentUser.id) === String(disc.user.id)) && (
-                                            <Box>
-                                                <Tooltip title="Chỉnh sửa"><IconButton size="small" onClick={() => startEditing(disc.id, disc.content)} color="primary"><EditIcon fontSize="small" /></IconButton></Tooltip>
-                                                <Tooltip title="Xóa"><IconButton size="small" onClick={() => handleDeleteAny(disc.id)} color="error"><DeleteIcon fontSize="small" /></IconButton></Tooltip>
+                                        {/* Form Reply */}
+                                        {replyingToId === disc.id && (
+                                            <Box mt={2} ml={2} p={2} bgcolor="#f5f5f5" borderRadius={2}>
+                                                <TextField fullWidth size="small" placeholder="Viết câu trả lời..." variant="outlined" sx={{ bgcolor: 'white', mb: 1 }} value={replyInputContent} onChange={(e) => setReplyInputContent(e.target.value)} />
+                                                <Box display="flex" gap={1} justifyContent="flex-end">
+                                                    <Button size="small" onClick={() => setReplyingToId(null)}>Hủy</Button>
+                                                    <Button size="small" variant="contained" onClick={() => handleCreateReply(disc.id)}>Gửi</Button>
+                                                </Box>
+                                            </Box>
+                                        )}
+
+                                        {/* Nested Replies */}
+                                        {disc.replies && disc.replies.length > 0 && (
+                                            <Box mt={2} ml={2} pl={2} borderLeft="2px solid #eee">
+                                                {disc.replies.map((rep) => (
+                                                    <Box key={rep.id} mt={2} display="flex" gap={2} alignItems="flex-start" sx={{ bgcolor: editingDiscId === rep.id ? '#e3f2fd' : 'transparent', p: editingDiscId === rep.id ? 1 : 0, borderRadius: 1 }}>
+                                                        <Avatar src={rep.user?.profileImageUrl} sx={{ width: 32, height: 32 }}>{(rep.user?.firstName && rep.user.firstName[0]) || "?"}</Avatar>
+                                                        <Box flex={1} bgcolor={editingDiscId === rep.id ? 'transparent' : "#f9f9f9"} p={editingDiscId === rep.id ? 0 : 1.5} borderRadius={2}>
+                                                            <Box display="flex" justifyContent="space-between" alignItems="center">
+                                                                <Typography variant="subtitle2" fontWeight="bold" fontSize="0.9rem">
+                                                                    {rep.user ? `${rep.user.lastName} ${rep.user.firstName}` : "Người dùng"}
+                                                                    <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 1 }}>{rep.createdAt ? new Date(rep.createdAt).toLocaleString('vi-VN') : ""}</Typography>
+                                                                </Typography>
+                                                                {/* Sửa/Xóa Reply */}
+                                                                {currentUser && rep.user && (String(currentUser.id) === String(rep.user.id)) && (
+                                                                    <Box>
+                                                                        <Tooltip title="Sửa"><IconButton size="small" onClick={() => startEditingDisc(rep.id, rep.content)} sx={{ p: 0.5 }}><EditIcon fontSize="small" /></IconButton></Tooltip>
+                                                                        <Tooltip title="Xóa"><IconButton size="small" onClick={() => handleDeleteAny(rep.id)} sx={{ p: 0.5, color: '#bdbdbd', '&:hover': { color: '#d32f2f' } }}><DeleteIcon fontSize="small" /></IconButton></Tooltip>
+                                                                    </Box>
+                                                                )}
+                                                            </Box>
+                                                            <Typography variant="body2" mt={0.5}>{rep.content}</Typography>
+                                                        </Box>
+                                                    </Box>
+                                                ))}
                                             </Box>
                                         )}
                                     </Box>
-
-                                    <Typography variant="body1" mt={1} sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{disc.content}</Typography>
-
-                                    <Button size="small" startIcon={<ReplyIcon fontSize="small"/>} sx={{ mt: 1, color: 'text.secondary', textTransform: 'none' }} onClick={() => setReplyingToId(replyingToId === disc.id ? null : disc.id)}>
-                                        Trả lời
-                                    </Button>
-
-                                    {/* Form Trả Lời (Nhỏ) */}
-                                    {replyingToId === disc.id && (
-                                        <Box mt={2} ml={2} p={2} bgcolor="#f5f5f5" borderRadius={2}>
-                                            <TextField 
-                                                fullWidth size="small" placeholder="Viết câu trả lời..." variant="outlined" sx={{ bgcolor: 'white', mb: 1 }}
-                                                value={replyInputContent} onChange={(e) => setReplyInputContent(e.target.value)}
-                                            />
-                                            <Box display="flex" gap={1} justifyContent="flex-end">
-                                                <Button size="small" onClick={() => setReplyingToId(null)}>Hủy</Button>
-                                                <Button size="small" variant="contained" onClick={() => handleCreateReply(disc.id)}>Gửi</Button>
-                                            </Box>
-                                        </Box>
-                                    )}
-
-                                    {/* DANH SÁCH REPLY */}
-                                    {disc.replies && disc.replies.length > 0 && (
-                                        <Box mt={2} ml={2} pl={2} borderLeft="2px solid #eee">
-                                            {disc.replies.map((rep) => (
-                                                <Box key={rep.id} mt={2} display="flex" gap={2} alignItems="flex-start" sx={{ bgcolor: editingId === rep.id ? '#e3f2fd' : 'transparent', p: editingId === rep.id ? 1 : 0, borderRadius: 1 }}>
-                                                    <Avatar src={rep.user?.profileImageUrl} sx={{ width: 32, height: 32 }}>{(rep.user?.firstName && rep.user.firstName[0]) || "?"}</Avatar>
-                                                    <Box flex={1} bgcolor={editingId === rep.id ? 'transparent' : "#f9f9f9"} p={editingId === rep.id ? 0 : 1.5} borderRadius={2}>
-                                                        <Box display="flex" justifyContent="space-between" alignItems="center">
-                                                            <Typography variant="subtitle2" fontWeight="bold" fontSize="0.9rem">
-                                                                {rep.user ? `${rep.user.lastName || ''} ${rep.user.firstName || ''}` : "Người dùng"}
-                                                                <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 1 }}>
-                                                                    {rep.createdAt ? new Date(rep.createdAt).toLocaleString('vi-VN') : ""}
-                                                                </Typography>
-                                                            </Typography>
-
-                                                            {/* Actions cho Reply (Dùng chung hàm handleDeleteAny và startEditing) */}
-                                                            {currentUser && rep.user && (String(currentUser.id) === String(rep.user.id)) && (
-                                                                <Box>
-                                                                    <Tooltip title="Sửa trả lời"><IconButton size="small" onClick={() => startEditing(rep.id, rep.content)} sx={{ p: 0.5, color: '#bdbdbd', '&:hover': { color: '#1976d2' } }}><EditIcon fontSize="small" /></IconButton></Tooltip>
-                                                                    <Tooltip title="Xóa trả lời"><IconButton size="small" onClick={() => handleDeleteAny(rep.id)} sx={{ p: 0.5, color: '#bdbdbd', '&:hover': { color: '#d32f2f' } }}><DeleteIcon fontSize="small" /></IconButton></Tooltip>
-                                                                </Box>
-                                                            )}
-                                                        </Box>
-                                                        <Typography variant="body2" mt={0.5}>{rep.content}</Typography>
-                                                    </Box>
-                                                </Box>
-                                            ))}
-                                        </Box>
-                                    )}
                                 </Box>
                             </Box>
+                        )) : (
+                            <Typography fontStyle="italic" color="text.secondary">Chưa có thảo luận nào.</Typography>
+                        )}
+                    </Stack>
+
+                    {/* Phân trang Discussions */}
+                    {totalDiscPages > 1 && (
+                        <Box display="flex" justifyContent="center" mt={2}>
+                            <Pagination count={totalDiscPages} page={discPage} onChange={(e, v) => setDiscPage(v)} color="primary" />
                         </Box>
-                    )) : (
-                        <Box textAlign="center" py={4}><QuestionAnswer sx={{ fontSize: 40, color: 'text.disabled', mb: 1 }} /><Typography color="text.secondary">Chưa có thảo luận nào.</Typography></Box>
                     )}
                 </Box>
             )}

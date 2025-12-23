@@ -642,7 +642,7 @@ function AccountProfile() {
                   </div>
                 </div>
 
-                <div className="border border-gray-200 rounded-xl p-4 sm:p-6">
+                {/* <div className="border border-gray-200 rounded-xl p-4 sm:p-6">
                   <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-4">Cài đặt thông báo</h3>
                   <div className="space-y-4">
                     <div className="flex items-center justify-between py-3 border-b border-gray-100">
@@ -678,7 +678,7 @@ function AccountProfile() {
                       />
                     </div>
                   </div>
-                </div>
+                </div> */}
               </div>
             )}
           </div>
