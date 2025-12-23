@@ -91,7 +91,33 @@ const CourseFormModal = ({ open, handleClose, handleSubmit, initialData, loading
             return;
         }
 
-        handleSubmit(formData);
+        console.log("debug: ", formData)
+
+        if (formData.imageFile) {
+            const data = new FormData();
+            data.append('title', formData.title);
+            data.append('description', formData.description);
+            data.append('priceVND', formData.priceVND);
+            data.append('instructorId', formData.instructorId);
+            
+            // Lưu ý: FormData sẽ biến true -> "true". Backend cần xử lý được chuỗi này.
+            data.append('isPublished', formData.isPublished); 
+            data.append('image', formData.imageFile);
+
+            handleSubmit(data);
+        } 
+        // Nếu KHÔNG đổi ảnh -> Gửi JSON thuần (An toàn nhất cho các trường boolean/text)
+        else {
+            const data = {
+                title: formData.title,
+                description: formData.description,
+                priceVND: Number(formData.priceVND),
+                instructorId: isAdmin ? Number(formData.instructorId) : undefined,
+                // JSON giữ nguyên kiểu Boolean, không bị biến thành chuỗi
+                isPublished: formData.isPublished
+            };
+            handleSubmit(data);
+        }
     }
 
     return (

@@ -88,31 +88,15 @@ const CourseManagement = () => {
     };
 
     const handleFormSubmit = (data) => {
-        // data nhận được từ Modal: title, description, priceVND, imageFile...
-        dispatch(clearCourseMessage());
+    
+    dispatch(clearCourseMessage());
 
-        const formData = new FormData();
-        formData.append('title', data.title);
-        formData.append('description', data.description);
-        formData.append('priceVND', data.priceVND);
-        
-        // nếu có instructorId (chỉ admin mới chọn đc)
-        if(data.instructorId) formData.append('instructorId', data.instructorId);
-        
-        // nếu có ảnh mới
-        if (data.imageFile) {
-            formData.append('image', data.imageFile);
-        }
-
-        if (selectedCourse) {
-            if(data.isPublished !== undefined) formData.append('isPublished', data.isPublished);
-            
-            dispatch(updateCourseAction(selectedCourse.id, formData));
-        } else {
-            //create
-            dispatch(createCourseAction(formData));
-        }
-    };
+    if (selectedCourse) {
+        dispatch(updateCourseAction(selectedCourse.id, data));
+    } else {
+        dispatch(createCourseAction(data));
+    }
+};
 
     const formatCurrency = (amount) => {
         return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
