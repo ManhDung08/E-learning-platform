@@ -13,9 +13,9 @@ const CourseCard = ({ course }) => {
         // CHUYỂN TRANG NGAY LẬP TỨC
         // Trang chi tiết sẽ tự động gọi API dựa trên Slug/ID trên URL
         if (course.slug) {
-            navigate(`/my-course/course/${course.slug}`);
+            navigate(`/course/${course.slug}`);
         } else {
-            navigate(`/my-course/course/${course.id}`);
+            navigate(`/course/${course.id}`);
         }
     };
 

@@ -84,8 +84,6 @@ const HomePage = () => {
               {/* <Route path="/my-course" element={<LessonQuiz lessonId={13} />} /> */}
               <Route path="/my-course" element={<MyCourses />} />
               <Route path="/my-course/course/learn/:courseId" element={<Videos />} />
-              <Route path="/my-course/course/:courseId/checkout" element={<CourseDetailPage />} />
-              <Route path="/my-course/course/:slug" element={<CourseDetailPage />} />
               <Route path="/instructors" element={<InstructorsList />} />
               <Route path="/instructors/:id" element={<InstructorDetail />} />
               <Route path="/search" element={<SearchResultsPage />} />

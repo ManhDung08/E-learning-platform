@@ -17,8 +17,8 @@ function AppRoutes() {
             <Route path='/home' element={<HomePage />}></Route>
             {/* <Route path='/course/learn/:courseId' element={<Videos />}></Route> */}
             <Route path='/profile' element={<AccountProfile />}></Route>
-            {/* <Route path="/course/:courseId/checkout" element={<CourseDetailPage />} />
-            <Route path="/course/:slug" element={<CourseDetailPage />} /> */}
+            <Route path="/course/:courseId/checkout" element={<CourseDetailPage />} />
+            <Route path="/course/:slug" element={<CourseDetailPage />} />
         </Routes>
     );
 }
