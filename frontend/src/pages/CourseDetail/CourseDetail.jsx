@@ -83,7 +83,7 @@ const CourseDetailPage = () => {
 
   const handleEnrollClick = () => {
     if (isEnrolled) {
-        navigate(`/course/learn/${course.slug || course.id}`)
+        navigate(`/my-course/course/learn/${course.id}`)
     } else {
         setOpenPaymentModal(true);
     }
@@ -288,7 +288,7 @@ const CourseDetailPage = () => {
                                                         color={isEnrolled ? "primary" : "success"} 
                                                         variant={isEnrolled ? "filled" : "outlined"} 
                                                         sx={{ ml: 'auto', height: 20, cursor: 'pointer' }} 
-                                                        onClick={() => navigate(`/course/learn/${course.slug}`)}
+                                                        onClick={() => navigate(`/my-course/course/learn/${course.id}`)}
                                                     /> 
                                                 ) : (
                                                     <Lock fontSize="small" sx={{ ml: 'auto', opacity: 0.5 }}/>

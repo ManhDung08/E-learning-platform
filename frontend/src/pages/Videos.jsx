@@ -1,6 +1,9 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 
+import { useDispatch } from "react-redux";
+import LessonQuiz from "../components/lesson/LessonQuiz";
+
 const Videos = () => {
   const { courseId } = useParams();
   const navigate = useNavigate();
@@ -162,6 +165,21 @@ const Videos = () => {
     }
   };
 
+  const handleNextLesson = () => {
+    if (!selectedLesson || !lessons.length) return;
+
+    const currentIndex = lessons.findIndex(l => l.id === selectedLesson.id);
+    
+    if (currentIndex !== -1 && currentIndex < lessons.length - 1) {
+        const nextLesson = lessons[currentIndex + 1];
+        onSelectLesson(nextLesson);
+        
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+        alert("Chúc mừng! Bạn đã hoàn thành module này.");
+    }
+  };
+
   // Show loading while checking access
   if (checkingAccess) {
     return <div className="w-full min-h-screen bg-gray-50 flex items-center justify-center">Đang kiểm tra quyền truy cập...</div>;
@@ -171,7 +189,7 @@ const Videos = () => {
   if (error) return <div className="w-full min-h-screen bg-gray-50 flex items-center justify-center text-red-500">{error}</div>;
 
   return (
-    <div className="w-full min-h-screen bg-gray-50">
+    <div className="w-full bg-gray-50">
       <div className="p-6">
         <h1 className="text-2xl font-semibold mb-4">Videos - {selectedModule?.title || 'Chọn module'}</h1>
 
@@ -202,6 +220,13 @@ const Videos = () => {
                       <div className="text-sm text-gray-400">ID: {selectedLesson?.id}</div>
                     </div>
                   </div>
+                </div>
+
+                <div className="bg-white rounded shadow-lg p-6 border-gray-200">
+                  <h3 className="text-lg font-bold mb-4 border-b pb-2 text-gray-700">
+                    Quiz for Lesson
+                  </h3>
+                  <LessonQuiz key={selectedLesson.id} lessonId={selectedLesson.id} onNextLesson={handleNextLesson} />
                 </div>
               </>
             )}

@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { Stack, Box, Typography, IconButton, Avatar, Button, CircularProgress, Tooltip, Menu, MenuItem, ListItemIcon } from '@mui/material';
 import { useDispatch, useSelector } from 'react-redux';
 import { logoutUserAction } from '../../Redux/Auth/auth.action';
@@ -15,6 +15,8 @@ import KeyboardDoubleArrowRightIcon from '@mui/icons-material/KeyboardDoubleArro
 import KeyboardDoubleArrowLeftIcon from '@mui/icons-material/KeyboardDoubleArrowLeft';
 import PersonIcon from '@mui/icons-material/Person';
 import SettingsIcon from '@mui/icons-material/Settings';
+
+import { getPublicInstructorsAction } from '../../Redux/Instructor/instructor.action';
 
 const mentors = [
     { name: 'Sarah Singh', role: 'Business Analyst' },
@@ -34,7 +36,16 @@ const RightBar = ({ isOpen, setIsOpen }) => {
     const [anchorEl, setAnchorEl] = useState(null);
     const openMenu = Boolean(anchorEl);
 
-    const { user, loading } = useSelector(store => store.auth);
+    const { user, loading: authLoading } = useSelector(store => store.auth);
+    const isStudent = user?.role === 'student';
+
+    const { instructors, loading: instructorLoading } = useSelector(store => store.instructor);
+
+    useEffect(() => {
+        if (isStudent) {
+            dispatch(getPublicInstructorsAction(1, 5, ""));
+        }
+    }, [dispatch, isStudent]);
 
     const getUserName = () => {
         if (!user) return 'Guest';
@@ -139,11 +150,13 @@ const RightBar = ({ isOpen, setIsOpen }) => {
                         src={getAvatarUrl()} alt={getUserName()}/>
                 
                 <Typography variant='h6' fontWeight='600' color='#525252'>
-                    {loading ? 'Loading...' : `${getGreeting()} ${getUserName()}`}
+                    {authLoading ? 'Loading...' : `${getGreeting()} ${getUserName()}`}
                 </Typography>
 
                 <Typography variant='body2' color='#525252' textAlign='center' maxWidth={250}>
-                    Continue Your Journey And Achieve Your Target
+                    {user?.role === 'instructor' ? "Share your knowledge and inspire students." : 
+                     user?.role === 'admin' ? "Manage the platform efficiently." :
+                     "Continue Your Journey And Achieve Your Target"}
                 </Typography>
 
                 {user?.email && (
@@ -168,47 +181,55 @@ const RightBar = ({ isOpen, setIsOpen }) => {
             </Stack>
         </Box>
 
-        <Box sx={{bgcolor: 'white', borderRadius: 2, p: 2}}>
-            <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1}>
-                <Typography variant='h8' fontWeight='600' color='#525252'>
-                    Your Instructor
-                </Typography>
-                <IconButton size='small' sx={{'&:hover': {backgroundColor: 'white'}}}>
-                    <Typography sx={{ fontSize: 20, fontWeight: 'bold' }}>+</Typography>
-                </IconButton>
-            </Stack>
+        {isStudent && (
+            <Box sx={{bgcolor: 'white', borderRadius: 2, p: 2, flex: 1, overflowY: 'auto'}}>
+                <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1}>
+                    <Typography variant='subtitle2' fontWeight='600' color='#525252'>
+                        Popular Instructors
+                    </Typography>
+                    <IconButton size='small' onClick={() => navigate('/instructors')}>
+                        <Typography sx={{ fontSize: 20, fontWeight: 'bold' }}>+</Typography>
+                    </IconButton>
+                </Stack>
 
-            <Stack spacing={1}>
-                {mentors.map((mentor, index) => (
-                    <Stack key={index} direction='row' alignItems='center' justifyContent='space-between'
-                            sx={{ '&:hover': {bgcolor: '#f9f9f9'}, p: 1, borderRadius: 1 }}>
-                        <Stack direction="row" alignItems='center' spacing={1.5}>
-                            <Avatar sx={{ width: 40, height: 40 }} 
-                                    src='https://i.pinimg.com/736x/2f/49/df/2f49dfa3f97e24eec56d24e9d704c43b.jpg'/>
-
-                            <Box>
-                                <Typography variant='body2' fontWeight='600' color='#525252'>
-                                    {mentor.name}
-                                </Typography>
-
-                                <Typography variant='caption' color='#999'>
-                                    {mentor.role}
-                                </Typography>
-                            </Box>
-                        </Stack>
-                        <Button size='small' variant='contained'
-                                sx={{ bgcolor: '#97A87A', textTransform: 'none', borderRadius: 4, minWidth: 30,
-                                    fontSize: 10}}>
-                            Follow
-                        </Button>
+                {instructorLoading ? (
+                    <Box display="flex" justifyContent="center" p={2}><CircularProgress size={20} /></Box>
+                ) : (
+                    <Stack spacing={1}>
+                        {instructors && instructors.length > 0 ? instructors.slice(0, 5).map((mentor, index) => (
+                            <Stack key={mentor.id || index} direction='row' alignItems='center' justifyContent='space-between'
+                                    sx={{ '&:hover': {bgcolor: '#f9f9f9'}, p: 1, borderRadius: 1 }}>
+                                <Stack direction="row" alignItems='center' spacing={1.5}>
+                                    <Avatar sx={{ width: 40, height: 40 }} 
+                                            src={mentor.profileImageUrl || ""}/>
+                                    <Box>
+                                        <Typography variant='body2' fontWeight='600' color='#525252' sx={{
+                                            display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden'
+                                        }}>
+                                            {mentor.lastName} {mentor.firstName}
+                                        </Typography>
+                                        <Typography variant='caption' color='#999'>
+                                            {mentor.headline || "Instructor"}
+                                        </Typography>
+                                    </Box>
+                                </Stack>
+                                <Button size='small' variant='contained'
+                                        sx={{ bgcolor: '#97A87A', textTransform: 'none', borderRadius: 4, minWidth: 30, fontSize: 10}}>
+                                    View
+                                </Button>
+                            </Stack>
+                        )) : (
+                            <Typography variant="caption" color="text.secondary" align="center">No instructors found.</Typography>
+                        )}
                     </Stack>
-                ))}
-            </Stack>
+                )}
 
-            <Button fullWidth sx={{ mt: 2, bgcolor: '#dadecd', borderRadius: 5, color: '#97A87A', textTransform: 'none', fontWeight: 600, '&:hover': { bgcolor: '#c5c9b5' } }}>
-                See All
-            </Button>
-        </Box>
+                <Button fullWidth onClick={() => navigate('/instructors')}
+                    sx={{ mt: 2, bgcolor: '#dadecd', borderRadius: 5, color: '#97A87A', textTransform: 'none', fontWeight: 600, '&:hover': { bgcolor: '#c5c9b5' } }}>
+                    See All
+                </Button>
+            </Box>
+        )}
 
         <Button fullWidth startIcon={isLoggingOut ? <CircularProgress size={30} color='inherit' /> : <LogoutIcon />} onClick={handleLogout} disabled={isLoggingOut}
                 sx={{ color: '#e05e60', textTransform: 'none', justifyContent: 'center', fontWeight: 600,

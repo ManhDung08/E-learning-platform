@@ -9,7 +9,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import LockIcon from '@mui/icons-material/Lock';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 
-const LessonQuiz = ({ lessonId }) => {
+const LessonQuiz = ({ lessonId, onNextLesson }) => {
     const dispatch = useDispatch();
     const { quizzes, currentAttempt, loading, quizResult, userAttempts } = useSelector(store => store.quiz);
 
@@ -181,7 +181,7 @@ const LessonQuiz = ({ lessonId }) => {
                              </Box>
                         </Card>
                         {/* sau link đến lesson khác */}
-                        <Button variant="contained" fullWidth size="large" sx={{ bgcolor: '#97A87A', borderRadius: 2 }}>
+                        <Button variant="contained" fullWidth size="large" onClick={onNextLesson} sx={{ bgcolor: '#97A87A', borderRadius: 2 }}>
                             Next Lesson
                         </Button>
                     </CardContent>
