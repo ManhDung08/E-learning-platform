@@ -16,10 +16,10 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { getUserEnrollmentsAction } from '../../Redux/Course/course.action';
 
-// --- CẤU HÌNH API URL ---
+
 const API_BASE_URL = 'http://localhost:3000'; 
 
-// --- HELPER FUNCTIONS ---
+
 const formatCurrency = (amount) => {
     if (amount === undefined || amount === null) return '0 đ';
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
@@ -32,14 +32,14 @@ const formatDuration = (seconds) => {
   return h > 0 ? `${h} giờ ${m} phút` : `${m} phút`;
 };
 
-// --- SERVICE GỌI API ---
+
 const api = axios.create({
     baseURL: API_BASE_URL,
     withCredentials: true,
     headers: { 'Content-Type': 'application/json' }
 });
 
-// --- COMPONENT CHÍNH ---
+
 const CourseDetailPage = () => {
   const { slug } = useParams(); 
   const navigate = useNavigate();
@@ -64,13 +64,12 @@ const CourseDetailPage = () => {
     });
   }, [course, userEnrollments]);
 
-  // State Tabs & Data phụ
   const [activeTab, setActiveTab] = useState(0);
   const [reviews, setReviews] = useState([]);
   const [discussions, setDiscussions] = useState([]);
   const [expandedModules, setExpandedModules] = useState({});
 
-  // State Modal
+
   const [openPaymentModal, setOpenPaymentModal] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('vnpay');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -89,7 +88,7 @@ const CourseDetailPage = () => {
     }
   } 
 
-  // --- FETCH DATA ---
+
   useEffect(() => {
     const fetchCourseDetail = async () => {
         try {
@@ -106,7 +105,7 @@ const CourseDetailPage = () => {
     if (slug) fetchCourseDetail();
   }, [slug]);
 
-  // --- TAB CHANGE ---
+
   const handleTabChange = async (event, newValue) => {
       setActiveTab(newValue);
       if (!course) return;
@@ -132,7 +131,7 @@ const CourseDetailPage = () => {
     setExpandedModules(allExpanded);
   };
 
-  // --- THANH TOÁN ---
+  //thanh toan
   const handleProceedPayment = async () => {
     setIsProcessing(true);
     try {
@@ -150,7 +149,7 @@ const CourseDetailPage = () => {
     }
   };
 
-  // --- RENDER ---
+ 
   if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 10 }}><CircularProgress /></Box>;
   if (!course) return <Container sx={{ mt: 10, textAlign: 'center' }}><Typography variant="h5">Không tìm thấy khóa học</Typography></Container>;
 
@@ -159,9 +158,7 @@ const CourseDetailPage = () => {
   return (
     <Box sx={{ bgcolor: '#fff', minHeight: '100vh', pb: 10 }}>
       
-      {/* ===================================================================== */}
-      {/* HERO SECTION (BACKGROUND IMAGE) */}
-      {/* ===================================================================== */}
+      
       <Box sx={{ position: 'relative', color: 'white', py: 10, overflow: 'hidden', minHeight: '400px', display: 'flex', alignItems: 'center' }}>
         <Box sx={{
             position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
@@ -207,7 +204,7 @@ const CourseDetailPage = () => {
               </Box>
             </Grid>
 
-            {/* BUTTON & PRICE */}
+            
             <Grid item size={{ xs: 12, md: 5 }} sx={{ textAlign: { xs: 'left', md: 'center' }, mt: { xs: 4, md: 0 } }}>
                 {!isEnrolled && (
                     <Typography variant="h2" fontWeight="800" sx={{ color: '#fff', mb: 1, textShadow: '0 4px 20px rgba(0,0,0,0.5)' }}>
@@ -242,8 +239,7 @@ const CourseDetailPage = () => {
           </Grid>
         </Container>
       </Box>
-
-      {/* TABS */}
+  
       <Container maxWidth="md" sx={{ mt: 4 }}>
         <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
           <Tabs value={activeTab} onChange={handleTabChange} centered variant="fullWidth">
@@ -253,7 +249,7 @@ const CourseDetailPage = () => {
           </Tabs>
         </Box>
 
-        {/* TAB 0: NỘI DUNG (KHÔNG FAKE DATA) */}
+  
         <div hidden={activeTab !== 0}>
             {activeTab === 0 && (
                 <Box>
@@ -310,7 +306,6 @@ const CourseDetailPage = () => {
             )}
         </div>
 
-        {/* TAB 1: ĐÁNH GIÁ */}
         <div hidden={activeTab !== 1}>
             {activeTab === 1 && (
                 <Box>
@@ -335,7 +330,7 @@ const CourseDetailPage = () => {
             )}
         </div>
 
-        {/* TAB 2: THẢO LUẬN */}
+  
         <div hidden={activeTab !== 2}>
             {activeTab === 2 && (
                 <Box>
@@ -359,7 +354,6 @@ const CourseDetailPage = () => {
 
       </Container>
 
-      {/* MODAL THANH TOÁN */}
       <Dialog open={openPaymentModal} onClose={() => !isProcessing && setOpenPaymentModal(false)} fullWidth maxWidth="sm">
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <ReceiptLong color="primary" /> Xác nhận đơn hàng
