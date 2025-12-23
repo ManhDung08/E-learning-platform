@@ -20,7 +20,7 @@ const ToggleSwitch = ({ enabled, onToggle }) => (
 );
 
 function AccountProfile() {
-  
+  // 3. Khởi tạo hook navigate
   const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState(0);
@@ -565,7 +565,7 @@ function AccountProfile() {
               </div>
             )}
 
-            {/* {activeTab === 1 && (
+            {activeTab === 1 && (
               <div>
                 <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-1">Khóa học đang học ({courses.length})</h2>
                 <div className="h-1 w-16 bg-blue-600 rounded-full mb-4 sm:mb-6"></div>
@@ -576,7 +576,7 @@ function AccountProfile() {
                   ))}
                 </div>
               </div>
-            )} */}
+            )}
 
             {activeTab === 2 && (
               <div>
