@@ -156,20 +156,25 @@ const Videos = () => {
     const fetchNote = async () => {
       try {
         setNoteLoading(true);
-        setNoteError(null);
+        setNoteError(null); // Clear error before fetching
         const response = await api.get(`/lessonNote/lesson/${selectedLesson.id}`);
         
         if (response.data && response.data.success) {
+          // Success - clear any previous errors
+          setNoteError(null);
           const noteContent = response.data.data?.content || "";
           setNote(noteContent);
           setSavedNote(noteContent);
         } else {
+          // Response not successful but no error thrown
+          setNoteError(null);
           setNote("");
           setSavedNote("");
         }
       } catch (error) {
         // If note doesn't exist (404), that's fine - just set empty note
         if (error.response?.status === 404) {
+          setNoteError(null); // 404 is not an error, it just means no note exists
           setNote("");
           setSavedNote("");
         } else {
@@ -190,7 +195,7 @@ const Videos = () => {
 
     try {
       setNoteSaving(true);
-      setNoteError(null);
+      setNoteError(null); // Clear error before saving
 
       const noteContent = note.trim();
 
@@ -199,6 +204,7 @@ const Videos = () => {
       });
 
       if (response.data && response.data.success) {
+        setNoteError(null); // Clear error on success
         setSavedNote(noteContent);
         console.log("Note saved successfully");
       }

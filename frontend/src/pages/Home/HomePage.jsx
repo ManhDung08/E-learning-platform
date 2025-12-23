@@ -21,6 +21,8 @@ import AllQuizAttempts from '../../components/lesson/AllQuizAttempts';
 import MyCourses from '../MyCourses/MyCourses';
 import Videos from '../Videos';
 import CourseDetailPage from '../CourseDetail/CourseDetail';
+import LiveClassList from '../LiveClass/LiveClassList';
+import LiveClassRoom from '../LiveClass/LiveClassRoom';
 
 const HomePage = () => {
   
@@ -84,6 +86,8 @@ const HomePage = () => {
               {/* <Route path="/my-course" element={<LessonQuiz lessonId={13} />} /> */}
               <Route path="/my-course" element={<MyCourses />} />
               <Route path="/my-course/course/learn/:courseId" element={<Videos />} />
+              <Route path="/live-class" element={<LiveClassList />} />
+              <Route path="/live-class/room/:roomId" element={<LiveClassRoom />} />
               <Route path="/instructors" element={<InstructorsList />} />
               <Route path="/instructors/:id" element={<InstructorDetail />} />
               <Route path="/search" element={<SearchResultsPage />} />
