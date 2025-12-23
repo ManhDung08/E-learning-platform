@@ -95,7 +95,6 @@ const HomePage = () => {
               <Route path="/instructor/dashboard" element={<div>Instructor Dashboard</div>} />
               <Route path="/instructor/courses" element={<InstructorCourses />} />
               <Route path="/instructor/students" element={<div>My Students</div>} />
-              <Route path="/instructor/revenue" element={<div>Revenue Page</div>} />
               <Route path="/instructor/quiz/:quizId/attempts" element={<AllQuizAttempts />} />
               {/* admin */}
               <Route path="/admin/dashboard" element={<Dashboard />}/>

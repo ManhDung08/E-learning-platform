@@ -70,11 +70,6 @@ const instructorMenu = [
     title: "Students",
     icon: <SchoolIcon />,
     path: "/instructor/students"
-  },
-  {
-    title: "Earnings",
-    icon: <AttachMoneyIcon />,
-    path: "/instructor/revenue"
   }
 ];
 
