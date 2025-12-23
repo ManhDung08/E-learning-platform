@@ -20,9 +20,9 @@ const AppHeader = () => {
         <Toolbar sx={{backgroundColor: 'white'}}>
 
             <Typography variant='h6' component={"div"}
-                        sx={{ flexGrow: 1, fontWeight: 'bold', color: '#97A87A', cursor: 'pointer' }} onClick={() => navigate('/')} >
+                        sx={{ flexGrow: 1, fontWeight: 'bold', color: '#97A87A' }} >
 
-                E Learning
+                <span style={{cursor: 'pointer'}} onClick={() => navigate('/')}>E Learning</span>
             </Typography>
 
             {!isLoggedIn && (<AuthControl />)}
