@@ -19,6 +19,7 @@ import {
     UPDATE_LESSON_REQUEST, UPDATE_LESSON_SUCCESS, UPDATE_LESSON_FAILURE,
     DELETE_LESSON_REQUEST, DELETE_LESSON_SUCCESS, DELETE_LESSON_FAILURE,
     REORDER_MODULES_REQUEST, REORDER_MODULES_SUCCESS, REORDER_MODULES_FAILURE,
+    REORDER_LESSONS_FAILURE, REORDER_LESSONS_SUCCESS, REORDER_LESSONS_REQUEST
 } from "./course.actionType";
 
 //admin, student
@@ -344,6 +345,27 @@ export const deleteLessonAction = (lessonId, courseId) => async (dispatch) => {
         dispatch(getCourseByIdAction(courseId));
     } catch (error) {
         dispatch({ type: DELETE_LESSON_FAILURE, payload: error.response?.data?.message });
+    }
+};
+
+export const reorderLessonsAction = (moduleId, lessonOrders) => async (dispatch) => {
+    dispatch({ type: REORDER_LESSONS_REQUEST });
+    try {
+        const { data } = await api.patch(`/lesson/module/${moduleId}/reorder`, lessonOrders);
+        
+        dispatch({ 
+            type: REORDER_LESSONS_SUCCESS, 
+            payload: { 
+                moduleId: moduleId, 
+                lessons: data.data
+            } 
+        });
+        
+    } catch (error) {
+        dispatch({ 
+            type: REORDER_LESSONS_FAILURE, 
+            payload: error.response?.data?.message || "Failed to reorder lessons" 
+        });
     }
 };
 

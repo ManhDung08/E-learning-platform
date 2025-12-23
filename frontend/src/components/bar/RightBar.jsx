@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react'
-import { Stack, Box, Typography, IconButton, Avatar, Button, CircularProgress, Tooltip, Menu, MenuItem, ListItemIcon } from '@mui/material';
+import { Stack, Box, Typography, IconButton, Avatar, Button, CircularProgress, Tooltip, Menu, MenuItem, ListItemIcon, Badge, Popover } from '@mui/material';
 import { useDispatch, useSelector } from 'react-redux';
 import { logoutUserAction } from '../../Redux/Auth/auth.action';
 import { useState } from 'react';
@@ -17,14 +17,10 @@ import PersonIcon from '@mui/icons-material/Person';
 import SettingsIcon from '@mui/icons-material/Settings';
 
 import { getPublicInstructorsAction } from '../../Redux/Instructor/instructor.action';
+import { getNotificationsAction, getUnreadCountAction, markNotificationReadAction, markAllReadAction } from '../../Redux/Notification/notification.action';
 
-const mentors = [
-    { name: 'Sarah Singh', role: 'Business Analyst' },
-    { name: 'Sarah Singh', role: 'Software Developer' },
-    { name: 'Sarah Singh', role: 'UI/UX Designer' },
-    { name: 'Sarah Singh', role: 'Software Developer' },
-    { name: 'Sarah Singh', role: 'Software Developer' }
-]
+import NotificationList from '../notification/NotificationList';
+
 
 const RightBar = ({ isOpen, setIsOpen }) => {
 
@@ -36,16 +32,24 @@ const RightBar = ({ isOpen, setIsOpen }) => {
     const [anchorEl, setAnchorEl] = useState(null);
     const openMenu = Boolean(anchorEl);
 
+    const [notifAnchorEl, setNotifAnchorEl] = useState(null);
+    const openNotif = Boolean(notifAnchorEl);
+
     const { user, loading: authLoading } = useSelector(store => store.auth);
     const isStudent = user?.role === 'student';
 
     const { instructors, loading: instructorLoading } = useSelector(store => store.instructor);
-
+    const { notifications, unreadCount } = useSelector(store => store.notification);
+    
     useEffect(() => {
-        if (isStudent) {
-            dispatch(getPublicInstructorsAction(1, 5, ""));
+        if (user) {
+            if (isStudent) {
+                dispatch(getPublicInstructorsAction(1, 5, ""));
+            }
+            dispatch(getNotificationsAction(1, 10));
+            dispatch(getUnreadCountAction());
         }
-    }, [dispatch, isStudent]);
+    }, [dispatch, user, isStudent]);
 
     const getUserName = () => {
         if (!user) return 'Guest';
@@ -70,6 +74,7 @@ const RightBar = ({ isOpen, setIsOpen }) => {
         setIsLoggingOut(true);
 
         await dispatch(logoutUserAction());
+        navigate('/');
     }
 
     const handleOpenMenu = (event) => {
@@ -84,6 +89,24 @@ const RightBar = ({ isOpen, setIsOpen }) => {
         handleCloseMenu();
         navigate('/profile');
     };
+
+    //updae thông báo
+    const handleOpenNotif = (event) => {
+        setNotifAnchorEl(event.currentTarget);
+        dispatch(getNotificationsAction(1, 10));
+    };
+
+    const handleCloseNotif = () => {
+        setNotifAnchorEl(null);
+    }
+
+    const handleMarkRead = (id) => {
+        dispatch(markNotificationReadAction(id));
+    };
+
+    const handleMarkAllRead = () => {
+        dispatch(markAllReadAction());
+    }
 
     if (!isOpen) {
         return (
@@ -166,9 +189,28 @@ const RightBar = ({ isOpen, setIsOpen }) => {
                 )}
 
                 <Stack direction='row' spacing={2} mt={2}>
-                    <IconButton sx={{ border: '2px solid #eee', bgcolor: 'white' }}>
-                        <NotificationsIcon fontSize='small'/>
-                    </IconButton>
+                    <Tooltip title="Notifications">
+                        <IconButton onClick={handleOpenNotif} sx={{ border: '2px solid #eee', bgcolor: 'white' }}>
+                            <Badge badgeContent={unreadCount} color="error" max={99}>
+                                <NotificationsIcon fontSize='small'/>
+                            </Badge>
+                        </IconButton>
+                    </Tooltip>
+
+                    <Popover
+                        open={openNotif}
+                        anchorEl={notifAnchorEl}
+                        onClose={handleCloseNotif}
+                        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+                        transformOrigin={{ vertical: 'top', horizontal: 'center' }}
+                        PaperProps={{ sx: { mt: 1, borderRadius: 3, boxShadow: '0 8px 30px rgba(0,0,0,0.12)' } }}
+                    >
+                        <NotificationList 
+                            notifications={notifications} 
+                            onMarkRead={handleMarkRead}
+                            onMarkAllRead={handleMarkAllRead}
+                        />
+                    </Popover>
 
                     <IconButton sx={{ border: '2px solid #eee', bgcolor: 'white' }}>
                         <MailIcon fontSize='small'/>
