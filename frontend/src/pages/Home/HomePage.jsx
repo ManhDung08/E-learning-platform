@@ -19,6 +19,8 @@ import SearchResultsPage from '../../components/search/SearchResults';
 import LessonQuiz from '../../components/lesson/LessonQuiz';
 import AllQuizAttempts from '../../components/lesson/AllQuizAttempts';
 import MyCourses from '../MyCourses/MyCourses';
+import Videos from '../Videos';
+import CourseDetailPage from '../CourseDetail/CourseDetail';
 
 const HomePage = () => {
   
@@ -42,7 +44,12 @@ const HomePage = () => {
 
   let rightBarSize = 0;
   if (isLoggedIn) {
-    rightBarSize = isRightBarOpen ? (isLgScreen ? 2.5 : 0) : (isLgScreen ? 0.6 : 0);
+    const isLearningPage = pathname.includes('/my-course');
+    if (isLearningPage) {
+        rightBarSize = 0;
+    } else {
+        rightBarSize = isRightBarOpen ? (isLgScreen ? 2.5 : 0) : (isLgScreen ? 0.6 : 0);
+    }
   }
 
   const mainContentGridSize = 12 - leftSidebarSize - rightBarSize;
@@ -76,6 +83,9 @@ const HomePage = () => {
               <Route path="/dashboard" element={<MiddleHome />} />
               {/* <Route path="/my-course" element={<LessonQuiz lessonId={13} />} /> */}
               <Route path="/my-course" element={<MyCourses />} />
+              <Route path="/my-course/course/learn/:courseId" element={<Videos />} />
+              <Route path="/my-course/course/:courseId/checkout" element={<CourseDetailPage />} />
+              <Route path="/my-course/course/:slug" element={<CourseDetailPage />} />
               <Route path="/instructors" element={<InstructorsList />} />
               <Route path="/instructors/:id" element={<InstructorDetail />} />
               <Route path="/search" element={<SearchResultsPage />} />
@@ -107,7 +117,7 @@ const HomePage = () => {
           </div>
         </Grid>
 
-        {isLoggedIn && (
+        {isLoggedIn && rightBarSize > 0 && (
           <Grid size={{ xs: rightBarSize }} sx={{display: { xs: 'none', lg: 'block'}, height: '100%', overflowY: 'auto', 
                 position: 'relative', zIndex: 1, transition: 'all 0.3s ease', minWidth: isLgScreen ? rightBarMinWidth : 0}}>
           <div style={{ height: '100%', width: '100%' }}> 

@@ -5,6 +5,7 @@ import { getAllCoursesAction } from '../../Redux/Course/course.action';
 import { getPublicInstructorsAction } from '../../Redux/Instructor/instructor.action';
 import CourseCard from '../courses/CourseCard';
 import InstructorCard from '../instructor/InstructorCard';
+import { CircularProgress } from '@mui/material';
 
 const SearchResultsPage = () => {
     const dispatch = useDispatch();
@@ -25,7 +26,7 @@ const SearchResultsPage = () => {
     }, [dispatch, keyword]);
 
     return (
-        <div className="p-8 min-h-screen bg-gray-50">
+        <div className="p-8 bg-gray-50 flex flex-col">
             <h1 className="text-2xl font-bold text-gray-800 mb-6">
                 Search results for: "<span className="text-[#97A87A]">{keyword}</span>"
             </h1>
@@ -50,24 +51,28 @@ const SearchResultsPage = () => {
                 )}
             </div>
 
-            <div>
-                <h2 className="text-xl font-bold text-gray-700 mb-4 flex items-center gap-2">
-                    Courses ({courses.length})
-                </h2>
+            <div className='pt-2'>
+                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px'}}>
+                    <h2 className="text-xl font-bold text-gray-700 mb-4 flex items-center gap-2">
+                        Courses ({courses.length})
+                    </h2>
+                </div>
 
                 {loadingCourses ? (
-                    <p className="text-gray-500">Searching for courses...</p>
+                    <div className="flex justify-center p-4"><CircularProgress size={30} sx={{color: '#97A87A'}} /></div>
                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {courses.length > 0 ? courses.map(course => (
-                            <div key={course.id} className="w-full"> 
-                                <CourseCard course={course} />
-                            </div>
-                        )) : (
-                            <p className="text-gray-400 text-sm italic col-span-full">
-                                No courses found matching "{keyword}".
-                            </p>
-                        )}
+                    <div style={{ overflow: 'hidden', position: 'relative'}}>
+                        <div className="flex gap-5 overflow-x-auto pb-4 scrollbar-hide">
+                            {courses.length > 0 ? courses.map(course => (
+                                <div key={course.id} style={{minWidth: '280px'}}> 
+                                    <CourseCard course={course} />
+                                </div>
+                            )) : (
+                                <p className="text-gray-400 text-sm italic col-span-full">
+                                    No courses found matching "{keyword}".
+                                </p>
+                            )}
+                        </div>
                     </div>
                 )}
             </div>
