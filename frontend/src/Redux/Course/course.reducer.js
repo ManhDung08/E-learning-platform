@@ -18,7 +18,8 @@ import {
     REORDER_MODULES_REQUEST, REORDER_MODULES_SUCCESS, REORDER_MODULES_FAILURE,
     CREATE_LESSON_REQUEST, CREATE_LESSON_SUCCESS, CREATE_LESSON_FAILURE,
     UPDATE_LESSON_REQUEST, UPDATE_LESSON_SUCCESS, UPDATE_LESSON_FAILURE,
-    DELETE_LESSON_REQUEST, DELETE_LESSON_SUCCESS, DELETE_LESSON_FAILURE
+    DELETE_LESSON_REQUEST, DELETE_LESSON_SUCCESS, DELETE_LESSON_FAILURE,
+    REORDER_LESSONS_REQUEST, REORDER_LESSONS_SUCCESS, REORDER_LESSONS_FAILURE
 } from "./course.actionType";
 
 const initialState = {
@@ -52,6 +53,7 @@ export const courseReducer = (state = initialState, action) => {
         case CREATE_LESSON_REQUEST:
         case UPDATE_LESSON_REQUEST:
         case DELETE_LESSON_REQUEST:
+        case REORDER_LESSONS_REQUEST:
             return { ...state, loading: true, error: null, success: false };
 
        case GET_ALL_COURSES_SUCCESS:
@@ -161,6 +163,28 @@ export const courseReducer = (state = initialState, action) => {
                 message: "Modules reordered successfully"
             };
 
+        case REORDER_LESSONS_SUCCESS:
+            const updatedModules = state.course.modules.map(mod => {
+                if (mod.id === action.payload.moduleId) {
+                    return {
+                        ...mod,
+                        lessons: action.payload.lessons
+                    }
+                }
+                return mod;
+            });
+
+            return {
+                ...state,
+                loading: false,
+                success: true,
+                message: "Lessons reordered successfully",
+                course: {
+                    ...state.course,
+                    modules: updatedModules
+                }
+            }
+
         case GET_ALL_COURSES_FAILURE:
         case GET_INSTRUCTOR_COURSES_FAILURE:
         case GET_COURSE_BY_ID_FAILURE:
@@ -180,6 +204,7 @@ export const courseReducer = (state = initialState, action) => {
         case CREATE_LESSON_FAILURE:
         case UPDATE_LESSON_FAILURE:
         case DELETE_LESSON_FAILURE:
+        case REORDER_LESSONS_FAILURE:
             return {
                 ...state,
                 loading: false,
