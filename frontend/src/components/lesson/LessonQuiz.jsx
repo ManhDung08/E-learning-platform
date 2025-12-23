@@ -42,7 +42,13 @@ const LessonQuiz = ({ lessonId, onNextLesson }) => {
 
     // kiểm tra lịch sử làm
     useEffect(() => {
-        if (loading || !quizzes || quizzes.length === 0 || hasStarted) return;
+
+        if (loading) return;
+
+        if (quizzes && quizzes.length === 0) {
+            setIsDataReady(true);
+            return;
+        }
 
         if (userAttempts) {
             const firstIncompleteIndex = quizzes.findIndex(q => {
@@ -140,6 +146,29 @@ const LessonQuiz = ({ lessonId, onNextLesson }) => {
                 <CircularProgress sx={{ color: '#97A87A', mb: 2 }} />
                 <Typography variant="caption" color="text.secondary">Loading status...</Typography>
             </Box>
+        );
+    }
+
+    if (isDataReady && quizzes && quizzes.length === 0) {
+        return (
+            <Container maxWidth="sm" sx={{ py: 8 }}>
+                <Card elevation={0} sx={{ borderRadius: 4, textAlign: 'center', border: '1px solid #eee', p: 6 }}>
+                    <Box sx={{ color: '#97A87A', mb: 2 }}>
+                        <CheckCircleIcon sx={{ fontSize: 60 }} />
+                    </Box>
+                    <Typography variant="h5" fontWeight="bold" gutterBottom>
+                        No Quiz Required
+                    </Typography>
+                    <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
+                        This lesson doesn't have any quizzes. You can proceed to the next lesson directly.
+                    </Typography>
+                    
+                    <Button variant="contained" fullWidth size="large" onClick={onNextLesson} 
+                        sx={{ bgcolor: '#97A87A', borderRadius: 2, '&:hover': { bgcolor: '#7e8f63' } }} >
+                        Next Lesson
+                    </Button>
+                </Card>
+            </Container>
         );
     }
 
