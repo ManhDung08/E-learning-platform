@@ -1,16 +1,44 @@
-import { useSearchParams } from 'react-router-dom';
+import { useEffect } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import { getCertificateByIdAction } from '../Redux/Certificate/certificate.action';
 import './Certificate.css';
 
 export default function Certificate() {
   const [searchParams] = useSearchParams();
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  
+  const { certificate, loading, error } = useSelector((state) => state.certificate);
+  const certificateId = searchParams.get('id');
 
-  const certificateData = {
-    name: searchParams.get('name') || 'Tên Học Viên',
-    course: searchParams.get('course') || 'Tên Khóa Học',
-    date: searchParams.get('date') || new Date().toLocaleDateString('vi-VN'),
-    code: searchParams.get('code') || 'CERT-2025-001',
-    instructor: searchParams.get('instructor') || 'Giảng viên'
-  };
+  useEffect(() => {
+    // Nếu có ID trong URL params, gọi API để lấy certificate
+    if (certificateId) {
+      dispatch(getCertificateByIdAction(certificateId));
+    }
+  }, [certificateId, dispatch]);
+
+  // Format dữ liệu từ API hoặc fallback về URL params/default
+  const certificateData = certificate
+    ? {
+        name: certificate.user
+          ? `${certificate.user.firstName || ''} ${certificate.user.lastName || ''}`.trim() || certificate.user.username
+          : 'Tên Học Viên',
+        course: certificate.course?.title || 'Tên Khóa Học',
+        date: certificate.issuedAt
+          ? new Date(certificate.issuedAt).toLocaleDateString('vi-VN')
+          : new Date().toLocaleDateString('vi-VN'),
+        code: `CERT-${certificate.id || '2025-001'}`,
+        instructor: searchParams.get('instructor') || 'Giảng viên', // Backend chưa trả về instructor name
+      }
+    : {
+        name: searchParams.get('name') || 'Tên Học Viên',
+        course: searchParams.get('course') || 'Tên Khóa Học',
+        date: searchParams.get('date') || new Date().toLocaleDateString('vi-VN'),
+        code: searchParams.get('code') || 'CERT-2025-001',
+        instructor: searchParams.get('instructor') || 'Giảng viên',
+      };
 
   const handlePrint = () => {
     window.print();
@@ -34,6 +62,39 @@ export default function Certificate() {
       handlePrint();
     }
   };
+
+  // Hiển thị loading state
+  if (certificateId && loading) {
+    return (
+      <div className="certificate-container">
+        <div style={{ color: '#fff', fontSize: '18px' }}>Đang tải chứng chỉ...</div>
+      </div>
+    );
+  }
+
+  // Hiển thị error state
+  if (certificateId && error) {
+    return (
+      <div className="certificate-container">
+        <div style={{ color: '#fff', fontSize: '18px', textAlign: 'center' }}>
+          <p>Lỗi: {error}</p>
+          <button
+            onClick={() => navigate(-1)}
+            style={{
+              marginTop: '20px',
+              padding: '10px 20px',
+              backgroundColor: '#fff',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+            }}
+          >
+            Quay lại
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="certificate-container">

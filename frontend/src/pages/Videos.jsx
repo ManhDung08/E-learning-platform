@@ -445,7 +445,7 @@ const Videos = () => {
                   <h3 className="text-lg font-bold mb-4 border-b pb-2 text-gray-700">
                     Quiz for Lesson
                   </h3>
-                  <LessonQuiz key={selectedLesson.id} lessonId={selectedLesson.id} onNextLesson={handleNextLesson} />
+                  <LessonQuiz key={selectedLesson.id} lessonId={selectedLesson.id} courseId={courseId} onNextLesson={handleNextLesson} />
                 </div>
               </>
             )}

@@ -7,6 +7,7 @@ import { quizReducer } from "./Quiz/quiz.reducer";
 import { instructorReducer } from "./Instructor/instructor.reducer";
 import { notificationReducer } from "./Notification/notification.reducer";
 import { paymentReducer } from "./Payment/payment.reducer";
+import { certificateReducer } from "./Certificate/certificate.reducer";
 
 const rootReducers = combineReducers({
     auth: authReducer,
@@ -16,6 +17,7 @@ const rootReducers = combineReducers({
     instructor: instructorReducer,
     notification: notificationReducer,
     payment: paymentReducer,
+    certificate: certificateReducer,
 });
 
 export const store = legacy_createStore(rootReducers, applyMiddleware(thunk));

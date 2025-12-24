@@ -1,17 +1,22 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import { Box, Typography, Button, Radio, RadioGroup, FormControlLabel, FormControl,
         CircularProgress, Card, CardContent, LinearProgress, Fade, Container } from '@mui/material';
 import { getAllQuizzesForLessonAction, startQuizAttemptAction, submitQuizAttemptAction,
     clearQuizResult, getUserQuizAttemptsAction } from '../../Redux/Quiz/quiz.action';
+import { getMyCertificatesAction } from '../../Redux/Certificate/certificate.action';
+import { store } from '../../Redux/store';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import LockIcon from '@mui/icons-material/Lock';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 
-const LessonQuiz = ({ lessonId, onNextLesson }) => {
+const LessonQuiz = ({ lessonId, courseId, onNextLesson }) => {
+    const navigate = useNavigate();
     const dispatch = useDispatch();
     const { quizzes, currentAttempt, loading, quizResult, userAttempts } = useSelector(store => store.quiz);
+    const { myCertificates } = useSelector(store => store.certificate);
 
     // state quản lý vị trí bài thi hiện tại 0 -> n-1
     const [activeQuizIndex, setActiveQuizIndex] = useState(-1);
@@ -69,6 +74,36 @@ const LessonQuiz = ({ lessonId, onNextLesson }) => {
         }
     }, [quizzes, userAttempts, loading, hasStarted]);
 
+    // Function check certificate sau khi hoàn thành quiz cuối cùng
+    const checkForNewCertificate = async () => {
+        if (!courseId) return; // Nếu không có courseId thì skip
+
+        try {
+            // Đợi một chút để backend xử lý (nếu backend tự động tạo certificate)
+            setTimeout(async () => {
+                // Lấy danh sách certificate mới nhất
+                await dispatch(getMyCertificatesAction());
+                
+                // Lấy certificates từ store
+                const currentCertificates = store.getState().certificate.myCertificates;
+                
+                // Tìm certificate của course này
+                const courseCertificate = currentCertificates.find(
+                    cert => cert.courseId === parseInt(courseId)
+                );
+                
+                if (courseCertificate) {
+                    // Có certificate → redirect sau 2 giây để user xem kết quả quiz
+                    setTimeout(() => {
+                        navigate(`/certificate?id=${courseCertificate.id}`);
+                    }, 2000);
+                }
+            }, 2000); // Đợi 2 giây để backend xử lý
+        } catch (error) {
+            console.error("Failed to check certificate:", error);
+        }
+    };
+
     // chạy khi đang nộp bài và chuyển câu
     useEffect(() => {
         if (isSubmitting && quizResult) {
@@ -81,6 +116,15 @@ const LessonQuiz = ({ lessonId, onNextLesson }) => {
             //reset trạng thái nộp
             dispatch(clearQuizResult());
             setIsSubmitting(false);
+
+            // Check: Nếu là quiz cuối cùng và đã pass (score >= 60)
+            const isLastQuiz = activeQuizIndex >= quizzes.length - 1;
+            const isPassed = quizResult.score >= 60;
+            
+            if (isLastQuiz && isPassed && courseId) {
+                // Hoàn thành quiz cuối cùng và đã pass → check certificate
+                checkForNewCertificate();
+            }
 
             if (activeQuizIndex < quizzes.length - 1) {
                 //kiểm tra còn câu hỏi thì tăng index lên 1
@@ -95,7 +139,7 @@ const LessonQuiz = ({ lessonId, onNextLesson }) => {
                 setIsFlowFinished(true);
             }
         }
-    }, [quizResult, isSubmitting, activeQuizIndex, quizzes, dispatch]);
+    }, [quizResult, isSubmitting, activeQuizIndex, quizzes, dispatch, courseId, navigate]);
 
     // ấn nút start thì sẽ gọi đến api start quiz và set hasStarted thành true để khóa lần vào làm kế tiếp
     const handleStartClick = () => {
@@ -172,6 +216,34 @@ const LessonQuiz = ({ lessonId, onNextLesson }) => {
         );
     }
 
+    // State để check certificate
+    const [certificateChecked, setCertificateChecked] = useState(false);
+    const [certificateId, setCertificateId] = useState(null);
+
+    // Check certificate khi hoàn thành và pass
+    useEffect(() => {
+        if (isFlowFinished && finalResult?.score >= 60 && courseId && !certificateChecked) {
+            const checkCert = async () => {
+                try {
+                    // Đợi một chút để backend xử lý
+                    setTimeout(async () => {
+                        await dispatch(getMyCertificatesAction());
+                        const { myCertificates } = store.getState().certificate;
+                        const cert = myCertificates.find(c => c.courseId === parseInt(courseId));
+                        if (cert) {
+                            setCertificateId(cert.id);
+                        }
+                        setCertificateChecked(true);
+                    }, 2000);
+                } catch (error) {
+                    console.error("Failed to check certificate:", error);
+                    setCertificateChecked(true);
+                }
+            };
+            checkCert();
+        }
+    }, [isFlowFinished, finalResult, courseId, certificateChecked, dispatch]);
+
     if (isFlowFinished) {
         const passed = finalResult?.score >= 60;
         return (
@@ -209,7 +281,27 @@ const LessonQuiz = ({ lessonId, onNextLesson }) => {
                                 </Typography>
                              </Box>
                         </Card>
-                        {/* sau link đến lesson khác */}
+                        
+                        {/* Nút Xem Certificate nếu có */}
+                        {certificateId && (
+                            <Button 
+                                variant="contained" 
+                                fullWidth 
+                                size="large" 
+                                onClick={() => navigate(`/certificate?id=${certificateId}`)}
+                                sx={{ 
+                                    bgcolor: '#d4af37', 
+                                    borderRadius: 2, 
+                                    mb: 2,
+                                    fontWeight: 'bold',
+                                    '&:hover': { bgcolor: '#b88a1e' }
+                                }}
+                            >
+                                🎓 Xem Chứng Chỉ
+                            </Button>
+                        )}
+                        
+                        {/* Nút Next Lesson */}
                         <Button variant="contained" fullWidth size="large" onClick={onNextLesson} sx={{ bgcolor: '#97A87A', borderRadius: 2 }}>
                             Next Lesson
                         </Button>
