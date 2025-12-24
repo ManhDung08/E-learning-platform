@@ -1308,6 +1308,194 @@ const getUserEnrollments = async (
   };
 };
 
+const getCourseEnrolledStudents = async (
+  courseId,
+  instructorId,
+  userRole,
+  page = 1,
+  limit = 10,
+  filters = {}
+) => {
+  // Check if course exists
+  const course = await prisma.course.findUnique({
+    where: { id: parseInt(courseId) },
+    select: {
+      id: true,
+      instructorId: true,
+      title: true,
+    },
+  });
+
+  if (!course) {
+    throw new NotFoundError("Course", "course_not_found");
+  }
+
+  // Check if user has permission (must be course instructor or admin)
+  if (userRole !== "admin" && course.instructorId !== parseInt(instructorId)) {
+    throw new PermissionError(
+      "Only the course instructor or admin can view enrolled students",
+      "unauthorized_access"
+    );
+  }
+
+  const skip = (page - 1) * limit;
+
+  // Build where clause
+  const where = {
+    courseId: parseInt(courseId),
+  };
+
+  // Add search filter if provided
+  if (filters.search) {
+    where.user = {
+      OR: [
+        { username: { contains: filters.search, mode: "insensitive" } },
+        { email: { contains: filters.search, mode: "insensitive" } },
+        { firstName: { contains: filters.search, mode: "insensitive" } },
+        { lastName: { contains: filters.search, mode: "insensitive" } },
+      ],
+    };
+  }
+
+  // Build order by clause - handle nested user fields
+  let orderBy;
+  if (filters.sortBy === "username" || filters.sortBy === "email") {
+    orderBy = {
+      user: {
+        [filters.sortBy]: filters.sortOrder || "asc",
+      },
+    };
+  } else {
+    orderBy = {
+      [filters.sortBy || "enrolledAt"]: filters.sortOrder || "desc",
+    };
+  }
+
+  // Fetch enrollments with user details and progress
+  const [enrollments, totalCount] = await Promise.all([
+    prisma.enrollment.findMany({
+      where,
+      orderBy,
+      skip,
+      take: limit,
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            profileImageUrl: true,
+            createdAt: true,
+          },
+        },
+      },
+    }),
+    prisma.enrollment.count({ where }),
+  ]);
+
+  // Get course modules and lessons for progress calculation
+  const courseModules = await prisma.module.findMany({
+    where: { courseId: parseInt(courseId) },
+    select: {
+      id: true,
+      lessons: {
+        select: {
+          id: true,
+        },
+      },
+    },
+  });
+
+  const totalLessons = courseModules.reduce(
+    (total, module) => total + module.lessons.length,
+    0
+  );
+
+  // Fetch all lesson progress for all enrolled students in one query (performance optimization)
+  const allStudentProgress = await prisma.lessonProgress.findMany({
+    where: {
+      userId: { in: enrollments.map((e) => e.userId) },
+      lesson: {
+        module: {
+          courseId: parseInt(courseId),
+        },
+      },
+      isCompleted: true,
+    },
+    select: {
+      id: true,
+      userId: true,
+    },
+  });
+
+  // Group progress by userId for O(1) lookup
+  const progressByUserId = allStudentProgress.reduce((acc, progress) => {
+    if (!acc[progress.userId]) {
+      acc[progress.userId] = 0;
+    }
+    acc[progress.userId]++;
+    return acc;
+  }, {});
+
+  // Calculate progress for each student
+  const studentsWithProgress = await Promise.all(
+    enrollments.map(async (enrollment) => {
+      const completedLessons = progressByUserId[enrollment.userId] || 0;
+      const progressPercentage =
+        totalLessons > 0
+          ? Math.round((completedLessons / totalLessons) * 100)
+          : 0;
+
+      // Generate signed URL for user profile image
+      let userImageUrl = enrollment.user.profileImageUrl;
+      if (enrollment.user.profileImageUrl) {
+        try {
+          const key = extractKeyFromUrl(enrollment.user.profileImageUrl);
+          userImageUrl = await getSignedUrlForDownload(key, "avatar", 3600);
+        } catch (error) {
+          console.error("Error generating signed URL for user profile:", error);
+          userImageUrl = enrollment.user.profileImageUrl; // fallback to original URL
+        }
+      }
+
+      return {
+        enrollmentId: enrollment.id,
+        enrolledAt: enrollment.enrolledAt,
+        student: {
+          id: enrollment.user.id,
+          username: enrollment.user.username,
+          email: enrollment.user.email,
+          firstName: enrollment.user.firstName,
+          lastName: enrollment.user.lastName,
+          profileImageUrl: userImageUrl,
+          memberSince: enrollment.user.createdAt,
+        },
+        progress: {
+          completedLessons,
+          totalLessons,
+          progressPercentage,
+        },
+      };
+    })
+  );
+
+  return {
+    courseId: course.id,
+    courseTitle: course.title,
+    students: studentsWithProgress,
+    pagination: {
+      currentPage: page,
+      totalPages: Math.ceil(totalCount / limit),
+      totalCount,
+      limit,
+      hasNextPage: page < Math.ceil(totalCount / limit),
+      hasPreviousPage: page > 1,
+    },
+  };
+};
+
 const getInstructorCourses = async (
   instructorId,
   page = 1,
@@ -2196,6 +2384,7 @@ export default {
   unenrollFromCourse,
   getUserEnrollments,
   getInstructorCourses,
+  getCourseEnrolledStudents,
   checkPaymentForCourse,
   // Review functions
   createReview,

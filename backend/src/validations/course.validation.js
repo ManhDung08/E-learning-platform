@@ -100,3 +100,31 @@ export const courseQueryValidation = [
     .isIn(["asc", "desc"])
     .withMessage("sortOrder must be 'asc' or 'desc'"),
 ];
+
+export const enrolledStudentsQueryValidation = [
+  query("page")
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage("Page must be a positive integer"),
+
+  query("limit")
+    .optional()
+    .isInt({ min: 1, max: 100 })
+    .withMessage("Limit must be between 1 and 100"),
+
+  query("search")
+    .optional()
+    .trim()
+    .isLength({ max: 100 })
+    .withMessage("Search term cannot exceed 100 characters"),
+
+  query("sortBy")
+    .optional()
+    .isIn(["enrolledAt", "username", "email"])
+    .withMessage("sortBy must be one of: enrolledAt, username, email"),
+
+  query("sortOrder")
+    .optional()
+    .isIn(["asc", "desc"])
+    .withMessage("sortOrder must be 'asc' or 'desc'"),
+];
