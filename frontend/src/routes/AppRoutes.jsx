@@ -8,6 +8,7 @@ import CourseDetailPage from "../pages/CourseDetail/CourseDetail";
 import PaymentResultPage from "../pages/PaymentResult";
 import ForgotPassword from "../components/auth/ForgotPassword";
 import ResetPassword from "../components/auth/ResetPassword";
+import CreateTicketPage from "../pages/SupportTicket";
 
 function AppRoutes() {
 
@@ -31,6 +32,8 @@ function AppRoutes() {
             <Route path='/*' element={<HomePage />}></Route>
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/support" element={<CreateTicketPage />} />
+
 
 
         </Routes>
