@@ -98,7 +98,9 @@ const CourseFormModal = ({ open, handleClose, handleSubmit, initialData, loading
             data.append('title', formData.title);
             data.append('description', formData.description);
             data.append('priceVND', formData.priceVND);
-            data.append('instructorId', formData.instructorId);
+            if (formData.instructorId) {
+                data.append('instructorId', formData.instructorId);
+            }
             
             // Lưu ý: FormData sẽ biến true -> "true". Backend cần xử lý được chuỗi này.
             data.append('isPublished', formData.isPublished); 

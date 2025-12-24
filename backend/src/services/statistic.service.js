@@ -992,51 +992,50 @@ const getGrowthTrends = async (period = "monthly", limit = 12) => {
 
     const dateFormat = periodMap[period] || "month";
 
-    // User growth
-    const userGrowth = await prisma.$queryRaw`
+    const userGrowth = await prisma.$queryRawUnsafe(`
       SELECT 
-        DATE_TRUNC(${dateFormat}, "createdAt") as period,
+        DATE_TRUNC('${dateFormat}', "createdAt") as period,
         COUNT(*)::int as count
       FROM "User"
-      GROUP BY DATE_TRUNC(${dateFormat}, "createdAt")
+      GROUP BY DATE_TRUNC('${dateFormat}', "createdAt")
       ORDER BY period DESC
       LIMIT ${limit}
-    `;
+    `);
 
     // Course creation trends
-    const courseGrowth = await prisma.$queryRaw`
+    const courseGrowth = await prisma.$queryRawUnsafe(`
       SELECT 
-        DATE_TRUNC(${dateFormat}, "createdAt") as period,
+        DATE_TRUNC('${dateFormat}', "createdAt") as period,
         COUNT(*)::int as count
       FROM "Course"
-      GROUP BY DATE_TRUNC(${dateFormat}, "createdAt")
+      GROUP BY DATE_TRUNC('${dateFormat}', "createdAt")
       ORDER BY period DESC
       LIMIT ${limit}
-    `;
+    `);
 
     // Enrollment trends
-    const enrollmentGrowth = await prisma.$queryRaw`
+    const enrollmentGrowth = await prisma.$queryRawUnsafe(`
       SELECT 
-        DATE_TRUNC(${dateFormat}, "enrolledAt") as period,
+        DATE_TRUNC('${dateFormat}', "enrolledAt") as period,
         COUNT(*)::int as count
       FROM "Enrollment"
-      GROUP BY DATE_TRUNC(${dateFormat}, "enrolledAt")
+      GROUP BY DATE_TRUNC('${dateFormat}', "enrolledAt")
       ORDER BY period DESC
       LIMIT ${limit}
-    `;
+    `);
 
     // Revenue trends
-    const revenueGrowth = await prisma.$queryRaw`
+    const revenueGrowth = await prisma.$queryRawUnsafe(`
       SELECT 
-        DATE_TRUNC(${dateFormat}, "createdAt") as period,
+        DATE_TRUNC('${dateFormat}', "createdAt") as period,
         COUNT(*)::int as count,
         SUM("amountVND")::bigint as revenue
       FROM "Payment"
       WHERE "status" = 'success' AND "amountVND" >= 0
-      GROUP BY DATE_TRUNC(${dateFormat}, "createdAt")
+      GROUP BY DATE_TRUNC('${dateFormat}', "createdAt")
       ORDER BY period DESC
       LIMIT ${limit}
-    `;
+    `);
 
     return {
       period,
