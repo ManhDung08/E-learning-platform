@@ -24,6 +24,8 @@ import CourseDetailPage from '../CourseDetail/CourseDetail';
 import LiveClassList from '../LiveClass/LiveClassList';
 import LiveClassRoom from '../LiveClass/LiveClassRoom';
 import SupportManagement from '../Admin/SupportManagement';
+import MyStudent from '../Instructor/MyStudent';
+import InstructorDashboard from '../Instructor/InstructorDashboard';
 
 const HomePage = () => {
   
@@ -93,9 +95,9 @@ const HomePage = () => {
               <Route path="/instructors/:id" element={<InstructorDetail />} />
               <Route path="/search" element={<SearchResultsPage />} />
               {/* instructor */}
-              <Route path="/instructor/dashboard" element={<div>Instructor Dashboard</div>} />
+              <Route path="/instructor/dashboard" element={<div><InstructorDashboard /></div>} />
               <Route path="/instructor/courses" element={<InstructorCourses />} />
-              <Route path="/instructor/students" element={<div>My Students</div>} />
+              <Route path="/instructor/students" element={<div><MyStudent /></div>} />
               <Route path="/instructor/quiz/:quizId/attempts" element={<AllQuizAttempts />} />
               {/* admin */}
               <Route path="/admin/dashboard" element={<Dashboard />}/>
