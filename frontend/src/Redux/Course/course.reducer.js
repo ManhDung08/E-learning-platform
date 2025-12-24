@@ -19,7 +19,8 @@ import {
     CREATE_LESSON_REQUEST, CREATE_LESSON_SUCCESS, CREATE_LESSON_FAILURE,
     UPDATE_LESSON_REQUEST, UPDATE_LESSON_SUCCESS, UPDATE_LESSON_FAILURE,
     DELETE_LESSON_REQUEST, DELETE_LESSON_SUCCESS, DELETE_LESSON_FAILURE,
-    REORDER_LESSONS_REQUEST, REORDER_LESSONS_SUCCESS, REORDER_LESSONS_FAILURE
+    REORDER_LESSONS_REQUEST, REORDER_LESSONS_SUCCESS, REORDER_LESSONS_FAILURE,
+    GET_ENROLLED_STUDENTS_FAILURE, GET_ENROLLED_STUDENTS_REQUEST, GET_ENROLLED_STUDENTS_SUCCESS
 } from "./course.actionType";
 
 const initialState = {
@@ -30,6 +31,8 @@ const initialState = {
     courses: [],
     instructorCourses: [],
     userEnrollments: [],
+    enrolledStudents: [],
+    studentPagination: {},
     course: null,
     pagination: {},       
 };
@@ -54,6 +57,7 @@ export const courseReducer = (state = initialState, action) => {
         case UPDATE_LESSON_REQUEST:
         case DELETE_LESSON_REQUEST:
         case REORDER_LESSONS_REQUEST:
+        case GET_ENROLLED_STUDENTS_REQUEST:
             return { ...state, loading: true, error: null, success: false };
 
        case GET_ALL_COURSES_SUCCESS:
@@ -185,6 +189,14 @@ export const courseReducer = (state = initialState, action) => {
                 }
             }
 
+        case GET_ENROLLED_STUDENTS_SUCCESS:
+            return {
+                ...state,
+                loading: false,
+                enrolledStudents: action.payload.students,
+                studentPagination: action.payload.pagination
+            };
+
         case GET_ALL_COURSES_FAILURE:
         case GET_INSTRUCTOR_COURSES_FAILURE:
         case GET_COURSE_BY_ID_FAILURE:
@@ -195,6 +207,7 @@ export const courseReducer = (state = initialState, action) => {
         case ENROLL_COURSE_FAILURE:
         case GET_USER_ENROLLMENTS_FAILURE:
         case UNENROLL_COURSE_FAILURE:
+        case GET_ENROLLED_STUDENTS_FAILURE:
         //modules
         case CREATE_MODULE_FAILURE:
         case UPDATE_MODULE_FAILURE:
