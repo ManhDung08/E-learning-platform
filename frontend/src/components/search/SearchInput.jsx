@@ -9,11 +9,12 @@ const SearchInput = () => {
   const [keyword, setKeyword] = useState("");
   const navigate = useNavigate();
 
-  const handleSearch = () => {
-    if (keyword.trim()) {
-      navigate(`/search?q=${encodeURIComponent(keyword)}`);
-    }
-  };
+  const handleSearch = (e) => {
+  if (e) e.preventDefault();
+  if (keyword.trim()) {
+    navigate(`/search?q=${encodeURIComponent(keyword.trim())}`);
+  }
+};
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') {
@@ -24,7 +25,7 @@ const SearchInput = () => {
 
   return (
     <div className='w-full flex items-center gap-4 p-4'>
-      <Paper component="form" sx={{p: 1, px: 2, flex: 1, display: 'flex', alignItems: 'center', borderRadius: '15px'}}>
+      <Paper component="form" onSubmit={handleSearch} sx={{p: 1, px: 2, flex: 1, display: 'flex', alignItems: 'center', borderRadius: '15px'}}>
         <IconButton sx={{ p: '10px' }} aria-label="search" onClick={handleSearch}>
           <SearchIcon className='text-gray-400'/>
         </IconButton>

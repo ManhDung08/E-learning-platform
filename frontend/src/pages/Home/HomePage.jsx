@@ -23,6 +23,7 @@ import Videos from '../Videos';
 import CourseDetailPage from '../CourseDetail/CourseDetail';
 import LiveClassList from '../LiveClass/LiveClassList';
 import LiveClassRoom from '../LiveClass/LiveClassRoom';
+import SupportManagement from '../Admin/SupportManagement';
 
 const HomePage = () => {
   
@@ -102,6 +103,7 @@ const HomePage = () => {
               <Route path="/admin/courses" element={<CourseManagement />} />
               <Route path="/admin/transactions" element={<TransactionManagement />} />
               <Route path="/admin/quiz/:quizId/attempts" element={<AllQuizAttempts />} />
+              <Route path="/admin/support-ticket" element={<SupportManagement />} />
 
 
             </Routes>

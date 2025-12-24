@@ -8,6 +8,7 @@ import { instructorReducer } from "./Instructor/instructor.reducer";
 import { notificationReducer } from "./Notification/notification.reducer";
 import { paymentReducer } from "./Payment/payment.reducer";
 import { statisticReducer } from "./Statistic/statistic.reducer";
+import { supportTicketReducer } from "./SupportTicket/supportTicket.reducer";
 
 const rootReducers = combineReducers({
     auth: authReducer,
@@ -18,6 +19,7 @@ const rootReducers = combineReducers({
     notification: notificationReducer,
     payment: paymentReducer,
     statistic: statisticReducer,
+    supportTicket: supportTicketReducer
 });
 
 export const store = legacy_createStore(rootReducers, applyMiddleware(thunk));

@@ -145,258 +145,176 @@ const Dashboard = () => {
     const safeCourses = courseStats || {};
 
     return (
-        <Box sx={{ p: { xs: 2, md: 4 }, bgcolor: '#F4F6F8', minHeight: '100vh', fontFamily: 'Public Sans, sans-serif' }}>
-            
-            <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
-                <Box>
-                    <Typography variant="h4" fontWeight={800} color="#212B36">Dashboard</Typography>
-                    <Typography variant="body2" color="#637381">Tổng quan hệ thống E-Learning</Typography>
-                </Box>
+    <Box sx={{ p: { xs: 2, md: 4 }, bgcolor: '#F4F6F8', minHeight: '100vh', fontFamily: 'Public Sans, sans-serif' }}>
+        
+        {/* Header Section */}
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
+            <Box>
+                <Typography variant="h4" fontWeight={800} color="#212B36">Dashboard</Typography>
+                <Typography variant="body2" color="#637381">Tổng quan hệ thống E-Learning</Typography>
             </Box>
-
-            <Grid container spacing={3} mb={4}>
-                <Grid item xs={12} sm={6} lg={3}>
-                    <StatCard 
-                        title="Doanh Thu" 
-                        value={formatCompact(safeOverview?.revenue?.total)} 
-                        icon={<AnalyticsIcon fontSize="large" />} 
-                        color="#00A76F" bgColor="#D0F2E3" 
-                    />
-                </Grid>
-                <Grid item xs={12} sm={6} lg={3}>
-                    <StatCard 
-                        title="Người Dùng" 
-                        value={safeOverview?.users?.total || 0} 
-                        icon={<GroupAddIcon fontSize="large" />} 
-                        color="#006C9C" bgColor="#CAFDF5" 
-                    />
-                </Grid>
-                <Grid item xs={12} sm={6} lg={3}>
-                    <StatCard 
-                        title="Khóa Học" 
-                        value={safeOverview?.courses?.published || 0} 
-                        icon={<SchoolIcon fontSize="large" />} 
-                        color="#FFAB00" bgColor="#FFF5CC" 
-                    />
-                </Grid>
-                <Grid item xs={12} sm={6} lg={3}>
-                    <StatCard 
-                        title="Chứng Chỉ" 
-                        value={safeOverview?.certificates?.issued || 0} 
-                        icon={<VerifiedIcon fontSize="large" />} 
-                        color="#FF5630" bgColor="#FFE7D9" 
-                    />
-                </Grid>
-            </Grid>
-
-            <Grid container spacing={3} mb={4}>
-                
-                <Grid item xs={12} lg={8}>
-                    <Card sx={{ borderRadius: '12px', boxShadow: '0px 2px 10px rgba(0, 0, 0, 0.05)', height: 450 }}>
-                        <CardContent sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
-                            <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-                                <Typography variant="h6" fontWeight={700} color="#212B36">Phân Tích Doanh Thu</Typography>
-                                <Box bgcolor="#F4F6F8" p={0.5} borderRadius={1}>
-                                    {['12 Tháng', '30 Ngày', '7 Ngày'].map((label) => (
-                                        <Chip 
-                                            key={label} label={label} 
-                                            onClick={() => handleRevenueFilterChange(label)}
-                                            size="small"
-                                            sx={{ 
-                                                bgcolor: revenueFilter === label ? '#FFFFFF' : 'transparent', 
-                                                color: revenueFilter === label ? '#212B36' : '#637381',
-                                                fontWeight: 600, 
-                                                boxShadow: revenueFilter === label ? '0 1px 4px rgba(0,0,0,0.1)' : 'none',
-                                                cursor: 'pointer', borderRadius: 1
-                                            }} 
-                                        />
-                                    ))}
-                                </Box>
-                            </Box>
-                            
-                            <Box flex={1} minHeight={0}>
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <AreaChart data={processedRevenueData} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
-                                        <defs>
-                                            <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%" stopColor="#00A76F" stopOpacity={0.2}/>
-                                                <stop offset="95%" stopColor="#00A76F" stopOpacity={0}/>
-                                            </linearGradient>
-                                        </defs>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E0E0E0" />
-                                        <XAxis 
-                                            dataKey="name" 
-                                            axisLine={false} 
-                                            tickLine={false} 
-                                            tick={{fill: '#637381', fontSize: 12}} 
-                                            dy={10}
-                                        />
-                                        <YAxis 
-                                            axisLine={false} 
-                                            tickLine={false} 
-                                            tick={{fill: '#637381', fontSize: 12}} 
-                                            tickFormatter={val => formatCompact(val)} 
-                                        />
-                                        <Tooltip content={<CustomTooltip type="currency" />} />
-                                        <Area 
-                                            type="monotone" 
-                                            dataKey="revenue" 
-                                            name="Doanh thu"
-                                            stroke="#00A76F" 
-                                            strokeWidth={3} 
-                                            fillOpacity={1} 
-                                            fill="url(#colorRev)" 
-                                        />
-                                    </AreaChart>
-                                </ResponsiveContainer>
-                            </Box>
-                        </CardContent>
-                    </Card>
-                </Grid>
-
-                <Grid item xs={12} lg={4}>
-                    <Card sx={{ borderRadius: '12px', boxShadow: '0px 2px 10px rgba(0, 0, 0, 0.05)', height: 450 }}>
-                        <CardContent sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
-                            <Typography variant="h6" fontWeight={700} color="#212B36" mb={1}>Người Dùng Mới</Typography>
-                            <Typography variant="body2" color="#637381" mb={4}>6 tháng gần nhất</Typography>
-                            
-                            <Box flex={1} minHeight={0}>
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={processedUserData}>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E0E0E0" />
-                                        <XAxis 
-                                            dataKey="name" 
-                                            axisLine={false} 
-                                            tickLine={false} 
-                                            tick={{fill: '#637381', fontSize: 12}} 
-                                        />
-                                        <Tooltip cursor={{fill: 'transparent'}} content={<CustomTooltip />} />
-                                        <Bar 
-                                            dataKey="count" 
-                                            name="Học viên"
-                                            fill="#212B36" 
-                                            radius={[4, 4, 4, 4]} 
-                                            barSize={20} 
-                                        />
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </Box>
-                        </CardContent>
-                    </Card>
-                </Grid>
-            </Grid>
-
-            <Grid container spacing={3}>
-                
-                <Grid item xs={12} md={8}>
-                    <Card sx={{ borderRadius: '12px', boxShadow: '0px 2px 10px rgba(0, 0, 0, 0.05)', height: '100%' }}>
-                        <Box p={3} display="flex" justifyContent="space-between" alignItems="center">
-                            <Typography variant="h6" fontWeight={700} color="#212B36">Khóa Học Bán Chạy</Typography>
-                            <Button 
-                                size="small" 
-                                onClick={() => navigate('/admin/courses')}
-                                endIcon={<ArrowForwardIcon fontSize="small" />}
-                                sx={{ color: '#212B36', textTransform: 'none', fontWeight: 600 }}
-                            >
-                                Xem tất cả
-                            </Button>
-                        </Box>
-                        <Stack spacing={0}>
-                            {safeCourses?.topCourses?.slice(0, 5).map((course, idx) => (
-                                <Box 
-                                    key={idx} 
-                                    display="flex" alignItems="center" justifyContent="space-between" 
-                                    p={2} px={3}
-                                    sx={{ 
-                                        borderTop: '1px dashed #F1F3F4',
-                                        '&:hover': { bgcolor: '#FAFAFA' },
-                                        transition: '0.2s'
-                                    }}
-                                >
-                                    <Box display="flex" alignItems="center" gap={2}>
-                                        <Avatar 
-                                            variant="rounded" 
-                                            src={course.image || ''} 
-                                            alt={course.title}
-                                            sx={{ width: 48, height: 48, borderRadius: 1.5, bgcolor: '#F4F6F8', color: '#637381', fontWeight: 700 }}
-                                        >
-                                            {idx + 1}
-                                        </Avatar>
-                                        <Box>
-                                            <Typography variant="body2" fontWeight={700} color="#212B36" noWrap sx={{ maxWidth: 250 }}>
-                                                {course.title}
-                                            </Typography>
-                                            <Typography variant="caption" color="#637381">
-                                                {course.enrollments} học viên
-                                            </Typography>
-                                        </Box>
-                                    </Box>
-                                    <Typography variant="body2" fontWeight={700} color="#00A76F">
-                                        {formatCompact(course.priceVND)} ₫
-                                    </Typography>
-                                </Box>
-                            ))}
-                            {(!safeCourses?.topCourses || safeCourses.topCourses.length === 0) && (
-                                <Box p={4} textAlign="center"><Typography color="#637381">Chưa có dữ liệu</Typography></Box>
-                            )}
-                        </Stack>
-                    </Card>
-                </Grid>
-
-                <Grid item xs={12} md={4}>
-                    <Card sx={{ borderRadius: '12px', boxShadow: '0px 2px 10px rgba(0, 0, 0, 0.05)', height: '100%', minHeight: 400 }}>
-                        <CardContent sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
-                            <Typography variant="h6" fontWeight={700} color="#212B36" mb={3}>Nguồn Doanh Thu</Typography>
-                            
-                            {safeRevenue.topCourses && safeRevenue.topCourses.length > 0 ? (
-                                <>
-                                    <Box flex={1} minHeight={200}>
-                                        <ResponsiveContainer width="100%" height="100%">
-                                            <PieChart>
-                                                <Pie 
-                                                    data={safeRevenue.topCourses?.slice(0, 4)} 
-                                                    innerRadius={60} 
-                                                    outerRadius={80} 
-                                                    paddingAngle={2} 
-                                                    dataKey="revenue" 
-                                                    nameKey="courseTitle"
-                                                    stroke="none"
-                                                >
-                                                    {safeRevenue.topCourses?.map((entry, index) => (
-                                                        <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                                                    ))}
-                                                </Pie>
-                                                <Tooltip />
-                                            </PieChart>
-                                        </ResponsiveContainer>
-                                    </Box>
-                                    <Stack spacing={1.5} mt={2}>
-                                        {safeRevenue.topCourses?.slice(0, 3).map((entry, index) => (
-                                            <Box key={index} display="flex" justifyContent="space-between" alignItems="center">
-                                                <Box display="flex" alignItems="center" gap={1}>
-                                                    <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: PIE_COLORS[index % PIE_COLORS.length] }} />
-                                                    <Typography variant="body2" color="#637381" sx={{ maxWidth: 150 }} noWrap>
-                                                        {entry.courseTitle}
-                                                    </Typography>
-                                                </Box>
-                                                <Typography variant="body2" fontWeight={700} color="#212B36">
-                                                    {formatCompact(entry.revenue)}
-                                                </Typography>
-                                            </Box>
-                                        ))}
-                                    </Stack>
-                                </>
-                            ) : (
-                                <Box display="flex" alignItems="center" justifyContent="center" height="100%">
-                                    <Typography color="#637381">Chưa có dữ liệu</Typography>
-                                </Box>
-                            )}
-                        </CardContent>
-                    </Card>
-                </Grid>
-            </Grid>
         </Box>
-    );
+
+        {/* Top Stat Cards Section */}
+        <Grid container spacing={3} mb={4}>
+            <Grid item size={{xs: 12, sm: 6, lg: 3}}>
+                <StatCard title="Doanh Thu" value={formatCompact(safeOverview?.revenue?.total)} icon={<AnalyticsIcon fontSize="large" />} color="#00A76F" bgColor="#D0F2E3" />
+            </Grid>
+            <Grid item xs={12} sm={6} lg={3} size={{xs: 12, sm: 6, lg: 3}}>
+                <StatCard title="Người Dùng" value={safeOverview?.users?.total || 0} icon={<GroupAddIcon fontSize="large" />} color="#006C9C" bgColor="#CAFDF5" />
+            </Grid>
+            <Grid item xs={12} sm={6} lg={3} size={{xs: 12, sm: 6, lg: 3}}>
+                <StatCard title="Khóa Học" value={safeOverview?.courses?.published || 0} icon={<SchoolIcon fontSize="large" />} color="#FFAB00" bgColor="#FFF5CC" />
+            </Grid>
+            <Grid item xs={12} sm={6} lg={3} size={{xs: 12, sm: 6, lg: 3}}>
+                <StatCard title="Chứng Chỉ" value={safeOverview?.certificates?.issued || 0} icon={<VerifiedIcon fontSize="large" />} color="#FF5630" bgColor="#FFE7D9" />
+            </Grid>
+        </Grid>
+
+        {/* Main Charts Grid - ĐƯA TẤT CẢ VÀO ĐÂY */}
+        <Grid container spacing={3}>
+            
+            {/* 1. Phân Tích Doanh Thu (Chiếm 8 phần trên màn hình lớn) */}
+            <Grid item xs={12} lg={8} size={{xs: 12, lg: 8}}>
+                <Card sx={{ borderRadius: '12px', boxShadow: '0px 2px 10px rgba(0, 0, 0, 0.05)', height: 450 }}>
+                    <CardContent sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
+                        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+                            <Typography variant="h6" fontWeight={700} color="#212B36">Phân Tích Doanh Thu</Typography>
+                            <Box bgcolor="#F4F6F8" p={0.5} borderRadius={1}>
+                                {['12 Tháng', '30 Ngày', '7 Ngày'].map((label) => (
+                                    <Chip 
+                                        key={label} label={label} 
+                                        onClick={() => handleRevenueFilterChange(label)}
+                                        size="small"
+                                        sx={{ 
+                                            bgcolor: revenueFilter === label ? '#FFFFFF' : 'transparent', 
+                                            color: revenueFilter === label ? '#212B36' : '#637381',
+                                            fontWeight: 600, 
+                                            boxShadow: revenueFilter === label ? '0 1px 4px rgba(0,0,0,0.1)' : 'none',
+                                            cursor: 'pointer', borderRadius: 1
+                                        }} 
+                                    />
+                                ))}
+                            </Box>
+                        </Box>
+                        <Box flex={1} minHeight={0}>
+                            <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart data={processedRevenueData}>
+                                    <defs>
+                                        <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#00A76F" stopOpacity={0.2}/>
+                                            <stop offset="95%" stopColor="#00A76F" stopOpacity={0}/>
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E0E0E0" />
+                                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#637381', fontSize: 12}} />
+                                    <YAxis axisLine={false} tickLine={false} tick={{fill: '#637381', fontSize: 12}} tickFormatter={val => formatCompact(val)} />
+                                    <Tooltip content={<CustomTooltip type="currency" />} />
+                                    <Area type="monotone" dataKey="revenue" stroke="#00A76F" strokeWidth={3} fillOpacity={1} fill="url(#colorRev)" />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        </Box>
+                    </CardContent>
+                </Card>
+            </Grid>
+
+            {/* 2. Người Dùng Mới (Chiếm 4 phần bên phải) */}
+            <Grid item xs={12} md={6} lg={4} size={{xs: 12, md: 6, lg: 4}}>
+                <Card sx={{ borderRadius: '12px', boxShadow: '0px 2px 10px rgba(0, 0, 0, 0.05)', height: 450 }}>
+                    <CardContent sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
+                        <Typography variant="h6" fontWeight={700} color="#212B36" mb={1}>Người Dùng Mới</Typography>
+                        <Typography variant="body2" color="#637381" mb={4}>6 tháng gần nhất</Typography>
+                        <Box flex={1} minHeight={0}>
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={processedUserData}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E0E0E0" />
+                                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#637381', fontSize: 12}} />
+                                    <Tooltip cursor={{fill: 'transparent'}} content={<CustomTooltip />} />
+                                    <Bar dataKey="count" fill="#212B36" radius={[4, 4, 4, 4]} barSize={20} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </Box>
+                    </CardContent>
+                </Card>
+            </Grid>
+
+            {/* 3. Khóa Học Bán Chạy (Sẽ nhảy lên nếu có chỗ trống nhờ chung container) */}
+            <Grid item xs={12} md={6} lg={8} size={{xs: 12, md: 6, lg: 8}}>
+                <Card sx={{ borderRadius: '12px', boxShadow: '0px 2px 10px rgba(0, 0, 0, 0.05)', height: '100%' }}>
+                    <Box p={3} display="flex" justifyContent="space-between" alignItems="center">
+                        <Typography variant="h6" fontWeight={700} color="#212B36">Khóa Học Bán Chạy</Typography>
+                        <Button 
+                            size="small" 
+                            onClick={() => navigate('/admin/courses')}
+                            endIcon={<ArrowForwardIcon fontSize="small" />}
+                            sx={{ color: '#212B36', textTransform: 'none', fontWeight: 600 }}
+                        >
+                            Xem tất cả
+                        </Button>
+                    </Box>
+                    <Stack spacing={0}>
+                        {safeCourses?.topCourses?.slice(0, 5).map((course, idx) => (
+                            <Box key={idx} display="flex" alignItems="center" justifyContent="space-between" p={2} px={3}
+                                sx={{ borderTop: '1px dashed #F1F3F4', '&:hover': { bgcolor: '#FAFAFA' }, transition: '0.2s' }}>
+                                <Box display="flex" alignItems="center" gap={2}>
+                                    <Avatar variant="rounded" src={course.image || ''} sx={{ width: 48, height: 48, borderRadius: 1.5, bgcolor: '#F4F6F8', color: '#637381', fontWeight: 700 }}>
+                                        {idx + 1}
+                                    </Avatar>
+                                    <Box>
+                                        <Typography variant="body2" fontWeight={700} color="#212B36" noWrap sx={{ maxWidth: {xs: 150, sm: 300} }}>
+                                            {course.title}
+                                        </Typography>
+                                        <Typography variant="caption" color="#637381">{course.enrollments} học viên</Typography>
+                                    </Box>
+                                </Box>
+                                <Typography variant="body2" fontWeight={700} color="#00A76F">{formatCompact(course.priceVND)} ₫</Typography>
+                            </Box>
+                        ))}
+                    </Stack>
+                </Card>
+            </Grid>
+
+            {/* 4. Nguồn Doanh Thu */}
+            <Grid item xs={12} md={6} lg={4} size={{xs: 12, md: 6, lg: 4}}>
+                <Card sx={{ borderRadius: '12px', boxShadow: '0px 2px 10px rgba(0, 0, 0, 0.05)', height: '100%', minHeight: 450 }}>
+                    <CardContent sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
+                        <Typography variant="h6" fontWeight={700} color="#212B36" mb={3}>Nguồn Doanh Thu</Typography>
+                        {safeRevenue.topCourses && safeRevenue.topCourses.length > 0 ? (
+                            <>
+                                <Box flex={1} minHeight={200}>
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <PieChart>
+                                            <Pie data={safeRevenue.topCourses?.slice(0, 4)} innerRadius={60} outerRadius={80} paddingAngle={2} dataKey="revenue" nameKey="courseTitle" stroke="none">
+                                                {safeRevenue.topCourses?.map((entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                                                ))}
+                                            </Pie>
+                                            <Tooltip />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                </Box>
+                                <Stack spacing={1.5} mt={2}>
+                                    {safeRevenue.topCourses?.slice(0, 3).map((entry, index) => (
+                                        <Box key={index} display="flex" justifyContent="space-between" alignItems="center">
+                                            <Box display="flex" alignItems="center" gap={1}>
+                                                <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: PIE_COLORS[index % PIE_COLORS.length] }} />
+                                                <Typography variant="body2" color="#637381" sx={{ maxWidth: 150 }} noWrap>{entry.courseTitle}</Typography>
+                                            </Box>
+                                            <Typography variant="body2" fontWeight={700} color="#212B36">{formatCompact(entry.revenue)}</Typography>
+                                        </Box>
+                                    ))}
+                                </Stack>
+                            </>
+                        ) : (
+                            <Box display="flex" alignItems="center" justifyContent="center" height="100%"><Typography color="#637381">Chưa có dữ liệu</Typography></Box>
+                        )}
+                    </CardContent>
+                </Card>
+            </Grid>
+
+        </Grid>
+    </Box>
+);
 };
 
 export default Dashboard;

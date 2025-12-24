@@ -20,6 +20,7 @@ import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import SettingsIcon from '@mui/icons-material/Settings';
 import AnalyticsIcon from '@mui/icons-material/Analytics';
 import EditDocumentIcon from '@mui/icons-material/EditDocument';
+import SupportAgentIcon from '@mui/icons-material/SupportAgent';
 
 import HelpCenterCard from './HelpCenterCard';
 const studentMenu = [
@@ -93,7 +94,12 @@ const adminMenu = [
     title: "Transactions",
     icon: <AttachMoneyIcon />,
     path: "/admin/transactions"
-  }
+  },
+  {
+    title: "Support User",
+    icon: <SupportAgentIcon />,
+    path: "/admin/support-ticket"
+  },
 ]
 
 

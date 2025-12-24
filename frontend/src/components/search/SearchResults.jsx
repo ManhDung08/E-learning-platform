@@ -6,6 +6,7 @@ import { getPublicInstructorsAction } from '../../Redux/Instructor/instructor.ac
 import CourseCard from '../courses/CourseCard';
 import InstructorCard from '../instructor/InstructorCard';
 import { CircularProgress } from '@mui/material';
+import { useMemo } from 'react';
 
 const SearchResultsPage = () => {
     const dispatch = useDispatch();
@@ -13,7 +14,10 @@ const SearchResultsPage = () => {
     const navigate = useNavigate();
     
     const searchParams = new URLSearchParams(location.search);
-    const keyword = searchParams.get('q') || "";
+    const keyword = useMemo(() => {
+        const params = new URLSearchParams(location.search);
+        return params.get('q') || "";
+    }, [location.search]);
 
     const { courses, loading: loadingCourses } = useSelector(store => store.course);
     const { instructors, loading: loadingInstructors } = useSelector(store => store.instructor);
