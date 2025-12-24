@@ -444,6 +444,40 @@ const getCourseDiscussions = async (req, res, next) => {
   }
 };
 
+const getCourseEnrolledStudents = async (req, res, next) => {
+  try {
+    const { courseId } = req.params;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const filters = {
+      search: req.query.search,
+      sortBy: req.query.sortBy,
+      sortOrder: req.query.sortOrder,
+    };
+
+    const instructorId = req.user.id;
+    const userRole = req.user.role;
+
+    const result = await courseService.getCourseEnrolledStudents(
+      courseId,
+      instructorId,
+      userRole,
+      page,
+      limit,
+      filters
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Enrolled students retrieved successfully",
+      data: result,
+    });
+  } catch (error) {
+    console.error("Get course enrolled students error:", error);
+    next(error);
+  }
+};
+
 export default {
   getAllCourses,
   getCourseById,
@@ -454,6 +488,7 @@ export default {
   enrollInCourse,
   unenrollFromCourse,
   getUserEnrollments,
+  getCourseEnrolledStudents,
   getInstructorCourses,
   // Review controllers
   createReview,

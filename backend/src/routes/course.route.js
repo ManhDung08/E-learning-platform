@@ -6,6 +6,7 @@ import {
   createCourseValidation,
   updateCourseValidation,
   courseQueryValidation,
+  enrolledStudentsQueryValidation,
 } from "../validations/course.validation.js";
 import {
   createReviewValidation,
@@ -604,6 +605,159 @@ router.get(
   courseQueryValidation,
   validate,
   courseController.getInstructorCourses
+);
+
+/**
+ * @swagger
+ * /api/course/{courseId}/students:
+ *   get:
+ *     summary: Get all enrolled students for a course (instructor/admin only)
+ *     description: |
+ *       Returns a list of all students enrolled in the specified course with their progress information.
+ *       Only accessible by the course instructor or admin users.
+ *     tags: [Courses]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: courseId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Course ID
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 10
+ *         description: Number of students per page
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *           maxLength: 100
+ *         description: Search by student username, email, first name, or last name
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           enum: [enrolledAt, username, email]
+ *           default: enrolledAt
+ *         description: Field to sort by
+ *       - in: query
+ *         name: sortOrder
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *           default: desc
+ *         description: Sort order
+ *     responses:
+ *       200:
+ *         description: Enrolled students retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Enrolled students retrieved successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     courseId:
+ *                       type: integer
+ *                     courseTitle:
+ *                       type: string
+ *                     students:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           enrollmentId:
+ *                             type: integer
+ *                           enrolledAt:
+ *                             type: string
+ *                             format: date-time
+ *                           student:
+ *                             type: object
+ *                             properties:
+ *                               id:
+ *                                 type: integer
+ *                               username:
+ *                                 type: string
+ *                               email:
+ *                                 type: string
+ *                               firstName:
+ *                                 type: string
+ *                               lastName:
+ *                                 type: string
+ *                               profileImageUrl:
+ *                                 type: string
+ *                               memberSince:
+ *                                 type: string
+ *                                 format: date-time
+ *                           progress:
+ *                             type: object
+ *                             properties:
+ *                               completedLessons:
+ *                                 type: integer
+ *                               totalLessons:
+ *                                 type: integer
+ *                               progressPercentage:
+ *                                 type: integer
+ *                     pagination:
+ *                       type: object
+ *                       properties:
+ *                         currentPage:
+ *                           type: integer
+ *                         totalPages:
+ *                           type: integer
+ *                         totalCount:
+ *                           type: integer
+ *                         limit:
+ *                           type: integer
+ *                         hasNextPage:
+ *                           type: boolean
+ *                         hasPreviousPage:
+ *                           type: boolean
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Forbidden - only course instructor or admin can access
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Course not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.get(
+  "/:courseId/students",
+  isAuth(["instructor", "admin"]),
+  enrolledStudentsQueryValidation,
+  validate,
+  courseController.getCourseEnrolledStudents
 );
 
 // ==================== REVIEW ROUTES ====================
