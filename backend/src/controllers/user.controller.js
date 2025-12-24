@@ -41,7 +41,16 @@ const getMe = async (req, res, next) => {
 const getUserProfileById = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const user = await userService.getUserProfile(id);
+    const userId = Number(id);
+
+    // Kiểm tra nếu ID không phải là số hợp lệ
+    if (isNaN(userId)) {
+      return res.status(400).json({
+        success: false,
+        message: "ID người dùng không hợp lệ",
+      });
+    }
+    const user = await userService.getUserProfile(userId);
     return res.status(200).json({
       success: true,
       data: user,

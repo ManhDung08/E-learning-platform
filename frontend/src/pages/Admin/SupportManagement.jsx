@@ -10,7 +10,7 @@ import TicketDetailModal from '../../components/ticket/TicketDetailModal';
 
 const TicketManagement = () => {
     const dispatch = useDispatch();
-    const { tickets, loading, meta, success, error } = useSelector(store => store.supportTicket);
+    const { tickets, meta, loading, success, error } = useSelector(store => store.supportTicket);
 
     const [paginationModel, setPaginationModel] = useState({
         page: 0,
@@ -48,28 +48,18 @@ const TicketManagement = () => {
     };
 
     const columns = [
-        { field: 'id', headerName: 'ID', width: 80 },
+        { field: 'id', headerName: 'ID', width: 50 },
         {
-            field: 'user',
-            headerName: 'Sender',
-            width: 200,
+            field: 'userId',
+            headerName: 'Sender ID',
+            width: 120,
             renderCell: (params) => (
-                <Stack direction="row" spacing={1} alignItems="center" height="100%">
-                    <Avatar 
-                        src={params.row.user?.profileImageUrl} 
-                        sx={{ width: 28, height: 28, fontSize: '0.8rem' }}
-                    >
-                        {params.row.user?.username?.charAt(0)}
-                    </Avatar>
-                    <Box>
-                        <Typography variant="body2" fontWeight="bold" sx={{ lineHeight: 1 }}>
-                            {params.row.user?.username || "Unknown"}
-                        </Typography>
-                        <Typography variant="caption" color="textSecondary">
-                            {params.row.user?.email}
-                        </Typography>
-                    </Box>
-                </Stack>
+                <Chip 
+                    label={`User #${params.value}`} 
+                    variant="outlined" 
+                    size="small"
+                    sx={{ fontWeight: 'bold' }}
+                />
             )
         },
         {
@@ -78,7 +68,7 @@ const TicketManagement = () => {
             flex: 1,
             minWidth: 250,
             renderCell: (params) => (
-                <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                <Typography variant="body2" sx={{ fontWeight: 500, pt: '25px' }}>
                     {params.value}
                 </Typography>
             )
@@ -86,8 +76,12 @@ const TicketManagement = () => {
         {
             field: 'createdAt',
             headerName: 'Date Created',
-            width: 150,
-            valueFormatter: (params) => new Date(params.value).toLocaleDateString('vi-VN'),
+            width: 180,
+            renderCell: (params) => (
+                <Typography variant="body2" sx={{pt: '25px'}}>
+                    {new Date(params.value).toLocaleString('vi-VN')}
+                </Typography>
+            )
         },
         {
             field: 'status',
@@ -116,7 +110,11 @@ const TicketManagement = () => {
             sortable: false,
             renderCell: (params) => (
                 <IconButton 
-                    sx={{ color: customThemeColor, bgcolor: '#f1f8e9', '&:hover': { bgcolor: '#e1eddb' } }} 
+                    sx={{ 
+                        color: customThemeColor, 
+                        bgcolor: '#f1f8e9', 
+                        '&:hover': { bgcolor: '#e1eddb' } 
+                    }} 
                     onClick={() => handleOpenDetail(params.row.id)}
                 >
                     <VisibilityIcon fontSize="small" />
@@ -143,11 +141,11 @@ const TicketManagement = () => {
             {/* DataGrid */}
             <Paper sx={{ height: 650, width: '100%', boxShadow: 2, borderRadius: 2 }}>
                 <DataGrid
-                    rows={tickets || []}
+                    rows={Array.isArray(tickets) ? tickets : (tickets?.items || [])} 
                     columns={columns}
                     loading={loading}
                     rowHeight={70}
-                    rowCount={meta?.total || 0}
+                    rowCount={meta?.total || tickets?.meta?.total || 0} 
                     paginationMode="server"
                     paginationModel={paginationModel}
                     onPaginationModelChange={setPaginationModel}
@@ -162,7 +160,6 @@ const TicketManagement = () => {
                 />
             </Paper>
 
-            {/* Modal & Snackbar */}
             <TicketDetailModal 
                 open={openModal} 
                 handleClose={() => setOpenModal(false)} 
