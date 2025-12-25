@@ -24,6 +24,7 @@ const Videos = () => {
   const [noteLoading, setNoteLoading] = useState(false);
   const [noteSaving, setNoteSaving] = useState(false);
   const [noteError, setNoteError] = useState(null);
+  const [lastSavedTime, setLastSavedTime] = useState(null);
   const [currentMaxWatchedSeconds, setCurrentMaxWatchedSeconds] = useState(0); // State for UI updates
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   const [showIncompleteModal, setShowIncompleteModal] = useState(false);
@@ -568,6 +569,7 @@ const Videos = () => {
       if (response.data && response.data.success) {
         setNoteError(null); // Clear error on success
         setSavedNote(noteContent);
+        setLastSavedTime(new Date());
         console.log("Note saved successfully");
       }
     } catch (error) {
@@ -1489,59 +1491,135 @@ const Videos = () => {
 
               {/* Notes */}
               {selectedLesson && (
-                <div className="bg-white rounded-lg shadow border border-gray-200">
-                  <div className="px-4 py-3 border-b border-gray-200 bg-slate-50">
+                <div className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow duration-200">
+                  {/* Header */}
+                  <div className="px-5 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
                     <div className="flex items-center justify-between">
-                      <h3 className="font-semibold text-gray-900 text-sm">Lesson Notes</h3>
+                      <div className="flex items-center gap-2.5">
+                        <div className="p-2 bg-blue-500 rounded-lg">
+                          <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-gray-900 text-base">Lesson Notes</h3>
+                          <p className="text-xs text-gray-600 mt-0.5">Keep track of important points</p>
+                        </div>
+                      </div>
                       {noteError && (
-                        <span className="text-xs text-red-600">{noteError}</span>
+                        <div className="flex items-center gap-1.5 bg-red-50 px-3 py-1.5 rounded-full">
+                          <svg className="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                          </svg>
+                          <span className="text-xs text-red-600 font-medium">{noteError}</span>
+                        </div>
                       )}
                     </div>
                   </div>
 
-                  <div className="p-4">
+                  {/* Content */}
+                  <div className="p-5">
                     {noteLoading ? (
-                      <div className="w-full h-48 flex items-center justify-center border border-gray-200 rounded-lg bg-gray-50">
-                        <span className="text-sm text-gray-500">Loading notes...</span>
+                      <div className="w-full h-64 flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-xl bg-gray-50">
+                        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mb-3"></div>
+                        <span className="text-sm text-gray-500 font-medium">Loading notes...</span>
                       </div>
                     ) : (
                       <>
-                        <textarea
-                          value={note}
-                          onChange={(e) => {
-                            setNote(e.target.value);
-                            setNoteError(null);
-                          }}
-                          placeholder="Write your notes here..."
-                          className="w-full h-48 border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                          disabled={noteLoading}
-                        />
-                        <div className="flex items-center justify-between mt-3">
+                        {/* Textarea with enhanced styling */}
+                        <div className="relative">
+                          <textarea
+                            value={note}
+                            onChange={(e) => {
+                              setNote(e.target.value);
+                              setNoteError(null);
+                            }}
+                            placeholder="✍️ Start writing your notes here...\n\nTip: Organize your thoughts, highlight key concepts, or jot down questions!"
+                            className="w-full h-64 border-2 border-gray-300 rounded-xl p-4 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none transition-all duration-200 placeholder-gray-400 hover:border-gray-400"
+                            disabled={noteLoading}
+                            style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}
+                          />
+                          
+                          {/* Character count indicator */}
+                          <div className="absolute bottom-3 right-3 bg-white/90 backdrop-blur-sm px-2.5 py-1 rounded-full border border-gray-200 shadow-sm">
+                            <span className={`text-xs font-medium ${
+                              note.length > 5000 ? 'text-red-600' : 
+                              note.length > 4000 ? 'text-amber-600' : 
+                              'text-gray-500'
+                            }`}>
+                              {note.length.toLocaleString()} chars
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Status bar with last saved time */}
+                        {lastSavedTime && note.trim() === savedNote && savedNote && (
+                          <div className="mt-3 px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-lg">
+                            <div className="flex items-center gap-2 text-emerald-700">
+                              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
+                              </svg>
+                              <span className="text-xs font-medium">
+                                Last saved at {lastSavedTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Action buttons */}
+                        <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
+                          {/* Delete button */}
                           <button
-                            className="text-sm text-red-600 hover:text-red-700 font-medium hover:underline disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            className="flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:text-white hover:bg-red-600 font-medium rounded-lg border-2 border-red-600 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-red-600 transition-all duration-200"
                             onClick={handleDeleteNote}
                             disabled={noteSaving || noteLoading || (!note && !savedNote)}
                           >
-                            Delete
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            Clear Notes
                           </button>
+
+                          {/* Save section */}
                           <div className="flex items-center gap-3">
+                            {/* Saving indicator */}
                             {noteSaving && (
-                              <span className="text-xs text-blue-600">Saving...</span>
+                              <div className="flex items-center gap-2 text-blue-600">
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                                <span className="text-xs font-medium">Saving...</span>
+                              </div>
                             )}
+                            
+                            {/* Saved indicator */}
                             {!noteSaving && note.trim() === savedNote && savedNote && (
-                              <span className="text-xs text-emerald-600 flex items-center gap-1 font-medium">
-                                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                              <span className="text-xs text-emerald-600 flex items-center gap-1.5 font-semibold px-3 py-1.5 bg-emerald-50 rounded-full">
+                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
                                 </svg>
                                 Saved
                               </span>
                             )}
+                            
+                            {/* Unsaved changes indicator */}
+                            {!noteSaving && note.trim() !== savedNote && note.trim() && (
+                              <span className="text-xs text-amber-600 flex items-center gap-1.5 font-medium px-3 py-1.5 bg-amber-50 rounded-full">
+                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                </svg>
+                                Unsaved
+                              </span>
+                            )}
+                            
+                            {/* Save button */}
                             <button
-                              className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+                              className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm font-semibold rounded-lg hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-blue-600 disabled:hover:to-indigo-600 transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
                               onClick={handleSaveNote}
                               disabled={noteSaving || noteLoading || note.trim() === savedNote}
                             >
-                              {noteSaving ? "Saving..." : "Save"}
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                              </svg>
+                              {noteSaving ? "Saving..." : "Save Notes"}
                             </button>
                           </div>
                         </div>
