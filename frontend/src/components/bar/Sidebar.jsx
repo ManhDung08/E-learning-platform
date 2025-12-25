@@ -148,9 +148,11 @@ const Sidebar = ({ isCollapsed }) => {
           >
             <div className={`w-full ${isCollapsed ? 'flex flex-col items-center' : ''}`}>
                 {!isCollapsed ? (
-                    <div className='px-10 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider transition-opacity duration-300'>
-                        {role} MENU
-                    </div>
+                    user && (
+                        <div className='px-10 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider transition-opacity duration-300'>
+                            {role} MENU
+                        </div>
+                    )
                 ) : (
                     <div className='h-4'></div>
                 )}

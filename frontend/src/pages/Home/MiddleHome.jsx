@@ -10,6 +10,8 @@ import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 
+import AuthModal from '../../components/auth/AuthModal';
+
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux'
 import { getAllCoursesAction } from '../../Redux/Course/course.action';
@@ -21,7 +23,19 @@ const MiddleHome = () => {
 
   const { courses, loading } = useSelector(store => store.course);
 
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [initialView, setInitialView] = useState('login');
   const [currentIntex, setCurrentIndex] = useState(0);
+  const { user } = useSelector(store => store.auth);
+
+  const handleJoinClick = () => {
+    setInitialView('login');
+    setAuthModalOpen(true);
+  };
+
+  const handleCloseAuthModal = () => {
+    setAuthModalOpen(false);
+  };
   
   useEffect(() => {
     dispatch(getAllCoursesAction(1, 50, ""));
@@ -56,13 +70,13 @@ const MiddleHome = () => {
               Sharpen Your Skills With Professional Online Courses
             </h2>
 
-            <Button variant='contained' endIcon={<ArrowForwardIcon />}
+            { !user && (<Button variant='contained' endIcon={<ArrowForwardIcon />} onClick={handleJoinClick}
                     sx={{backgroundColor: '#2b3b31', color: 'white', padding: '12px 28px', 
                         borderRadius: '50px', textTransform: 'none', fontSize: '12px',
                         fontWeight: '600', transition: 'all 0.3s ease', '&:hover': {transform: 'translateY(-2px)',
                         backgroundColor: '#16241b'}}}>
               Join now
-            </Button>
+            </Button>)}
           </div>
         </Card>
       </div>
@@ -125,6 +139,12 @@ const MiddleHome = () => {
           </div>
         )}
       </div>
+
+      <AuthModal 
+        open={authModalOpen} 
+        onClose={handleCloseAuthModal} 
+        initialView={initialView}
+      />
 
     </div>
   )
