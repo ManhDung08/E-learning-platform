@@ -68,14 +68,14 @@ const MiddleHome = () => {
       </div>
 
       { /* watching progress */ }
-      <div className='p-4 pt-2'>
+      {/* <div className='p-4 pt-2'>
           <div style={{ display: 'flex', gap: '16px', overflowX: 'auto', paddingBottom: '8px' }}>
             <WatchingCard progress={2} total={8} title="Product Design" />
             <WatchingCard progress={3} total={8} title="Frontend React" />
             <WatchingCard progress={5} total={8} title="Product Design" />
             <WatchingCard progress={6} total={8} title="Product Design" />
           </div>
-      </div>
+      </div> */}
 
       { /* free course */ }
       <div className='p-4 pt-2'>
