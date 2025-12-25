@@ -17,6 +17,7 @@ const SearchResultsPage = () => {
     const dispatch = useDispatch();
     const [searchParams, setSearchParams] = useSearchParams();
     
+    // Lấy params từ URL
     const keyword = searchParams.get('q') || "";
     const sortBy = searchParams.get('sortBy') || "newest";
     const minPrice = searchParams.get('minPrice') || "";
@@ -25,11 +26,14 @@ const SearchResultsPage = () => {
     const minRating = searchParams.get('minRating') || 0;
 
     const { courses, loading } = useSelector(store => store.course);
+    
+    // State cho bộ lọc UI
     const [anchorEl, setAnchorEl] = useState(null);
     const [filterData, setFilterData] = useState({
         sortBy: sortBy, minPrice: minPrice, maxPrice: maxPrice, instructorName: instructorName, minRating: minRating
     });
 
+    // Đồng bộ state filterData với URL
     useEffect(() => {
         setFilterData({
             sortBy: searchParams.get('sortBy') || "newest",
@@ -40,17 +44,18 @@ const SearchResultsPage = () => {
         });
     }, [searchParams]);
 
+    // Gọi API tìm kiếm
     useEffect(() => {
         let sortByParam = 'createdAt';
         let sortOrderParam = 'desc';
         if (sortBy === 'price_desc') { sortByParam = 'priceVND'; sortOrderParam = 'desc'; }
         if (sortBy === 'price_asc')  { sortByParam = 'priceVND'; sortOrderParam = 'asc'; }
         
-        // SỬA: Truyền undefined cho isPublished (tham số thứ 5)
-        // (page, limit, search, category, isPublished, sortBy, sortOrder)
+        // Gọi API (page 1, limit 100, keyword, category="", isPublished=undefined)
         dispatch(getAllCoursesAction(1, 100, keyword, "", undefined, sortByParam, sortOrderParam));
     }, [dispatch, keyword, sortBy]);
 
+    // Lọc client-side
     const filteredCourses = useMemo(() => {
         if (!courses || !Array.isArray(courses)) return [];
         let result = [...courses];
@@ -73,6 +78,7 @@ const SearchResultsPage = () => {
         return result;
     }, [courses, instructorName, minPrice, maxPrice, minRating, sortBy]);
 
+    // Handlers
     const handleSearch = (newKeyword) => {
         const newParams = { ...Object.fromEntries(searchParams), q: newKeyword };
         if (!newKeyword) delete newParams.q;
@@ -102,6 +108,7 @@ const SearchResultsPage = () => {
 
     return (
         <div className="p-4 md:p-8 bg-gray-50 flex flex-col min-h-screen">
+            {/* Thanh tìm kiếm */}
             <div className='mb-6 max-w-4xl mx-auto w-full'>
                 <SearchInput placeholder="Search for courses, mentors..." onSearch={handleSearch} onFilterClick={handleFilterClick} />
             </div>
@@ -110,6 +117,7 @@ const SearchResultsPage = () => {
                 {keyword ? <>Search results for: "<span className="text-[#97A87A]">{keyword}</span>"</> : "All Courses"}
             </h1>
 
+            {/* Filter Chips */}
             <Box sx={{display: 'flex', gap: 1, flexWrap: 'wrap', mb: 4}}>
                 {minPrice && <Chip label={`Min: ${Number(minPrice).toLocaleString()}đ`} onDelete={() => handleDeleteChip('minPrice')} />}
                 {maxPrice && <Chip label={`Max: ${Number(maxPrice).toLocaleString()}đ`} onDelete={() => handleDeleteChip('maxPrice')} />}
@@ -117,14 +125,16 @@ const SearchResultsPage = () => {
                 {minRating > 0 && <Chip label={`Rating: ${minRating}+`} onDelete={() => handleDeleteChip('minRating')} />}
             </Box>
 
+            {/* Danh sách kết quả */}
             {loading ? (
                 <div className="flex justify-center p-10"><CircularProgress size={40} sx={{color: '#97A87A'}} /></div>
             ) : (
                 <>
                     <h2 className="text-lg font-semibold text-gray-600 mb-4">Found {filteredCourses.length} courses</h2>
+                    
                     {filteredCourses.length > 0 ? (
-                        // Giao diện đã fix lỗi dính vào nhau
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        // --- ĐÃ SỬA: grid-cols-3 thay vì 4 để thẻ to hơn ---
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
                             {filteredCourses.map(course => (
                                 <div key={course.id} className="w-full"> 
                                     <CourseCard course={course} />
@@ -141,7 +151,7 @@ const SearchResultsPage = () => {
                 </>
             )}
 
-            {/* Popover UI giữ nguyên */}
+            {/* Popover Bộ lọc (Giữ nguyên) */}
             <Popover
                 id={id} open={open} anchorEl={anchorEl} onClose={handleFilterClose}
                 anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
