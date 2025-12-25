@@ -1,26 +1,25 @@
-import {React, useState, useEffect, useRef } from 'react'
-import Register from '../../components/auth/Register'
-import { Grid, useMediaQuery, useTheme } from '@mui/material'
-import { Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react'
+import { Grid, useMediaQuery, useTheme, Drawer, IconButton, Box } from '@mui/material'
+import { Route, Routes, useLocation } from 'react-router-dom';
+import MenuIcon from '@mui/icons-material/Menu'; 
+import MenuOpenIcon from '@mui/icons-material/MenuOpen';
+import { useSelector } from 'react-redux';
+
 import Sidebar from '../../components/bar/Sidebar';
 import MiddleHome from './MiddleHome';
 import RightBar from '../../components/bar/RightBar';
 import Footer from '../../components/footer/Footer';
-import { useSelector } from 'react-redux';
 import InstructorsList from '../../components/instructor/InstructorsList';
 import InstructorDetail from '../../components/instructor/InstructorDetail';
 import UserManagement from '../Admin/UserManagement';
 import Dashboard from '../Admin/Dashboard';
 import CourseManagement from '../Admin/CourseManagement';
 import TransactionManagement from '../Admin/TransactionManagement';
-import Settings from '../Admin/Settings';
 import InstructorCourses from '../Instructor/InstructorCourses';
 import SearchResultsPage from '../../components/search/SearchResults';
-import LessonQuiz from '../../components/lesson/LessonQuiz';
 import AllQuizAttempts from '../../components/lesson/AllQuizAttempts';
 import MyCourses from '../MyCourses/MyCourses';
 import Videos from '../Videos';
-import CourseDetailPage from '../CourseDetail/CourseDetail';
 import LiveClassList from '../LiveClass/LiveClassList';
 import LiveClassRoom from '../LiveClass/LiveClassRoom';
 import SupportManagement from '../Admin/SupportManagement';
@@ -29,22 +28,26 @@ import InstructorDashboard from '../Instructor/InstructorDashboard';
 
 const HomePage = () => {
   
-  const { isAuthenticated, loading } = useSelector((store => store.auth));
+  const { isAuthenticated } = useSelector((store => store.auth));
   const isLoggedIn = isAuthenticated;
   const { user } = useSelector((store) => store.auth);
   const isStudent = user?.role === 'student';
 
   const [isRightBarOpen, setIsRightBarOpen] = useState(true);
+  const [mobileLeftOpen, setMobileLeftOpen] = useState(false);
+  const [mobileRightOpen, setMobileRightOpen] = useState(false);
 
   const scrollRef = useRef(null);
   const { pathname } = useLocation();
   const theme = useTheme();
 
   const isLgScreen = useMediaQuery(theme.breakpoints.up('lg'));
+  const isMdScreen = useMediaQuery(theme.breakpoints.up('md'));
 
-  //nếu lg thì để full còn không thì 0.8 hiện mỗi icon
-  const leftSidebarSize = isLgScreen ? 2.2 : 0.8;
-
+  let leftSidebarSize = 0;
+  if (isMdScreen) {
+      leftSidebarSize = isLgScreen ? 2.2 : 0.8; 
+  }
   const isSidebarCollapsed = !isLgScreen;
 
   let rightBarSize = 0;
@@ -53,40 +56,138 @@ const HomePage = () => {
     if (isLearningPage) {
         rightBarSize = 0;
     } else {
-        rightBarSize = isRightBarOpen ? (isLgScreen ? 2.5 : 0) : (isLgScreen ? 0.6 : 0);
+        rightBarSize = isLgScreen ? (isRightBarOpen ? 2.5 : 0.6) : 0;
     }
   }
 
   const mainContentGridSize = 12 - leftSidebarSize - rightBarSize;
-
   const rightBarMinWidth = isRightBarOpen ? '280px' : '70px';
+
+  const handleLeftDrawerToggle = () => setMobileLeftOpen(!mobileLeftOpen);
+  const handleRightDrawerToggle = () => setMobileRightOpen(!mobileRightOpen);
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = 0;
     }
+    setMobileLeftOpen(false);
+    setMobileRightOpen(false);
   }, [pathname]);
 
   return (
     <>
-    <div style={{height: 'calc(100vh - 65px)', overflow: 'hidden'}}>
-      <Grid container spacing={0} wrap='nowrap' sx={{height: '100%'}}>
-        {/* phần sidebar, màn bé thì chiếm 0 grid, màn to thì chiếm 2.5*/}
-        <Grid size={{ xs: leftSidebarSize }} sx={{display: 'block', height: '100%', overflowY: 'hidden', position: 'relative', zIndex: 1, transition: 'all 0.3s ease', minWidth: isSidebarCollapsed ? '65px' : '260px' }}>
-          <div className='h-screen' style={{display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
-            <Sidebar isCollapsed={isSidebarCollapsed}/>
-          </div>
-        </Grid>
+    <div style={{height: 'calc(100vh - 65px)', width: '100vw', overflow: 'hidden', position: 'relative'}}>
 
-        {/* main content, màn bé thfi chiếm trọn 12 phần grid, to thì chiếm 7 */}
+      {/* --- DRAWER TRÁI (Mobile) --- */}
+      <Drawer
+        variant="temporary"
+        open={mobileLeftOpen}
+        onClose={handleLeftDrawerToggle}
+        ModalProps={{ keepMounted: true }} 
+        sx={{
+          display: { xs: 'block', md: 'none' }, 
+          '& .MuiBackdrop-root': { top: '65px' }, 
+          '& .MuiDrawer-paper': { 
+            boxSizing: 'border-box', 
+            width: '260px',
+            top: '65px',
+            height: 'calc(100% - 65px)' 
+          }, 
+        }}
+      >
+        {/* Box chứa nút đóng và Sidebar */}
+        <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+            
+            {/* --- NÚT THU VỀ (ĐÓNG MENU) --- */}
+            <Box sx={{ 
+                display: 'flex', 
+                justifyContent: 'flex-end', // Căn phải
+                p: 1, 
+                borderBottom: '1px solid #f0f0f0' 
+            }}>
+                <IconButton onClick={handleLeftDrawerToggle}>
+                    {/* Icon mũi tên thu về hoặc MenuOpen */}
+                    <MenuOpenIcon /> 
+                </IconButton>
+            </Box>
+
+            {/* Nội dung Sidebar */}
+            <Box sx={{ flexGrow: 1, overflowY: 'auto' }}>
+                <Sidebar isCollapsed={false} />
+            </Box>
+        </Box>
+      </Drawer>
+
+      {/* --- DRAWER PHẢI (Mobile) --- */}
+      <Drawer
+        anchor="right"
+        open={mobileRightOpen}
+        onClose={handleRightDrawerToggle}
+        ModalProps={{ keepMounted: true }}
+        sx={{
+          display: { xs: 'block', lg: 'none' },
+          '& .MuiBackdrop-root': { top: '65px' },
+          '& .MuiDrawer-paper': { 
+            width: '300px', 
+            boxSizing: 'border-box',
+            top: '65px',
+            height: 'calc(100% - 65px)',
+          },
+        }}
+      >
+        <RightBar isOpen={true} setIsOpen={handleRightDrawerToggle} />
+      </Drawer>
+
+      <Grid container spacing={0} wrap='nowrap' sx={{height: '100%'}}>
+        
+        {/* --- GRID TRÁI (PC/Tablet) --- */}
+        {isMdScreen && (
+            <Grid size={{ xs: leftSidebarSize }} sx={{display: 'block', height: '100%', overflowY: 'hidden', position: 'relative', zIndex: 1, transition: 'all 0.3s ease', minWidth: isSidebarCollapsed ? '65px' : '260px' }}>
+            <div className='h-screen' style={{display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
+                <Sidebar isCollapsed={isSidebarCollapsed}/>
+            </div>
+            </Grid>
+        )}
+
+        {/* --- MAIN CONTENT --- */}
         <Grid size={{ xs: mainContentGridSize }} style={{display: 'flex', justifyContent: 'center'}} 
               sx={{bgcolor: '#F4F6F8', height: '100%', overflowY: 'auto', position: 'relative', overflowX: 'hidden', zIndex: 2, transition: 'all 0.3s ease'}} ref={scrollRef}>    
-          <div style={{width: '100%', padding: '10px',  minHeight: '100%', display: 'flex', flexDirection: 'column'}}>
+          <div style={{width: '100%', padding: '10px', minHeight: '100%', display: 'flex', flexDirection: 'column'}}>
+            
+            {/* NÚT MỞ MENU TRÁI (GHIM CỐ ĐỊNH) */}
+            <Box sx={{ 
+                display: { xs: 'flex', md: 'none' }, 
+                position: 'fixed', 
+                top: '75px',       
+                left: '10px',      
+                zIndex: 1000       
+            }}>
+                <IconButton 
+                    onClick={handleLeftDrawerToggle} 
+                    sx={{ bgcolor: 'white', boxShadow: 2, color: '#333' }}
+                >
+                    <MenuIcon />
+                </IconButton>
+            </Box>
+
+            {/* NÚT MỞ MENU PHẢI (GHIM CỐ ĐỊNH) */}
+            {isLoggedIn && !pathname.includes('/my-course') && (
+                <Box sx={{ 
+                    display: { xs: 'flex', lg: 'none' }, 
+                    position: 'fixed', 
+                    top: '75px', 
+                    right: '10px', 
+                    zIndex: 1000 
+                }}>
+                    <IconButton onClick={handleRightDrawerToggle} color="primary" sx={{ bgcolor: 'white', boxShadow: 2 }}>
+                        <MenuOpenIcon sx={{ transform: 'rotate(180deg)' }} />
+                    </IconButton>
+                </Box>
+            )}
+
             <Routes>
-              {/* student */}
               <Route path="/" element={<MiddleHome />} />
               <Route path="/dashboard" element={<MiddleHome />} />
-              {/* <Route path="/my-course" element={<LessonQuiz lessonId={13} />} /> */}
               <Route path="/my-course" element={<MyCourses />} />
               <Route path="/my-course/course/learn/:courseId" element={<Videos />} />
               <Route path="/live-class" element={<LiveClassList />} />
@@ -94,27 +195,20 @@ const HomePage = () => {
               <Route path="/instructors" element={<InstructorsList />} />
               <Route path="/instructors/:id" element={<InstructorDetail />} />
               <Route path="/search" element={<SearchResultsPage />} />
-              {/* instructor */}
               <Route path="/instructor/dashboard" element={<div><InstructorDashboard /></div>} />
               <Route path="/instructor/courses" element={<InstructorCourses />} />
               <Route path="/instructor/students" element={<div><MyStudent /></div>} />
               <Route path="/instructor/quiz/:quizId/attempts" element={<AllQuizAttempts />} />
-              {/* admin */}
               <Route path="/admin/dashboard" element={<Dashboard />}/>
               <Route path="/admin/users" element={<UserManagement />} />
               <Route path="/admin/courses" element={<CourseManagement />} />
               <Route path="/admin/transactions" element={<TransactionManagement />} />
               <Route path="/admin/quiz/:quizId/attempts" element={<AllQuizAttempts />} />
               <Route path="/admin/support-ticket" element={<SupportManagement />} />
-
-
             </Routes>
 
             {isStudent && (
-              <div style={{ 
-                marginTop: '40px',
-                width: '100%'
-              }}>
+              <div style={{ marginTop: '40px', width: '100%' }}>
                 <Footer />
               </div>
             )}
@@ -122,6 +216,7 @@ const HomePage = () => {
           </div>
         </Grid>
 
+        {/* --- GRID PHẢI (PC) --- */}
         {isLoggedIn && rightBarSize > 0 && (
           <Grid size={{ xs: rightBarSize }} sx={{display: { xs: 'none', lg: 'block'}, height: '100%', overflowY: 'auto', 
                 position: 'relative', zIndex: 1, transition: 'all 0.3s ease', minWidth: isLgScreen ? rightBarMinWidth : 0}}>
@@ -131,15 +226,7 @@ const HomePage = () => {
         </Grid>
         )}
       </Grid>
-
-      {/* <div style={{position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100, pointerEvents: 'none'}}>
-        <div style={{ pointerEvents: 'auto' }}>
-              <Footer />
-            </div>
-      </div> */}
     </div>
-
-    
     </>
   )
 }
