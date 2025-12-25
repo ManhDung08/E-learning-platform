@@ -106,7 +106,7 @@ router.get(
  * @swagger
  * /api/course/{courseId}:
  *   get:
- *     summary: Get detailed course information (admin only - sees everything)
+ *     summary: Get detailed course information
  *     tags: [Courses]
  *     security:
  *       - cookieAuth: []
@@ -143,7 +143,7 @@ router.get(
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get("/:courseId", isAuth(["admin"]), courseController.getCourseById);
+router.get("/:courseId", isAuth(), courseController.getCourseById);
 
 /**
  * @swagger

@@ -1,10 +1,12 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { Box, Container, Typography, CircularProgress, Button,Paper,Avatar } from '@mui/material';
+import { Box, Container, Typography, CircularProgress, Button, Paper, Avatar, IconButton } from '@mui/material';
 import SchoolIcon from '@mui/icons-material/School';
 import PlayCircleOutlineIcon from '@mui/icons-material/PlayCircleOutline';
-import AutoStoriesIcon from '@mui/icons-material/AutoStories'; // Icon trang trí
+import AutoStoriesIcon from '@mui/icons-material/AutoStories';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 
 import { getUserEnrollmentsAction } from '../../Redux/Course/course.action';
 
@@ -13,12 +15,77 @@ import CourseCard from '../../components/courses/CourseCard';
 const MyCourses = () => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
+    const scrollContainerRef = useRef(null);
+    const [showLeftArrow, setShowLeftArrow] = useState(false);
+    const [showRightArrow, setShowRightArrow] = useState(false);
+    const [isDragging, setIsDragging] = useState(false);
+    const [startX, setStartX] = useState(0);
+    const [scrollLeft, setScrollLeft] = useState(0);
     
     const { userEnrollments, loading } = useSelector(store => store.course);
 
     useEffect(() => {
         dispatch(getUserEnrollmentsAction()); 
     }, [dispatch]);
+
+    // Check scroll position to show/hide arrows
+    const checkScrollPosition = () => {
+        if (scrollContainerRef.current) {
+            const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
+            setShowLeftArrow(scrollLeft > 0);
+            setShowRightArrow(scrollLeft < scrollWidth - clientWidth - 10);
+        }
+    };
+
+    useEffect(() => {
+        checkScrollPosition();
+        window.addEventListener('resize', checkScrollPosition);
+        return () => window.removeEventListener('resize', checkScrollPosition);
+    }, [userEnrollments]);
+
+    const scroll = (direction) => {
+        if (scrollContainerRef.current) {
+            const scrollAmount = 350;
+            const newScrollLeft = direction === 'left' 
+                ? scrollContainerRef.current.scrollLeft - scrollAmount 
+                : scrollContainerRef.current.scrollLeft + scrollAmount;
+            
+            scrollContainerRef.current.scrollTo({
+                left: newScrollLeft,
+                behavior: 'smooth'
+            });
+        }
+    };
+
+    // Mouse drag scrolling
+    const handleMouseDown = (e) => {
+        setIsDragging(true);
+        setStartX(e.pageX - scrollContainerRef.current.offsetLeft);
+        setScrollLeft(scrollContainerRef.current.scrollLeft);
+        scrollContainerRef.current.style.cursor = 'grabbing';
+    };
+
+    const handleMouseLeave = () => {
+        setIsDragging(false);
+        if (scrollContainerRef.current) {
+            scrollContainerRef.current.style.cursor = 'grab';
+        }
+    };
+
+    const handleMouseUp = () => {
+        setIsDragging(false);
+        if (scrollContainerRef.current) {
+            scrollContainerRef.current.style.cursor = 'grab';
+        }
+    };
+
+    const handleMouseMove = (e) => {
+        if (!isDragging) return;
+        e.preventDefault();
+        const x = e.pageX - scrollContainerRef.current.offsetLeft;
+        const walk = (x - startX) * 2; // Scroll speed multiplier
+        scrollContainerRef.current.scrollLeft = scrollLeft - walk;
+    };
 
     if (loading) {
         return (
@@ -78,23 +145,74 @@ const MyCourses = () => {
 
                     {userEnrollments && userEnrollments.length > 0 ? (
                         <div style={{ overflow: 'hidden', position: 'relative'}}>
-                            <div style={{ 
-                                display: 'flex', 
-                                gap: '24px', 
-                                overflowX: 'auto', 
-                                paddingBottom: '20px',
-                                paddingLeft: '4px',
-                                scrollbarWidth: 'none', 
-                                msOverflowStyle: 'none'
-                            }}
-                            className="scrollbar-hide"
+                            {/* Left Arrow */}
+                            {showLeftArrow && (
+                                <IconButton
+                                    onClick={() => scroll('left')}
+                                    sx={{
+                                        position: 'absolute',
+                                        left: -10,
+                                        top: '50%',
+                                        transform: 'translateY(-50%)',
+                                        zIndex: 2,
+                                        bgcolor: 'white',
+                                        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                                        '&:hover': { bgcolor: '#f5f5f5' },
+                                        width: 40,
+                                        height: 40
+                                    }}
+                                >
+                                    <ChevronLeftIcon />
+                                </IconButton>
+                            )}
+
+                            {/* Right Arrow */}
+                            {showRightArrow && (
+                                <IconButton
+                                    onClick={() => scroll('right')}
+                                    sx={{
+                                        position: 'absolute',
+                                        right: -10,
+                                        top: '50%',
+                                        transform: 'translateY(-50%)',
+                                        zIndex: 2,
+                                        bgcolor: 'white',
+                                        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                                        '&:hover': { bgcolor: '#f5f5f5' },
+                                        width: 40,
+                                        height: 40
+                                    }}
+                                >
+                                    <ChevronRightIcon />
+                                </IconButton>
+                            )}
+
+                            <div 
+                                ref={scrollContainerRef}
+                                onScroll={checkScrollPosition}
+                                onMouseDown={handleMouseDown}
+                                onMouseLeave={handleMouseLeave}
+                                onMouseUp={handleMouseUp}
+                                onMouseMove={handleMouseMove}
+                                style={{ 
+                                    display: 'flex', 
+                                    gap: '24px', 
+                                    overflowX: 'auto', 
+                                    paddingBottom: '20px',
+                                    paddingLeft: '4px',
+                                    scrollbarWidth: 'none', 
+                                    msOverflowStyle: 'none',
+                                    cursor: 'grab',
+                                    userSelect: 'none'
+                                }}
+                                className="scrollbar-hide"
                             >
                                 {userEnrollments.map((item) => {
                                     const courseData = item.course;
                                     const progressValue = courseData.progress !== undefined ? courseData.progress : 0;
 
                                     return (
-                                        <div key={item.id} style={{ minWidth: '290px' }}>
+                                        <div key={item.id} style={{ minWidth: '290px', flexShrink: 0 }}>
                                             <CourseCard 
                                                 course={courseData} 
                                                 isEnrolled={true} 

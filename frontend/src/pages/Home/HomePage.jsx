@@ -25,6 +25,7 @@ import LiveClassRoom from '../LiveClass/LiveClassRoom';
 import SupportManagement from '../Admin/SupportManagement';
 import MyStudent from '../Instructor/MyStudent';
 import InstructorDashboard from '../Instructor/InstructorDashboard';
+import Certificates from '../Certificates';
 
 const HomePage = () => {
   
@@ -52,7 +53,7 @@ const HomePage = () => {
 
   let rightBarSize = 0;
   if (isLoggedIn) {
-    const isLearningPage = pathname.includes('/my-course');
+    const isLearningPage = pathname.includes('/my-course/course/learn/');
     if (isLearningPage) {
         rightBarSize = 0;
     } else {
@@ -195,6 +196,8 @@ const HomePage = () => {
               <Route path="/instructors" element={<InstructorsList />} />
               <Route path="/instructors/:id" element={<InstructorDetail />} />
               <Route path="/search" element={<SearchResultsPage />} />
+              <Route path="/certificates" element={<Certificates />} />
+              {/* instructor */}
               <Route path="/instructor/dashboard" element={<div><InstructorDashboard /></div>} />
               <Route path="/instructor/courses" element={<InstructorCourses />} />
               <Route path="/instructor/students" element={<div><MyStudent /></div>} />
