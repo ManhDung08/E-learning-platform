@@ -29,6 +29,26 @@ export const extractKeyFromUrl = (url) => {
   }
 };
 
+// Helper function to sanitize metadata values for S3
+// S3 metadata must be US-ASCII, non-ASCII characters cause signature mismatch errors
+const sanitizeMetadataValue = (value) => {
+  if (typeof value !== "string") {
+    return String(value);
+  }
+  // URL-encode non-ASCII characters to ensure ASCII-safe metadata
+  return encodeURIComponent(value);
+};
+
+const sanitizeMetadata = (metadata) => {
+  const sanitized = {};
+  for (const [key, value] of Object.entries(metadata)) {
+    if (value !== undefined && value !== null) {
+      sanitized[key] = sanitizeMetadataValue(value);
+    }
+  }
+  return sanitized;
+};
+
 // upload file to S3
 export const uploadToS3 = async ({
   fileBuffer,
@@ -62,17 +82,21 @@ export const uploadToS3 = async ({
     const uniqueFileName = generateUniqueFileName(fileName);
     const key = `${folderPath}/${uniqueFileName}`;
 
+    // Sanitize all metadata values to be ASCII-safe
+    // Non-ASCII characters in metadata cause S3 signature mismatch errors
+    const safeMetadata = sanitizeMetadata({
+      uploadType: fileType,
+      originalName: fileName,
+      ...metadata,
+    });
+
     const uploadParams = {
       Bucket: process.env.AWS_S3_BUCKET,
       Key: key,
       Body: fileBuffer,
       ContentType: mimeType,
       CacheControl: uploadConfig.cacheControl[fileType] || "no-cache",
-      Metadata: {
-        uploadType: fileType,
-        originalName: fileName,
-        ...metadata,
-      },
+      Metadata: safeMetadata,
     };
 
     const command = new PutObjectCommand(uploadParams);
@@ -148,17 +172,20 @@ export const getSignedUrlForUpload = async ({
     const uniqueFileName = generateUniqueFileName(fileName);
     const key = `${folderPath}/${uniqueFileName}`;
 
+    // Sanitize all metadata values to be ASCII-safe
+    const safeMetadata = sanitizeMetadata({
+      uploadType: fileType,
+      originalName: fileName,
+      ...metadata,
+    });
+
     // Create PUT command
     const command = new PutObjectCommand({
       Bucket: process.env.AWS_S3_BUCKET,
       Key: key,
       ContentType: mimeType,
       CacheControl: uploadConfig.cacheControl[fileType] || "no-cache",
-      Metadata: {
-        uploadType: fileType,
-        originalName: fileName,
-        ...metadata,
-      },
+      Metadata: safeMetadata,
     });
 
     // Generate signed URL

@@ -8,30 +8,31 @@ import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import LockIcon from '@mui/icons-material/Lock';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import ReplayIcon from '@mui/icons-material/Replay';
 
-const LessonQuiz = ({ lessonId, onNextLesson, onQuizComplete, isLastLesson = false }) => {
+const LessonQuiz = ({ lessonId, onNextLesson, onQuizComplete, isLastLesson = false, isVideoCompleted = false }) => {
     const dispatch = useDispatch();
     const { quizzes, currentAttempt, loading, quizResult, userAttempts } = useSelector(store => store.quiz);
     // Debug log to verify isLastLesson prop
     console.log('LessonQuiz rendered - lessonId:', lessonId, 'isLastLesson:', isLastLesson);
-    // state quản lý vị trí bài thi hiện tại 0 -> n-1
+    // state quản lý vị trí bài thi hiện tại 0 -> n-1
     const [activeQuizIndex, setActiveQuizIndex] = useState(-1);
-    // lưu đáp án học viên chọn
+    // lưu đáp án học viên chọn
     const [answers, setAnswers] = useState({});
-    // lưu điểm tạm thời để tính điểm cuối
+    // lưu điểm tạm thời để tính điểm cuối
     const [sessionStats, setSessionStats] = useState([]);
     
     const [isSubmitting, setIsSubmitting] = useState(false);
     
     const [isDataReady, setIsDataReady] = useState(false);
-    // kiểm tra xem học viên đã làm hết quiz chuwam nếu true thì không cho làm nữa
+    // kiểm tra xem học viên đã làm hết quiz chuwam nếu true thì không cho làm nữa
     const [isFlowFinished, setIsFlowFinished] = useState(false);
     
     const [hasStarted, setHasStarted] = useState(false); 
 
     useEffect(() => {
         if (lessonId) {
-            //lấy danh sách quiz và lịch sử làm quiz của user
+            //lấy danh sách quiz và lịch sử làm quiz của user
             dispatch(getAllQuizzesForLessonAction(lessonId));
             dispatch(getUserQuizAttemptsAction());
         }
@@ -41,10 +42,13 @@ const LessonQuiz = ({ lessonId, onNextLesson, onQuizComplete, isLastLesson = fal
         };
     }, [lessonId, dispatch]);
 
-    // kiểm tra lịch sử làm
+    // kiểm tra lịch sử làm
     useEffect(() => {
-
         if (loading) return;
+        
+        // Don't reset activeQuizIndex if user has already started taking quizzes
+        // This prevents race condition where stale userAttempts resets the index
+        if (hasStarted) return;
 
         if (quizzes && quizzes.length === 0) {
             setIsDataReady(true);
@@ -70,7 +74,7 @@ const LessonQuiz = ({ lessonId, onNextLesson, onQuizComplete, isLastLesson = fal
         }
     }, [quizzes, userAttempts, loading, hasStarted]);
 
-    // chạy khi đang nộp bài và chuyển câu
+    // chạy khi đang nộp bài và chuyển câu
     useEffect(() => {
         if (isSubmitting && quizResult) {
             const newStat = {
@@ -79,16 +83,16 @@ const LessonQuiz = ({ lessonId, onNextLesson, onQuizComplete, isLastLesson = fal
                 totalQuestions: quizResult.totalQuestions
             };
             setSessionStats(prev => [...prev, newStat]);
-            //reset trạng thái nộp
+            //reset trạng thái nộp
             dispatch(clearQuizResult());
             setIsSubmitting(false);
 
             if (activeQuizIndex < quizzes.length - 1) {
-                //kiểm tra còn câu hỏi thì tăng index lên 1
+                //kiểm tra còn câu hỏi thì tăng index lên 1
                 const nextIndex = activeQuizIndex + 1;
                 setActiveQuizIndex(nextIndex);
                 
-                // gọi api tạo attempt mới cho câu tiếp theo
+                // gọi api tạo attempt mới cho câu tiếp theo
                 dispatch(startQuizAttemptAction(quizzes[nextIndex].id));
                 setAnswers({});
                 window.scrollTo(0, 0);
@@ -102,7 +106,7 @@ const LessonQuiz = ({ lessonId, onNextLesson, onQuizComplete, isLastLesson = fal
         }
     }, [quizResult, isSubmitting, activeQuizIndex, quizzes, dispatch, onQuizComplete]);
 
-    // ấn nút start thì sẽ gọi đến api start quiz và set hasStarted thành true để khóa lần vào làm kế tiếp
+    // ấn nút start thì sẽ gọi đến api start quiz và set hasStarted thành true để khóa lần vào làm kế tiếp
     const handleStartClick = () => {
         if (activeQuizIndex >= 0 && quizzes[activeQuizIndex]) {
             dispatch(startQuizAttemptAction(quizzes[activeQuizIndex].id));
@@ -115,35 +119,95 @@ const LessonQuiz = ({ lessonId, onNextLesson, onQuizComplete, isLastLesson = fal
         setAnswers(prev => ({ ...prev, [questionId]: value }));
     };
 
-    // chấm điểm
+    // chấm điểm
     const handleNextOrFinish = () => {
         if (!currentAttempt?.attemptId) return;
         setIsSubmitting(true);
         dispatch(submitQuizAttemptAction(currentAttempt.attemptId, answers));
     };
 
-    // dùng useMemo để tính điểm sau cùng
+    // Retry quiz - reset all state and start from the first quiz
+    const handleRetryQuiz = () => {
+        // Reset all state
+        setActiveQuizIndex(0);
+        setAnswers({});
+        setSessionStats([]);
+        setIsFlowFinished(false);
+        setHasStarted(true);
+        
+        // Start a new attempt for the first quiz (POST /api/quiz/:quizId/attempts)
+        if (quizzes && quizzes.length > 0) {
+            dispatch(startQuizAttemptAction(quizzes[0].id));
+        }
+        
+        window.scrollTo(0, 0);
+    };
+
+    // dùng useMemo để tính điểm sau cùng
     const finalResult = useMemo(() => {
         if (!isFlowFinished || !quizzes) return null;
 
         if (sessionStats.length > 0) {
             const totalCorrect = sessionStats.reduce((acc, curr) => acc + curr.correctAnswers, 0);
             const totalQuestions = sessionStats.reduce((acc, curr) => acc + curr.totalQuestions, 0);
-            const averageScore = sessionStats.reduce((acc, curr) => acc + curr.score, 0) / sessionStats.length;
-            return { totalCorrect, totalQuestions, score: averageScore };
+            // Calculate score as percentage of total correct answers, not average of percentages
+            const score = totalQuestions > 0 ? (totalCorrect / totalQuestions) * 100 : 0;
+            return { totalCorrect, totalQuestions, score };
         }
 
         if (userAttempts?.length > 0) {
+            // Filter attempts for this lesson's quizzes only
             const relevantAttempts = userAttempts.filter(att => quizzes.find(q => q.id === att.quizId));
-            const totalScore = relevantAttempts.reduce((acc, curr) => acc + (curr.score || 0), 0);
+            
+            // Get only the LATEST attempt for each quiz (users may have multiple attempts from retries)
+            // Group by quizId and keep only the most recent one (highest ID or most recent completedAt)
+            const latestAttemptsByQuiz = {};
+            relevantAttempts.forEach(att => {
+                const existing = latestAttemptsByQuiz[att.quizId];
+                if (!existing || 
+                    (att.completedAt && existing.completedAt && new Date(att.completedAt) > new Date(existing.completedAt)) ||
+                    (att.id > existing.id)) {
+                    latestAttemptsByQuiz[att.quizId] = att;
+                }
+            });
+            
+            const latestAttempts = Object.values(latestAttemptsByQuiz);
+            const totalScore = latestAttempts.reduce((acc, curr) => acc + (curr.score || 0), 0);
+            
             return { 
                 totalCorrect: null, 
                 totalQuestions: null, 
-                score: relevantAttempts.length ? (totalScore / relevantAttempts.length) : 0 
+                score: latestAttempts.length ? (totalScore / latestAttempts.length) : 0 
             };
         }
         return { totalCorrect: 0, totalQuestions: 0, score: 0 };
     }, [isFlowFinished, sessionStats, userAttempts, quizzes]);
+
+    // Show locked state if video is not completed
+    if (!isVideoCompleted) {
+        return (
+            <Container maxWidth="sm" sx={{ py: 8 }}>
+                <Card elevation={0} sx={{ borderRadius: 4, textAlign: 'center', border: '1px solid #eee', p: 6 }}>
+                    <Box sx={{ 
+                        width: 80, height: 80, borderRadius: '50%', bgcolor: '#fef2f2', 
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                        color: '#ef4444', mx: 'auto', mb: 3 
+                    }}>
+                        <LockIcon sx={{ fontSize: 40 }} />
+                    </Box>
+                    <Typography variant="h5" fontWeight="bold" gutterBottom color="text.primary">
+                        Quiz Locked
+                    </Typography>
+                    <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
+                        Please complete the lesson video first before taking the quiz.
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                        Watch at least 95% of the video to unlock the quiz.
+                    </Typography>
+                </Card>
+            </Container>
+        );
+    }
 
     if (loading || (!isDataReady && !hasStarted)) {
         return (
@@ -184,6 +248,8 @@ const LessonQuiz = ({ lessonId, onNextLesson, onQuizComplete, isLastLesson = fal
 
     if (isFlowFinished) {
         const passed = finalResult?.score >= 60;
+        const canProceed = finalResult?.score >= 80; // Need 80% to proceed to next lesson
+        
         return (
             <Container maxWidth="sm" sx={{ py: 8, minWidth: '300px' }}>
                 <Card elevation={0} sx={{ borderRadius: 4, textAlign: 'center', border: '1px solid #eee', boxShadow: '0 10px 40px rgba(0,0,0,0.05)' }}>
@@ -200,7 +266,7 @@ const LessonQuiz = ({ lessonId, onNextLesson, onQuizComplete, isLastLesson = fal
                         </Box>
                         
                         <Typography variant="h5" fontWeight="bold" sx={{ mt: 3, mb: 1 }}>
-                            {passed ? "Lesson Completed!" : "Completed"}
+                            {canProceed ? "Excellent Work!" : passed ? "Good Job!" : "Quiz Completed"}
                         </Typography>
                         
                         {finalResult.totalQuestions !== null && (
@@ -208,20 +274,46 @@ const LessonQuiz = ({ lessonId, onNextLesson, onQuizComplete, isLastLesson = fal
                                 Correct: <b>{finalResult.totalCorrect}</b> / <b>{finalResult.totalQuestions}</b>
                             </Typography>
                         )}
+                        
+                        {!canProceed && !isLastLesson && (
+                            <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+                                Score at least 80% to unlock the next lesson
+                            </Typography>
+                        )}
                     </Box>
 
                     <CardContent sx={{ position: 'relative', top: -30, px: 4 }}>
-                        <Card sx={{ p: 2, mb: 3, borderRadius: 2, bgcolor: 'white', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
-                             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, color: '#d32f2f' }}>
-                                <LockIcon fontSize="small" />
-                                <Typography variant="body2" fontWeight="600">
-                                    Quiz is locked.
-                                </Typography>
-                             </Box>
-                        </Card>
-                        {/* Hide next lesson button if this is the last lesson */}
-                        {!isLastLesson && (
-                            <Button variant="contained" fullWidth size="large" onClick={onNextLesson} sx={{ bgcolor: '#97A87A', borderRadius: 2 }}>
+                        {/* Retry Button - Always visible */}
+                        <Button 
+                            variant="outlined" 
+                            fullWidth 
+                            size="large" 
+                            onClick={handleRetryQuiz}
+                            startIcon={<ReplayIcon />}
+                            sx={{ 
+                                mb: 2, 
+                                borderRadius: 2, 
+                                borderColor: '#97A87A', 
+                                color: '#97A87A',
+                                '&:hover': { 
+                                    borderColor: '#7e8f63', 
+                                    bgcolor: 'rgba(151, 168, 122, 0.08)' 
+                                } 
+                            }}
+                        >
+                            Retry Quiz
+                        </Button>
+                        
+                        {/* Next Lesson Button - Only show if score >= 80% AND not last lesson */}
+                        {canProceed && !isLastLesson && (
+                            <Button 
+                                variant="contained" 
+                                fullWidth 
+                                size="large" 
+                                onClick={onNextLesson}
+                                endIcon={<NavigateNextIcon />}
+                                sx={{ bgcolor: '#97A87A', borderRadius: 2, '&:hover': { bgcolor: '#7e8f63' } }}
+                            >
                                 Next Lesson
                             </Button>
                         )}
@@ -296,14 +388,14 @@ const LessonQuiz = ({ lessonId, onNextLesson, onQuizComplete, isLastLesson = fal
             <Fade in={true} key={currentQuizData.id}>
                 <Box>
                     <Typography variant="h5" fontWeight="bold" gutterBottom sx={{ mb: 3 }}>{currentQuizData.title}</Typography>
-                    {questions.map((q, index) => (
+                    {questions.map((q) => (
                         <Card key={q.id} elevation={0} sx={{ mb: 3, border: '1px solid #e0e0e0', borderRadius: 3 }}>
                             <CardContent sx={{ p: 3 }}>
                                 <Typography variant="h6" fontWeight="600" sx={{ mb: 2 }}>{q.questionText}</Typography>
                                 <FormControl fullWidth>
                                     <RadioGroup value={answers[q.id] || ''} onChange={(e) => handleOptionChange(q.id, e.target.value)}>
                                         {q.options.map((option, i) => {
-                                            const val = (i + 1).toString();
+                                            const val = option; // Use actual option text, not index
                                             const isSelected = answers[q.id] === val;
                                             return (
                                                 <FormControlLabel key={i} value={val} control={<Radio sx={{ display: 'none' }} />}
