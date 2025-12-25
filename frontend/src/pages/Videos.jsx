@@ -747,7 +747,7 @@ const Videos = () => {
 
     // Check all quizzes are completed - fetch quiz attempts for user
     try {
-      const quizAttemptsResponse = await api.get('/quiz/my-attempts');
+      const quizAttemptsResponse = await api.get('/quiz/me/attempts');
       const userAttempts = quizAttemptsResponse.data?.data || [];
       
       console.log(`User has ${userAttempts.length} quiz attempts`);
@@ -758,7 +758,7 @@ const Videos = () => {
         
         for (const lesson of moduleLessons) {
           try {
-            const quizzesResponse = await api.get(`/quiz/lesson/${lesson.id}`);
+            const quizzesResponse = await api.get(`/quiz/lessons/${lesson.id}/quizzes`);
             const lessonQuizzes = quizzesResponse.data?.data || [];
             
             console.log(`Lesson "${lesson.title}" has ${lessonQuizzes.length} quizzes`);
@@ -1071,7 +1071,7 @@ const Videos = () => {
     // Check if final lesson has quizzes
     try {
       console.log('Fetching quizzes for lesson:', selectedLesson.id);
-      const quizzesResponse = await api.get(`/quiz/lesson/${selectedLesson.id}`);
+      const quizzesResponse = await api.get(`/quiz/lessons/${selectedLesson.id}/quizzes`);
       const lessonQuizzes = quizzesResponse.data?.data || [];
       
       console.log('Quizzes found for final lesson:', lessonQuizzes.length);
@@ -1251,6 +1251,7 @@ const Videos = () => {
                     <LessonQuiz 
                       key={selectedLesson.id} 
                       lessonId={selectedLesson.id}
+                      isVideoCompleted={selectedLesson?.progress?.isCompleted || false}
                       isLastLesson={(() => {
                         const currentModuleIndex = modules.findIndex(m => m.id === selectedModule?.id);
                         const isLastModule = currentModuleIndex === modules.length - 1;

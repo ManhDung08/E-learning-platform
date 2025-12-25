@@ -716,6 +716,7 @@ const submitQuizAttempt = async (attemptId, answers, userId) => {
           questions: {
             select: {
               id: true,
+              optionsJson: true,
               correctOption: true,
             },
           },
@@ -756,7 +757,23 @@ const submitQuizAttempt = async (attemptId, answers, userId) => {
 
   attempt.quiz.questions.forEach((question) => {
     const userAnswer = answers[question.id.toString()];
-    if (userAnswer && userAnswer === question.correctOption) {
+
+    // Parse options from JSON to get the actual option text
+    let options = [];
+    try {
+      options = JSON.parse(question.optionsJson);
+    } catch (error) {
+      console.error(
+        `Error parsing options for question ${question.id}:`,
+        error
+      );
+    }
+
+    // correctOption is stored as index (1-based), get the actual option text
+    const correctOptionIndex = parseInt(question.correctOption) - 1;
+    const correctOptionText = options[correctOptionIndex];
+
+    if (userAnswer && userAnswer === correctOptionText) {
       correctAnswers++;
     }
   });
