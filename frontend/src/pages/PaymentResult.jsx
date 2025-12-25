@@ -4,13 +4,10 @@ import { Box, Container, Typography, Button, Paper, CircularProgress } from '@mu
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorIcon from '@mui/icons-material/Error';
 
-
-
 const PaymentResultPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
   
-
   const [status, setStatus] = useState('loading'); 
   const [message, setMessage] = useState('');
 
@@ -18,38 +15,34 @@ const PaymentResultPage = () => {
     const handlePaymentResult = () => {
         const searchParams = new URLSearchParams(location.search);
 
-
       const isSuccessNew = searchParams.get('success') === 'true';
       const isSuccessVnp = searchParams.get('vnp_ResponseCode') === '00';
 
       const msgParam = searchParams.get('message');
       const decodedMessage = msgParam ? decodeURIComponent(msgParam) : '';
 
-   
         if (isSuccessNew || isSuccessVnp) {
             setStatus('success');
-            setMessage(decodedMessage || 'Thanh toán thành công! Khóa học đã được kích hoạt.');
+            // Translate success message
+            setMessage(decodedMessage || 'Payment successful! The course has been activated.');
             
-        
             localStorage.removeItem('pendingCourseId'); 
         } else {
             setStatus('failed');
-            setMessage(decodedMessage || 'Giao dịch thất bại hoặc bị hủy.');
+            // Translate failure message
+            setMessage(decodedMessage || 'Transaction failed or cancelled.');
         }
     };
 
-  
     handlePaymentResult();
   }, [location.search]);
-
-
 
   if (status === 'loading') {
     return (
         <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center" height="60vh">
           <CircularProgress size={60} thickness={4} />
           <Typography variant="h6" sx={{ mt: 3, color: 'text.secondary' }}>
-              Đang xác nhận kết quả thanh toán...
+              Verifying payment result...
           </Typography>
         </Box>
     );
@@ -63,7 +56,7 @@ const PaymentResultPage = () => {
           <>
             <CheckCircleIcon color="success" sx={{ fontSize: 80, mb: 2 }} />
             <Typography variant="h4" color="success.main" gutterBottom fontWeight="bold">
-              Thanh toán thành công!
+              Payment Successful!
             </Typography>
             <Typography variant="body1" paragraph color="text.secondary">
               {message}
@@ -75,7 +68,7 @@ const PaymentResultPage = () => {
                     onClick={() => navigate('/my-course')} 
                     sx={{ borderRadius: 20, px: 4 }}
                 >
-                  Vào học ngay
+                  Start Learning
                 </Button>
             </Box>
           </>
@@ -86,17 +79,17 @@ const PaymentResultPage = () => {
           <>
             <ErrorIcon color="error" sx={{ fontSize: 80, mb: 2 }} />
             <Typography variant="h4" color="error.main" gutterBottom fontWeight="bold">
-              Giao dịch thất bại
+              Transaction Failed
             </Typography>
             <Typography variant="body1" color="text.secondary" paragraph>
               {message}
             </Typography>
             <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', mt: 3 }}>
                 <Button variant="outlined" onClick={() => navigate('/')}>
-                    Về trang chủ
+                    Back to Home
                 </Button>
                 <Button variant="contained" onClick={() => navigate(-1)}>
-                    Thử lại
+                    Try Again
                 </Button>
             </Box>
           </>

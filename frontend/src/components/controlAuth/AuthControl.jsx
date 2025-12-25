@@ -27,12 +27,12 @@ const AuthControl = () => {
         <Button variant='outlined'
               onClick={handleOpenRegister}
               sx={{ color: '#97A87A', borderColor: '#97A87A', '&:hover': { bgcolor: '#829366', color: '#FFFFFF' },  borderRadius: '20px', paddingX: '20px'}}>
-          Đăng ký
+          Register
         </Button>
         <Button variant='contained'
               onClick={handleOpenLogin}
               sx={{ bgcolor: '#97A87A', '&:hover': { bgcolor: '#829366' },  borderRadius: '20px', paddingX: '20px'}}>
-          Đăng nhập
+          Log in
         </Button>
       </Box>
       

@@ -1,33 +1,18 @@
 import React, { useState, useEffect } from 'react';
-
 import { useNavigate } from 'react-router-dom';
-
-import { User, Mail, Phone, Calendar, Users, BookOpen, Award, Lock, Check, Edit2, Save, X, ArrowLeft } from 'lucide-react';
+import { User, Mail, Phone, Calendar, Users, BookOpen, Award, Lock, Check, Edit2, Save, X, ArrowLeft, ExternalLink } from 'lucide-react';
 import InputField from '../components/InputField';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
 import CourseCard from '../components/courses/CourseCard';
 
-
-const ToggleSwitch = ({ enabled, onToggle }) => (
-  <button
-    onClick={onToggle}
-    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${enabled ? 'bg-blue-600' : 'bg-gray-300'}`}
-  >
-    <span
-      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${enabled ? 'translate-x-6' : 'translate-x-1'}`}
-    />
-  </button>
-);
-
 function AccountProfile() {
-  // 3. Khởi tạo hook navigate
   const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState(0);
   const [isEditing, setIsEditing] = useState(false);
   const [showAlert, setShowAlert] = useState(false);
 
-  // Tab thong tin ca nhan
+  // --- Tab Thông tin cá nhân ---
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -35,39 +20,33 @@ function AccountProfile() {
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(null);
 
-  // Tab bao mat
+  // --- Tab Chứng chỉ (NEW) ---
+  const [certificates, setCertificates] = useState([]);
+  const [certLoading, setCertLoading] = useState(false);
+
+  // --- Tab Bảo mật ---
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  //Dialog xac nhan doi mat khau
+  // Dialog xác nhận
   const [openDialog, setOpenDialog] = useState(false);
   const [dialogMessage, setDialogMessage] = useState('');
 
-  const [notifications, setNotifications] = useState({
-    emailNotifications: true,
-    courseUpdates: true,
-    newComments: false
-  });
-
+  // Fetch Profile & Certificates
   useEffect(() => {
     const fetchProfile = async () => {
       try {
         setLoading(true);
-
         const response = await fetch('http://localhost:3000/api/user/me', {
           method: 'GET',
           credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json'
-          }
+          headers: { 'Content-Type': 'application/json' }
         });
 
         if (!response.ok) {
-          if (response.status === 401) {
-            throw new Error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
-          }
-          throw new Error('Không thể tải thông tin người dùng');
+          if (response.status === 401) throw new Error('Session expired. Please log in again.');
+          throw new Error('Unable to load user profile.');
         }
 
         const result = await response.json();
@@ -76,15 +55,40 @@ function AccountProfile() {
         setEditedProfile(data);
       } catch (err) {
         console.error(err);
-        setError(err.message || 'Không thể load thông tin người dùng');
+        setError(err.message || 'Unable to load user profile.');
       } finally {
         setLoading(false);
       }
     };
 
+    const fetchCertificates = async () => {
+      try {
+        setCertLoading(true);
+        // Dùng fetch thay vì api.get để đồng bộ với code cũ của bạn
+        const response = await fetch('http://localhost:3000/api/certificate/me', {
+          method: 'GET',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success) {
+            setCertificates(result.data || []);
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching certificates:", err);
+      } finally {
+        setCertLoading(false);
+      }
+    };
+
     fetchProfile();
+    fetchCertificates();
   }, []);
 
+  // Fake courses data (Bạn có thể muốn sửa cái này sau nếu có API course)
   const courses = [
     {
       id: 1,
@@ -94,39 +98,10 @@ function AccountProfile() {
       instructor: 'Nguyễn Văn A',
       enrolledAt: '2024-01-15'
     },
-    {
-      id: 2,
-      title: 'Machine Learning cơ bản',
-      image: 'https://images.unsplash.com/photo-1555949963-aa79dcee981c?w=300',
-      progress: 45,
-      instructor: 'Trần Thị B',
-      enrolledAt: '2024-02-20'
-    },
-    {
-      id: 3,
-      title: 'Node.js & Express',
-      image: 'https://images.unsplash.com/photo-1627398242454-45a1465c2479?w=300',
-      progress: 90,
-      instructor: 'Lê Văn C',
-      enrolledAt: '2023-12-10'
-    }
+    // ... các course khác giữ nguyên
   ];
 
-  const certificates = [
-    {
-      id: 1,
-      courseName: 'JavaScript Advanced',
-      issuedAt: '2024-01-20',
-      url: '#'
-    },
-    {
-      id: 2,
-      courseName: 'Python for Data Science',
-      issuedAt: '2023-11-15',
-      url: '#'
-    }
-  ];
-
+  // --- Handlers ---
   const handleEdit = () => {
     setIsEditing(true);
     setEditedProfile(profile);
@@ -138,11 +113,11 @@ function AccountProfile() {
     const file = e.target.files[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        alert('Kích thước ảnh không được vượt quá 5MB');
+        alert('Image size must not exceed 5MB.');
         return;
       }
       if (!file.type.startsWith('image/')) {
-        alert('Vui lòng chọn file ảnh');
+        alert('Please select an image file.');
         return;
       }
       setAvatarFile(file);
@@ -158,7 +133,6 @@ function AccountProfile() {
     try {
       let uploadedImageUrl = profile.profileImageUrl;
 
-      // 1. Nếu có chọn avatar mới → upload
       if (avatarFile) {
         const formData = new FormData();
         formData.append('avatar', avatarFile);
@@ -169,57 +143,38 @@ function AccountProfile() {
           body: formData
         });
 
-        if (!uploadResponse.ok) {
-          throw new Error('Không thể tải lên ảnh đại diện');
-        }
-
+        if (!uploadResponse.ok) throw new Error('Unable to upload avatar.');
         const uploadResult = await uploadResponse.json();
         uploadedImageUrl = uploadResult.data.profileImageUrl + '?t=' + Date.now();
       }
 
-     
       const response = await fetch('http://localhost:3000/api/user/update-profile', {
         method: 'PUT',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...editedProfile,
-          profileImageUrl: uploadedImageUrl  
+          profileImageUrl: uploadedImageUrl
         })
       });
 
-      if (!response.ok) {
-        throw new Error('Không thể cập nhật thông tin');
-      }
-
+      if (!response.ok) throw new Error('Unable to update profile.');
       const result = await response.json();
-
       
-      const updatedData = {
-        ...result.data,
-        profileImageUrl: uploadedImageUrl
-      };
-
-     
+      const updatedData = { ...result.data, profileImageUrl: uploadedImageUrl };
       setProfile(prev => ({ ...prev, ...updatedData }));
       setEditedProfile(prev => ({ ...prev, ...updatedData }));
-
-      
       setAvatarPreview(uploadedImageUrl);
-
-     
       setIsEditing(false);
       setAvatarFile(null);
-
       setShowAlert(true);
       setTimeout(() => setShowAlert(false), 3000);
 
     } catch (err) {
-      console.error('Lỗi khi cập nhật:', err);
-      alert(err.message || 'Không thể cập nhật thông tin. Vui lòng thử lại!');
+      console.error('Error update profile:', err);
+      alert(err.message || 'Unable to update profile. Please try again!');
     }
   };
-
 
   const handleCancel = () => {
     setIsEditing(false);
@@ -232,25 +187,24 @@ function AccountProfile() {
     setEditedProfile({ ...editedProfile, [field]: value });
   };
 
-
   const handleChangePassword = async () => {
     if (newPassword !== confirmPassword) {
-      setDialogMessage("Mật khẩu mới và xác nhận mật khẩu không khớp!");
+      setDialogMessage("New password and confirm password do not match!");
       setOpenDialog(true);
       return;
     }
     if (newPassword.length < 6) {
-      setDialogMessage("Mật khẩu mới phải có ít nhất 6 ký tự!");
+      setDialogMessage("New password must be at least 6 characters!");
       setOpenDialog(true);
       return;
     }
     if (!currentPassword || !newPassword || !confirmPassword) {
-      setDialogMessage("Vui lòng nhập đầy đủ thông tin");
+      setDialogMessage("Please enter all required fields.");
       setOpenDialog(true);
       return;
     }
     if (newPassword === currentPassword) {
-      setDialogMessage("Mật khẩu mới không được trùng với mật khẩu hiện tại!");
+      setDialogMessage("New password cannot be the same as current password!");
       setOpenDialog(true);
       return;
     }
@@ -259,49 +213,41 @@ function AccountProfile() {
       const response = await fetch("http://localhost:3000/api/user/change-password", {
         method: "PUT",
         credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          currentPassword,
-          newPassword,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentPassword, newPassword }),
       });
 
       const data = await response.json();
-
       if (!response.ok) {
-        setDialogMessage(data.message || "Đổi mật khẩu thất bại");
+        setDialogMessage(data.message || "Password change failed.");
         setOpenDialog(true);
         return;
       }
-
-  
-      setDialogMessage("Đổi mật khẩu thành công!");
+      setDialogMessage("Password changed successfully!");
       setOpenDialog(true);
 
     } catch (err) {
-      console.error("Lỗi khi đổi mật khẩu:", err);
-      setDialogMessage("Đổi mật khẩu thất bại. Vui lòng thử lại!");
+      console.error("Error change password:", err);
+      setDialogMessage("Password change failed. Please try again!");
       setOpenDialog(true);
     }
   };
 
   const handleCloseDialog = () => {
     setOpenDialog(false);
-
-    if (dialogMessage === "Đổi mật khẩu thành công!") {
-     
+    if (dialogMessage === "Password changed successfully!") {
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
     }
   };
 
-
-
-  const toggleNotification = (key) => {
-    setNotifications({ ...notifications, [key]: !notifications[key] });
+  const handleViewCertificate = (url) => {
+    if (url) {
+        window.open(url, '_blank');
+    } else {
+        alert("Certificate URL not found");
+    }
   };
 
   const getInitials = () => {
@@ -311,18 +257,16 @@ function AccountProfile() {
 
   const getRoleInfo = (role) => {
     const info = {
-      student: { label: 'Học viên', color: 'bg-blue-100 text-blue-800' },
-      instructor: { label: 'Giảng viên', color: 'bg-green-100 text-green-800' },
-      admin: { label: 'Quản trị viên', color: 'bg-red-100 text-red-800' }
+      student: { label: 'Student', color: 'bg-blue-100 text-blue-800' },
+      instructor: { label: 'Instructor', color: 'bg-green-100 text-green-800' },
+      admin: { label: 'Admin', color: 'bg-red-100 text-red-800' }
     };
     return info[role] || info.student;
   };
 
   const formatDateForInput = (dateString) => {
     if (!dateString) return '';
-    if (dateString.includes('T')) {
-      return dateString.split('T')[0];
-    }
+    if (dateString.includes('T')) return dateString.split('T')[0];
     const date = new Date(dateString);
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -332,7 +276,7 @@ function AccountProfile() {
 
   const formatDate = (dateString) => {
     if (!dateString) return '';
-    return new Date(dateString).toLocaleDateString('vi-VN', {
+    return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
@@ -340,10 +284,9 @@ function AccountProfile() {
   };
 
   const tabs = [
-    { id: 0, label: 'Thông tin cá nhân', icon: User },
-    // { id: 1, label: 'Khóa học của tôi', icon: BookOpen },
-    { id: 2, label: 'Chứng chỉ', icon: Award },
-    { id: 3, label: 'Bảo mật', icon: Lock }
+    { id: 0, label: 'Personal Info', icon: User },
+    { id: 2, label: 'Certificates', icon: Award },
+    { id: 3, label: 'Security', icon: Lock }
   ];
 
   if (loading) {
@@ -351,7 +294,7 @@ function AccountProfile() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Đang tải thông tin...</p>
+          <p className="text-gray-600">Loading profile...</p>
         </div>
       </div>
     );
@@ -364,20 +307,20 @@ function AccountProfile() {
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <X className="h-8 w-8 text-red-600" />
           </div>
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Có lỗi xảy ra</h2>
-          <p className="text-red-600 mb-6">{error || 'Không thể tải thông tin'}</p>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">An error occurred</h2>
+          <p className="text-red-600 mb-6">{error || 'Can not load information'}</p>
           <div className="flex gap-3 justify-center">
              <button
               onClick={() => navigate('/')}
               className="px-6 py-2.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
             >
-              Về trang chủ
+              Back to Dashboard
             </button>
             <button
               onClick={() => window.location.reload()}
               className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
             >
-              Thử lại
+              Try Again
             </button>
           </div>
         </div>
@@ -389,7 +332,6 @@ function AccountProfile() {
     <div className="min-h-screen bg-gray-50 py-4 sm:py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
-       
         <button
           onClick={() => navigate('/')}
           className="flex items-center gap-2 text-gray-600 hover:text-blue-600 mb-4 transition-colors group"
@@ -397,13 +339,13 @@ function AccountProfile() {
           <div className="p-2 bg-white rounded-full shadow-sm group-hover:shadow-md transition-all">
             <ArrowLeft className="h-5 w-5" />
           </div>
-          <span className="font-medium">Trở về trang chủ</span>
+          <span className="font-medium">Back to Dashboard</span>
         </button>
 
         {showAlert && (
           <div className="mb-4 sm:mb-6 bg-green-50 border border-green-200 rounded-lg p-3 sm:p-4 flex items-center gap-3">
             <Check className="h-5 w-5 text-green-600 flex-shrink-0" />
-            <p className="text-sm sm:text-base text-green-800 font-medium">Thông tin cá nhân đã được cập nhật thành công!</p>
+            <p className="text-sm sm:text-base text-green-800 font-medium">Profile updated successfully!</p>
           </div>
         )}
 
@@ -422,12 +364,7 @@ function AccountProfile() {
               {isEditing && (
                 <label className="absolute bottom-0 right-0 bg-blue-600 text-white p-2 rounded-full cursor-pointer hover:bg-blue-700 transition-colors shadow-lg">
                   <Edit2 className="h-4 w-4" />
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleAvatarChange}
-                    className="hidden"
-                  />
+                  <input type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
                 </label>
               )}
             </div>
@@ -443,8 +380,8 @@ function AccountProfile() {
                 </span>
                 <span className="px-3 py-1 rounded-full text-sm font-medium bg-green-50 text-green-700 border border-green-200 flex items-center gap-1">
                   <Check className="h-4 w-4" />
-                  <span className="hidden sm:inline">Email đã xác thực</span>
-                  <span className="sm:hidden">Đã xác thực</span>
+                  <span className="hidden sm:inline">Email verified</span>
+                  <span className="sm:hidden">Verified</span>
                 </span>
               </div>
             </div>
@@ -456,8 +393,7 @@ function AccountProfile() {
                     onClick={handleEdit}
                     className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm font-medium"
                   >
-                    <Edit2 className="h-4 w-4" />
-                    Chỉnh sửa
+                    <Edit2 className="h-4 w-4" /> Edit
                   </button>
                 ) : (
                   <>
@@ -465,15 +401,13 @@ function AccountProfile() {
                       onClick={handleSave}
                       className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm font-medium"
                     >
-                      <Save className="h-4 w-4" />
-                      Lưu
+                      <Save className="h-4 w-4" /> Save
                     </button>
                     <button
                       onClick={handleCancel}
                       className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
                     >
-                      <X className="h-4 w-4" />
-                      Hủy
+                      <X className="h-4 w-4" /> Cancel
                     </button>
                   </>
                 )}
@@ -506,19 +440,19 @@ function AccountProfile() {
             {activeTab === 0 && (
               <div className="space-y-6 sm:space-y-8">
                 <div>
-                  <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-1">Thông tin cơ bản</h2>
+                  <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-1">Personal Info</h2>
                   <div className="h-1 w-16 bg-blue-600 rounded-full mb-4 sm:mb-6"></div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                     <InputField
-                      label="Họ"
+                      label="First Name"
                       value={isEditing ? editedProfile.firstName : profile.firstName}
                       onChange={(val) => handleChange('firstName', val)}
                       disabled={!isEditing}
                       icon={User}
                     />
                     <InputField
-                      label="Tên"
+                      label="Last Name"
                       value={isEditing ? editedProfile.lastName : profile.lastName}
                       onChange={(val) => handleChange('lastName', val)}
                       disabled={!isEditing}
@@ -533,14 +467,14 @@ function AccountProfile() {
                       icon={Mail}
                     />
                     <InputField
-                      label="Số điện thoại"
+                      label="Phone Number"
                       value={isEditing ? editedProfile.phoneNumber : profile.phoneNumber}
                       onChange={(val) => handleChange('phoneNumber', val)}
                       disabled={!isEditing}
                       icon={Phone}
                     />
                     <InputField
-                      label="Ngày sinh"
+                      label="Date of Birth"
                       type="date"
                       value={isEditing ? formatDateForInput(editedProfile.dateOfBirth) : formatDateForInput(profile.dateOfBirth)}
                       onChange={(val) => handleChange('dateOfBirth', val)}
@@ -548,16 +482,16 @@ function AccountProfile() {
                       icon={Calendar}
                     />
                     <InputField
-                      label="Giới tính"
+                      label="Gender"
                       value={isEditing ? editedProfile.gender : profile.gender}
                       onChange={(val) => handleChange('gender', val)}
                       disabled={!isEditing}
                       icon={Users}
                       select
                       options={[
-                        { value: 'male', label: 'Nam' },
-                        { value: 'female', label: 'Nữ' },
-                        { value: 'other', label: 'Khác' }
+                        { value: 'male', label: 'Male' },
+                        { value: 'female', label: 'Female' },
+                        { value: 'other', label: 'Other' }
                       ]}
                     />
                   </div>
@@ -565,69 +499,85 @@ function AccountProfile() {
               </div>
             )}
 
-            {activeTab === 1 && (
-              <div>
-                <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-1">Khóa học đang học ({courses.length})</h2>
-                <div className="h-1 w-16 bg-blue-600 rounded-full mb-4 sm:mb-6"></div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-                  {courses.map((course) => (
-                    <CourseCard key={course.id} course={course} />
-                  ))}
-                </div>
-              </div>
-            )}
-
             {activeTab === 2 && (
               <div>
-                <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-1">Chứng chỉ đã đạt được ({certificates.length})</h2>
+                <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-1">Earned Certificates ({certificates.length})</h2>
                 <div className="h-1 w-16 bg-blue-600 rounded-full mb-4 sm:mb-6"></div>
 
-                <div className="space-y-4">
-                  {certificates.map((cert) => (
-                    <div
-                      key={cert.id}
-                      className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4 hover:shadow-md transition-all"
-                    >
-                      <div className="flex-shrink-0">
-                        <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center">
-                          <Award className="h-7 w-7 sm:h-8 sm:w-8 text-white" />
-                        </div>
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-1">{cert.courseName}</h3>
-                        <p className="text-sm text-gray-600">Cấp ngày: {formatDate(cert.issuedAt)}</p>
-                      </div>
-                      <button className="w-full sm:w-auto px-4 sm:px-6 py-2 bg-white border-2 border-green-600 text-green-600 rounded-lg hover:bg-green-50 transition-colors font-medium text-sm sm:text-base">
-                        Xem chứng chỉ
-                      </button>
+                {certLoading ? (
+                    <div className="flex justify-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                     </div>
-                  ))}
-                </div>
+                ) : certificates.length === 0 ? (
+                    <div className="text-center py-8 bg-gray-50 rounded-lg border border-gray-100">
+                        <Award className="h-12 w-12 text-gray-300 mx-auto mb-2" />
+                        <p className="text-gray-500">No certificates found.</p>
+                    </div>
+                ) : (
+                    <div className="space-y-4">
+                      {certificates.map((cert) => {
+                        // Lấy URL từ cert.certificateUrl (ưu tiên) hoặc cert.url
+                        const finalUrl = cert.certificateUrl || cert.url;
+                        return (
+                          <div
+                            key={cert.id || Math.random()}
+                            className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4 hover:shadow-md transition-all"
+                          >
+                            <div className="flex-shrink-0">
+                              <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center">
+                                <Award className="h-7 w-7 sm:h-8 sm:w-8 text-white" />
+                              </div>
+                            </div>
+                            <div className="flex-1">
+                              <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-1">
+                                {cert.course?.title || 'Course Name'}
+                              </h3>
+                              {cert.course?.instructor && (
+                                <p className="text-sm text-gray-600 mb-1">
+                                    Instructor: {cert.course.instructor.fullname}
+                                </p>
+                              )}
+                              <p className="text-sm text-gray-600">
+                                Issued on: {formatDate(cert.issuedAt)}
+                              </p>
+                            </div>
+                            <button 
+                                onClick={() => handleViewCertificate(finalUrl)}
+                                className="w-full sm:w-auto px-4 sm:px-6 py-2 bg-white border-2 border-green-600 text-green-600 rounded-lg hover:bg-green-50 transition-colors font-medium text-sm sm:text-base flex items-center justify-center gap-2"
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                              View Certificate
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                )}
               </div>
             )}
 
+            {/* TAB 3: Security */}
             {activeTab === 3 && (
               <div className="space-y-4 sm:space-y-6">
                 <div className="border border-gray-200 rounded-xl p-4 sm:p-6">
-                  <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-4">Đổi mật khẩu</h3>
+                  <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-4">Change Password</h3>
                   <div className="space-y-4">
                     <InputField
-                      label="Mật khẩu hiện tại"
+                      label="Current Password"
                       type="password"
                       value={currentPassword}
                       onChange={setCurrentPassword}
                       icon={Lock}
                     />
                     <InputField
-                      label="Mật khẩu mới"
+                      label="New Password"
                       type="password"
                       value={newPassword}
                       onChange={setNewPassword}
                       icon={Lock}
                     />
                     <InputField
-                      label="Xác nhận mật khẩu mới"
+                      label="Confirm New Password"
                       type="password"
                       value={confirmPassword}
                       onChange={setConfirmPassword}
@@ -637,48 +587,10 @@ function AccountProfile() {
                       className="w-full sm:w-auto px-4 sm:px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm sm:text-base"
                       onClick={handleChangePassword}
                     >
-                      Cập nhật mật khẩu
+                      Update Password
                     </button>
                   </div>
                 </div>
-
-                {/* <div className="border border-gray-200 rounded-xl p-4 sm:p-6">
-                  <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-4">Cài đặt thông báo</h3>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between py-3 border-b border-gray-100">
-                      <div className="flex-1 mr-4">
-                        <p className="font-medium text-gray-900 text-sm sm:text-base">Thông báo qua email</p>
-                        <p className="text-xs sm:text-sm text-gray-500 mt-1">Nhận email về các cập nhật quan trọng</p>
-                      </div>
-                      <ToggleSwitch
-                        enabled={notifications.emailNotifications}
-                        onToggle={() => toggleNotification('emailNotifications')}
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between py-3 border-b border-gray-100">
-                      <div className="flex-1 mr-4">
-                        <p className="font-medium text-gray-900 text-sm sm:text-base">Cập nhật khóa học</p>
-                        <p className="text-xs sm:text-sm text-gray-500 mt-1">Thông báo khi có bài học mới</p>
-                      </div>
-                      <ToggleSwitch
-                        enabled={notifications.courseUpdates}
-                        onToggle={() => toggleNotification('courseUpdates')}
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between py-3">
-                      <div className="flex-1 mr-4">
-                        <p className="font-medium text-gray-900 text-sm sm:text-base">Bình luận mới</p>
-                        <p className="text-xs sm:text-sm text-gray-500 mt-1">Thông báo khi có người trả lời bình luận</p>
-                      </div>
-                      <ToggleSwitch
-                        enabled={notifications.newComments}
-                        onToggle={() => toggleNotification('newComments')}
-                      />
-                    </div>
-                  </div>
-                </div> */}
               </div>
             )}
           </div>
@@ -687,7 +599,7 @@ function AccountProfile() {
 
       {/* Dialog thông báo */}
       <Dialog open={openDialog} onClose={handleCloseDialog}>
-        <DialogTitle>Thông báo</DialogTitle>
+        <DialogTitle>Notification</DialogTitle>
         <DialogContent>
           <p className="text-gray-700">{dialogMessage}</p>
         </DialogContent>

@@ -48,10 +48,10 @@ const CreateTicketPage = () => {
 
   const getStatusLabel = (status) => {
     switch (status?.toLowerCase()) {
-      case 'open': return 'Đang mở';
-      case 'in_progress': return 'Đang xử lý';
-      case 'resolved': return 'Đã giải quyết';
-      case 'closed': return 'Đã đóng';
+      case 'open': return 'Open';
+      case 'in_progress': return 'In Progress';
+      case 'resolved': return 'Resolved';
+      case 'closed': return 'Closed';
       default: return status;
     }
   };
@@ -91,16 +91,16 @@ const CreateTicketPage = () => {
       });
       const data = await response.json();
       if (response.ok) {
-        setNotification({ open: true, message: 'Gửi thành công!', severity: 'success' });
+        setNotification({ open: true, message: 'Submitted successfully!', severity: 'success' });
         setFormData({ subject: '', message: '' });
         fetchHistory();
       } else {
-        let errorMsg = data.message || 'Lỗi gửi yêu cầu.';
-        if (response.status === 401) errorMsg = 'Hết phiên đăng nhập.';
+        let errorMsg = data.message || 'Error submitting request.';
+        if (response.status === 401) errorMsg = 'Session expired.';
         setNotification({ open: true, message: errorMsg, severity: 'error' });
       }
     } catch (error) {
-      setNotification({ open: true, message: 'Lỗi kết nối.', severity: 'error' });
+      setNotification({ open: true, message: 'Connection error.', severity: 'error' });
     } finally {
       setLoading(false);
     }
@@ -124,7 +124,7 @@ const CreateTicketPage = () => {
             onClick={() => navigate('/')} 
             sx={{ textTransform: 'none', color: 'text.secondary', fontWeight: 600, '&:hover': { bgcolor: 'rgba(0,0,0,0.05)' } }}
           >
-            Trở về trang chủ
+            Back to Home
           </Button>
         </Box>
 
@@ -152,23 +152,23 @@ const CreateTicketPage = () => {
                   <SupportAgentIcon fontSize="medium" />
                 </Box>
                 <Box>
-                  <Typography variant="h6" fontWeight="bold">Yêu cầu hỗ trợ</Typography>
-                  <Typography variant="caption" color="text.secondary">Phản hồi sớm nhất có thể</Typography>
+                  <Typography variant="h6" fontWeight="bold">Support Request</Typography>
+                  <Typography variant="caption" color="text.secondary">We will respond as soon as possible</Typography>
                 </Box>
               </Box>
 
               <form onSubmit={handleSubmit} style={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
                 <Stack spacing={2.5} sx={{ flexGrow: 1 }}>
                   <TextField
-                    label="Tiêu đề vấn đề" name="subject"
+                    label="Subject" name="subject"
                     value={formData.subject} onChange={(e) => setFormData({...formData, subject: e.target.value})}
-                    placeholder="Ví dụ: Lỗi thanh toán..." variant="outlined" required
+                    placeholder="Ex: Payment issue..." variant="outlined" required
                     size="small" InputProps={{ sx: { borderRadius: 2 } }}
                   />
                   <TextField
-                    label="Nội dung chi tiết" name="message"
+                    label="Description" name="message"
                     value={formData.message} onChange={(e) => setFormData({...formData, message: e.target.value})}
-                    placeholder="Mô tả chi tiết..." multiline rows={10}
+                    placeholder="Detailed description..." multiline rows={10}
                     variant="outlined" required
                     InputProps={{ sx: { borderRadius: 2 } }}
                     sx={{ flexGrow: 1, '& .MuiInputBase-root': { height: '100%', alignItems: 'flex-start' } }} 
@@ -178,7 +178,7 @@ const CreateTicketPage = () => {
                     disabled={loading} endIcon={<SendIcon />}
                     sx={{ borderRadius: 2, py: 1.5, fontWeight: 'bold', mt: 'auto' }}
                   >
-                    {loading ? 'Đang gửi...' : 'Gửi yêu cầu'}
+                    {loading ? 'Sending...' : 'Submit Request'}
                   </Button>
                 </Stack>
               </form>
@@ -198,7 +198,7 @@ const CreateTicketPage = () => {
               <Box sx={{ p: 2, px: 3, borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: '#fafafa' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                   <HistoryIcon color="primary" />
-                  <Typography variant="subtitle1" fontWeight="bold">Lịch sử yêu cầu</Typography>
+                  <Typography variant="subtitle1" fontWeight="bold">Request History</Typography>
                   <Chip label={tickets.length} size="small" sx={{ height: 20, fontSize: '0.7rem', fontWeight: 'bold' }} />
                 </Box>
                 
@@ -225,10 +225,10 @@ const CreateTicketPage = () => {
                 }}
               >
                 {loadingHistory && tickets.length === 0 ? (
-                  <Box sx={{ textAlign: 'center', py: 10, color: 'text.secondary' }}>Đang tải dữ liệu...</Box>
+                  <Box sx={{ textAlign: 'center', py: 10, color: 'text.secondary' }}>Loading data...</Box>
                 ) : tickets.length === 0 ? (
                   <Box sx={{ textAlign: 'center', py: 10, opacity: 0.6 }}>
-                    <Typography color="text.secondary">Trống</Typography>
+                    <Typography color="text.secondary">No tickets found</Typography>
                   </Box>
                 ) : (
                   <Stack spacing={2}>
@@ -256,7 +256,8 @@ const CreateTicketPage = () => {
                           </Typography>
                           <Box sx={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'text.secondary' }}>
                             <Typography variant="caption" sx={{ bgcolor: '#eee', px: 1, borderRadius: 1 }}>ID: #{ticket.id}</Typography>
-                            <Typography variant="caption">{new Date(ticket.createdAt).toLocaleString('vi-VN')}</Typography>
+                            {/* Changed to en-US for English date format */}
+                            <Typography variant="caption">{new Date(ticket.createdAt).toLocaleString('en-US')}</Typography>
                           </Box>
                         </CardContent>
                       </Card>

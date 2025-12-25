@@ -37,16 +37,16 @@ const MyStudents = () => {
     return (
         <Box sx={{ p: 3 }}>
             <Typography variant="h5" sx={{ mb: 3, fontWeight: 'bold' }}>
-                Học viên của tôi
+                My Students
             </Typography>
 
             {/* Bộ lọc khóa học */}
             <Card sx={{ p: 2, mb: 3 }}>
                 <FormControl fullWidth sx={{ maxWidth: 400 }}>
-                    <InputLabel>Chọn khóa học để xem học viên</InputLabel>
+                    <InputLabel>Select a course to view students</InputLabel>
                     <Select
                         value={selectedCourse}
-                        label="Chọn khóa học để xem học viên"
+                        label="Select a course to view students"
                         onChange={handleCourseChange}
                     >
                         {instructorCourses.map((course) => (
@@ -63,17 +63,17 @@ const MyStudents = () => {
                 <Table>
                     <TableHead sx={{ bgcolor: '#f8f9fa' }}>
                         <TableRow>
-                            <TableCell sx={{ fontWeight: 'bold' }}>Học viên</TableCell>
-                            <TableCell sx={{ fontWeight: 'bold' }}>Ngày tham gia</TableCell>
-                            <TableCell sx={{ fontWeight: 'bold' }}>Tiến độ học tập</TableCell>
-                            <TableCell sx={{ fontWeight: 'bold' }} align="center">% Hoàn thành</TableCell>
+                            <TableCell sx={{ fontWeight: 'bold' }}>Student</TableCell>
+                            <TableCell sx={{ fontWeight: 'bold' }}>Enrolled Date</TableCell>
+                            <TableCell sx={{ fontWeight: 'bold' }}>Progress</TableCell>
+                            <TableCell sx={{ fontWeight: 'bold' }} align="center">Completion %</TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
                         {loading ? (
-                            <TableRow><TableCell colSpan={4} align="center">Đang tải...</TableCell></TableRow>
+                            <TableRow><TableCell colSpan={4} align="center">Loading...</TableCell></TableRow>
                         ) : enrolledStudents.length === 0 ? (
-                            <TableRow><TableCell colSpan={4} align="center">Chưa có học viên nào đăng ký khóa học này.</TableCell></TableRow>
+                            <TableRow><TableCell colSpan={4} align="center">No students enrolled in this course yet.</TableCell></TableRow>
                         ) : (
                             enrolledStudents.map((item) => (
                                 <TableRow key={item.enrollmentId} hover>

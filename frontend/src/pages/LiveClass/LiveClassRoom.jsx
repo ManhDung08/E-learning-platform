@@ -31,7 +31,7 @@ import {
   Settings
 } from '@mui/icons-material';
 
-// Fake video URLs - các video mẫu để hiển thị
+// Fake video URLs - sample videos
 const videoUrls = [
   'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
   'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
@@ -52,12 +52,12 @@ const getRandomVideoUrl = (participantId) => {
   return videoUrls[hash % videoUrls.length];
 };
 
-// Fake data - danh sách người tham gia
+// Fake data - participants list
 const generateFakeParticipants = (roomId, isHost) => {
   const baseParticipants = [
     {
       id: 'user-1',
-      name: 'Nguyễn Văn A',
+      name: 'Nguyen Van A',
       avatar: 'https://i.pravatar.cc/150?img=1',
       isMuted: false,
       isVideoOff: false,
@@ -65,7 +65,7 @@ const generateFakeParticipants = (roomId, isHost) => {
     },
     {
       id: 'user-2',
-      name: 'Trần Thị B',
+      name: 'Tran Thi B',
       avatar: 'https://i.pravatar.cc/150?img=2',
       isMuted: true,
       isVideoOff: false,
@@ -73,7 +73,7 @@ const generateFakeParticipants = (roomId, isHost) => {
     },
     {
       id: 'user-3',
-      name: 'Lê Văn C',
+      name: 'Le Van C',
       avatar: 'https://i.pravatar.cc/150?img=3',
       isMuted: false,
       isVideoOff: true,
@@ -81,7 +81,7 @@ const generateFakeParticipants = (roomId, isHost) => {
     },
     {
       id: 'user-4',
-      name: 'Phạm Thị D',
+      name: 'Pham Thi D',
       avatar: 'https://i.pravatar.cc/150?img=4',
       isMuted: false,
       isVideoOff: false,
@@ -89,7 +89,7 @@ const generateFakeParticipants = (roomId, isHost) => {
     },
     {
       id: 'user-5',
-      name: 'Hoàng Văn E',
+      name: 'Hoang Van E',
       avatar: 'https://i.pravatar.cc/150?img=5',
       isMuted: true,
       isVideoOff: true,
@@ -101,7 +101,7 @@ const generateFakeParticipants = (roomId, isHost) => {
   if (!isHost) {
     baseParticipants.unshift({
       id: 'current-user',
-      name: 'Bạn',
+      name: 'You',
       avatar: 'https://i.pravatar.cc/150?img=6',
       isMuted: false,
       isVideoOff: false,
@@ -118,8 +118,8 @@ const LiveClassRoom = () => {
   const location = useLocation();
   const room = location.state?.room || {
     id: roomId,
-    title: `Phòng ${roomId}`,
-    instructor: 'Giảng viên',
+    title: `Room ${roomId}`,
+    instructor: 'Instructor',
     participants: 5,
     isHost: false
   };
@@ -132,14 +132,14 @@ const LiveClassRoom = () => {
   const [chatMessages, setChatMessages] = useState([
     {
       id: 1,
-      user: 'Nguyễn Văn A',
-      message: 'Xin chào mọi người!',
+      user: 'Nguyen Van A',
+      message: 'Hello everyone!',
       time: '14:05'
     },
     {
       id: 2,
-      user: 'Trần Thị B',
-      message: 'Chào bạn!',
+      user: 'Tran Thi B',
+      message: 'Hi there!',
       time: '14:06'
     }
   ]);
@@ -150,7 +150,7 @@ const LiveClassRoom = () => {
       if (Math.random() > 0.7) {
         const newParticipant = {
           id: `user-${Date.now()}`,
-          name: `Người dùng ${Math.floor(Math.random() * 100)}`,
+          name: `User ${Math.floor(Math.random() * 100)}`,
           avatar: `https://i.pravatar.cc/150?img=${Math.floor(Math.random() * 70)}`,
           isMuted: Math.random() > 0.5,
           isVideoOff: Math.random() > 0.5,
@@ -164,7 +164,7 @@ const LiveClassRoom = () => {
   }, []);
 
   const handleLeaveRoom = () => {
-    if (window.confirm('Bạn có chắc chắn muốn rời khỏi phòng học?')) {
+    if (window.confirm('Are you sure you want to leave the classroom?')) {
       navigate('/live-class');
     }
   };
@@ -173,9 +173,10 @@ const LiveClassRoom = () => {
     if (chatMessage.trim()) {
       const newMessage = {
         id: chatMessages.length + 1,
-        user: 'Bạn',
+        user: 'You',
         message: chatMessage,
-        time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+        // Changed to en-US for AM/PM format
+        time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
       };
       setChatMessages([...chatMessages, newMessage]);
       setChatMessage('');
@@ -221,14 +222,14 @@ const LiveClassRoom = () => {
             onClick={() => navigate('/live-class')}
             sx={{ color: 'white', minWidth: 'auto', px: 1 }}
           >
-            ← Quay lại
+            ← Back
           </Button>
           <Divider orientation="vertical" flexItem sx={{ bgcolor: '#444', mx: 1 }} />
           <Typography variant="h6" fontWeight="bold">
             {room.title}
           </Typography>
           <Chip
-            label="Đang phát trực tiếp"
+            label="Live Now"
             color="error"
             size="small"
             sx={{ ml: 1 }}
@@ -237,7 +238,7 @@ const LiveClassRoom = () => {
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <People sx={{ mr: 1 }} />
           <Typography variant="body2">
-            {participants.length} người tham gia
+            {participants.length} participants
           </Typography>
         </Box>
       </Paper>
@@ -299,7 +300,7 @@ const LiveClassRoom = () => {
                 }}
               >
                 <Chip
-                  label="Đang phát trực tiếp"
+                  label="Live Now"
                   color="error"
                   size="small"
                   sx={{ bgcolor: '#d32f2f' }}
@@ -375,7 +376,7 @@ const LiveClassRoom = () => {
                 '&:hover': { bgcolor: '#b71c1c' }
               }}
             >
-              Rời phòng
+              Leave Room
             </Button>
           </Box>
         </Box>
@@ -386,7 +387,7 @@ const LiveClassRoom = () => {
           <Box sx={{ p: 2, borderBottom: '1px solid #444' }}>
             <Typography variant="h6" sx={{ color: 'white', mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
               <People />
-              Người tham gia ({participants.length})
+              Participants ({participants.length})
             </Typography>
             <List sx={{ maxHeight: 200, overflow: 'auto' }}>
               {participants.map((participant, index) => (
@@ -414,10 +415,10 @@ const LiveClassRoom = () => {
                       secondary={
                         <Box sx={{ display: 'flex', gap: 1, mt: 0.5 }}>
                           {participant.isMuted && (
-                            <Chip icon={<MicOff />} label="Tắt tiếng" size="small" sx={{ height: 20, fontSize: '0.7rem' }} />
+                            <Chip icon={<MicOff />} label="Muted" size="small" sx={{ height: 20, fontSize: '0.7rem' }} />
                           )}
                           {participant.isVideoOff && (
-                            <Chip icon={<VideocamOff />} label="Tắt video" size="small" sx={{ height: 20, fontSize: '0.7rem' }} />
+                            <Chip icon={<VideocamOff />} label="Video Off" size="small" sx={{ height: 20, fontSize: '0.7rem' }} />
                           )}
                         </Box>
                       }
@@ -467,7 +468,7 @@ const LiveClassRoom = () => {
             <TextField
               fullWidth
               size="small"
-              placeholder="Nhập tin nhắn..."
+              placeholder="Type a message..."
               value={chatMessage}
               onChange={(e) => setChatMessage(e.target.value)}
               onKeyPress={(e) => {
@@ -512,4 +513,3 @@ const LiveClassRoom = () => {
 };
 
 export default LiveClassRoom;
-

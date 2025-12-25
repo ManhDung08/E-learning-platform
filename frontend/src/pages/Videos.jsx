@@ -1031,7 +1031,7 @@ const Videos = () => {
                 
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             } else {
-                alert("Module tiếp theo đang bị khóa. Vui lòng hoàn thành module hiện tại trước.");
+                alert("The next module is locked. Please complete the current module first.");
             }
         }
         // Note: For last lesson of last module, we don't do anything here
@@ -1167,10 +1167,10 @@ const Videos = () => {
 
   // Show loading while checking access
   if (checkingAccess) {
-    return <div className="w-full min-h-screen bg-gray-50 flex items-center justify-center">Đang kiểm tra quyền truy cập...</div>;
+    return <div className="w-full min-h-screen bg-gray-50 flex items-center justify-center">Checking access...</div>;
   }
 
-  if (loading) return <div className="w-full min-h-screen bg-gray-50 flex items-center justify-center">Đang tải...</div>;
+  if (loading) return <div className="w-full min-h-screen bg-gray-50 flex items-center justify-center">Loading...</div>;
   if (error) return <div className="w-full min-h-screen bg-gray-50 flex items-center justify-center text-red-500">{error}</div>;
 
   return (

@@ -20,7 +20,7 @@ const CourseCard = ({ course }) => {
 
     const instructorName = course.instructor
         ? `${course.instructor.lastName} ${course.instructor.firstName}` 
-        : 'Giảng viên ẩn';
+        : 'Instructor';
 
     const instructorAvatar = course.instructor?.profileImageUrl
         || 'https://www.w3schools.com/howto/img_avatar.png';
@@ -109,7 +109,7 @@ const CourseCard = ({ course }) => {
 
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: '#999', fontSize: '12px' }}>
                         <i className="fa-regular fa-file-lines" style={{ fontSize: '12px' }}></i>
-                        <Typography variant="caption">{course.totalLessons || 0} bài học</Typography>
+                        <Typography variant="caption">{course.totalLessons || 0} lessons</Typography>
                     </Box>
                 </Box>
             </CardContent>

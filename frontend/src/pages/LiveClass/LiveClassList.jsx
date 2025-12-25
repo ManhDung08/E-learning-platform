@@ -28,51 +28,51 @@ import {
   Person
 } from '@mui/icons-material';
 
-// Fake data - danh sách phòng đang hoạt động
+// Fake data - Active rooms list
 const fakeRooms = [
   {
     id: 'room-1',
-    title: 'Lớp học Toán cao cấp',
-    instructor: 'Nguyễn Văn A',
+    title: 'Advanced Mathematics Class',
+    instructor: 'Nguyen Van A',
     instructorAvatar: 'https://i.pravatar.cc/150?img=1',
     participants: 12,
     maxParticipants: 30,
     startTime: '14:00',
     status: 'live', // live, scheduled, ended
-    description: 'Buổi học về đạo hàm và tích phân'
+    description: 'Lesson on derivatives and integrals'
   },
   {
     id: 'room-2',
-    title: 'Lớp học Lập trình Web',
-    instructor: 'Trần Thị B',
+    title: 'Web Programming Class',
+    instructor: 'Tran Thi B',
     instructorAvatar: 'https://i.pravatar.cc/150?img=2',
     participants: 8,
     maxParticipants: 25,
     startTime: '15:30',
     status: 'live',
-    description: 'React và Node.js cơ bản'
+    description: 'Basic React and Node.js'
   },
   {
     id: 'room-3',
-    title: 'Lớp học Tiếng Anh giao tiếp',
-    instructor: 'Lê Văn C',
+    title: 'Communication English Class',
+    instructor: 'Le Van C',
     instructorAvatar: 'https://i.pravatar.cc/150?img=3',
     participants: 20,
     maxParticipants: 30,
     startTime: '16:00',
     status: 'scheduled',
-    description: 'Luyện tập phát âm và ngữ pháp'
+    description: 'Pronunciation and grammar practice'
   },
   {
     id: 'room-4',
-    title: 'Lớp học Vật lý đại cương',
-    instructor: 'Phạm Thị D',
+    title: 'General Physics Class',
+    instructor: 'Pham Thi D',
     instructorAvatar: 'https://i.pravatar.cc/150?img=4',
     participants: 15,
     maxParticipants: 25,
     startTime: '17:00',
     status: 'scheduled',
-    description: 'Cơ học và nhiệt động lực học'
+    description: 'Mechanics and Thermodynamics'
   }
 ];
 
@@ -90,7 +90,7 @@ const LiveClassList = () => {
 
   const handleCreateRoom = () => {
     if (!newRoom.title.trim()) {
-      alert('Vui lòng nhập tên phòng');
+      alert('Please enter room name');
       return;
     }
 
@@ -104,11 +104,11 @@ const LiveClassList = () => {
           id: roomId,
           title: newRoom.title,
           description: newRoom.description,
-          instructor: 'Bạn',
+          instructor: 'You',
           instructorAvatar: 'https://i.pravatar.cc/150?img=5',
           participants: 1,
           maxParticipants: newRoom.maxParticipants,
-          startTime: newRoom.startTime || new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+          startTime: newRoom.startTime || new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
           status: 'live',
           isHost: true
         }
@@ -118,19 +118,19 @@ const LiveClassList = () => {
 
   const handleJoinRoom = () => {
     if (!roomCode.trim()) {
-      alert('Vui lòng nhập mã phòng');
+      alert('Please enter room code');
       return;
     }
 
     // Find room by code or create fake room
     const room = fakeRooms.find(r => r.id === roomCode) || {
       id: roomCode,
-      title: `Phòng ${roomCode}`,
-      instructor: 'Giảng viên',
+      title: `Room ${roomCode}`,
+      instructor: 'Instructor',
       instructorAvatar: 'https://i.pravatar.cc/150?img=6',
       participants: 5,
       maxParticipants: 30,
-      startTime: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+      startTime: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
       status: 'live',
       isHost: false
     };
@@ -165,11 +165,11 @@ const LiveClassList = () => {
   const getStatusText = (status) => {
     switch (status) {
       case 'live':
-        return 'Đang phát trực tiếp';
+        return 'Live Now';
       case 'scheduled':
-        return 'Đã lên lịch';
+        return 'Scheduled';
       case 'ended':
-        return 'Đã kết thúc';
+        return 'Ended';
       default:
         return status;
     }
@@ -182,7 +182,7 @@ const LiveClassList = () => {
         <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
           <Typography variant="h4" fontWeight="bold" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <VideoCall color="primary" />
-            Lớp học trực tuyến
+            Live Classes
           </Typography>
           <Box sx={{ display: 'flex', gap: 2 }}>
             <Button
@@ -191,7 +191,7 @@ const LiveClassList = () => {
               onClick={() => setOpenJoinDialog(true)}
               sx={{ borderRadius: 2 }}
             >
-              Tham gia phòng
+              Join Room
             </Button>
             <Button
               variant="contained"
@@ -199,14 +199,14 @@ const LiveClassList = () => {
               onClick={() => setOpenCreateDialog(true)}
               sx={{ borderRadius: 2, bgcolor: '#a435f0', '&:hover': { bgcolor: '#8b2dd9' } }}
             >
-              Tạo phòng mới
+              Create New Room
             </Button>
           </Box>
         </Box>
 
         {/* Rooms List */}
         <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-          Phòng đang hoạt động
+          Active Rooms
         </Typography>
         <Grid container spacing={3}>
           {fakeRooms.map((room) => (
@@ -274,7 +274,7 @@ const LiveClassList = () => {
                         handleJoinExistingRoom(room.id);
                       }}
                     >
-                      Tham gia ngay
+                      Join Now
                     </Button>
                   )}
                 </CardContent>
@@ -287,43 +287,43 @@ const LiveClassList = () => {
         <Dialog open={openCreateDialog} onClose={() => setOpenCreateDialog(false)} maxWidth="sm" fullWidth>
           <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <VideoCall color="primary" />
-            Tạo phòng học mới
+            Create New Classroom
           </DialogTitle>
           <DialogContent>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
               <TextField
-                label="Tên phòng học"
+                label="Classroom Name"
                 fullWidth
                 value={newRoom.title}
                 onChange={(e) => setNewRoom({ ...newRoom, title: e.target.value })}
-                placeholder="Ví dụ: Lớp học Toán cao cấp"
+                placeholder="Ex: Advanced Math Class"
                 required
               />
               <TextField
-                label="Mô tả"
+                label="Description"
                 fullWidth
                 multiline
                 rows={3}
                 value={newRoom.description}
                 onChange={(e) => setNewRoom({ ...newRoom, description: e.target.value })}
-                placeholder="Mô tả về buổi học..."
+                placeholder="Description of the session..."
               />
               <FormControl fullWidth>
-                <InputLabel>Số lượng người tham gia tối đa</InputLabel>
+                <InputLabel>Max Participants</InputLabel>
                 <Select
                   value={newRoom.maxParticipants}
-                  label="Số lượng người tham gia tối đa"
+                  label="Max Participants"
                   onChange={(e) => setNewRoom({ ...newRoom, maxParticipants: e.target.value })}
                 >
-                  <MenuItem value={10}>10 người</MenuItem>
-                  <MenuItem value={20}>20 người</MenuItem>
-                  <MenuItem value={30}>30 người</MenuItem>
-                  <MenuItem value={50}>50 người</MenuItem>
-                  <MenuItem value={100}>100 người</MenuItem>
+                  <MenuItem value={10}>10 people</MenuItem>
+                  <MenuItem value={20}>20 people</MenuItem>
+                  <MenuItem value={30}>30 people</MenuItem>
+                  <MenuItem value={50}>50 people</MenuItem>
+                  <MenuItem value={100}>100 people</MenuItem>
                 </Select>
               </FormControl>
               <TextField
-                label="Giờ bắt đầu"
+                label="Start Time"
                 type="time"
                 fullWidth
                 value={newRoom.startTime}
@@ -333,13 +333,13 @@ const LiveClassList = () => {
             </Box>
           </DialogContent>
           <DialogActions sx={{ p: 2 }}>
-            <Button onClick={() => setOpenCreateDialog(false)}>Hủy</Button>
+            <Button onClick={() => setOpenCreateDialog(false)}>Cancel</Button>
             <Button
               variant="contained"
               onClick={handleCreateRoom}
               sx={{ bgcolor: '#a435f0', '&:hover': { bgcolor: '#8b2dd9' } }}
             >
-              Tạo phòng
+              Create Room
             </Button>
           </DialogActions>
         </Dialog>
@@ -348,32 +348,32 @@ const LiveClassList = () => {
         <Dialog open={openJoinDialog} onClose={() => setOpenJoinDialog(false)} maxWidth="sm" fullWidth>
           <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <PersonAdd color="primary" />
-            Tham gia phòng học
+            Join Classroom
           </DialogTitle>
           <DialogContent>
             <Box sx={{ pt: 1 }}>
               <TextField
-                label="Mã phòng học"
+                label="Classroom Code"
                 fullWidth
                 value={roomCode}
                 onChange={(e) => setRoomCode(e.target.value)}
-                placeholder="Nhập mã phòng học"
+                placeholder="Enter classroom code"
                 sx={{ mb: 2 }}
-                helperText="Nhập mã phòng học mà bạn nhận được từ giảng viên"
+                helperText="Enter the room code received from the instructor"
               />
               <Typography variant="body2" color="text.secondary">
-                Hoặc chọn một phòng đang hoạt động ở trên để tham gia trực tiếp.
+                Or select an active room above to join directly.
               </Typography>
             </Box>
           </DialogContent>
           <DialogActions sx={{ p: 2 }}>
-            <Button onClick={() => setOpenJoinDialog(false)}>Hủy</Button>
+            <Button onClick={() => setOpenJoinDialog(false)}>Cancel</Button>
             <Button
               variant="contained"
               onClick={handleJoinRoom}
               sx={{ bgcolor: '#a435f0', '&:hover': { bgcolor: '#8b2dd9' } }}
             >
-              Tham gia
+              Join
             </Button>
           </DialogActions>
         </Dialog>
@@ -383,4 +383,3 @@ const LiveClassList = () => {
 };
 
 export default LiveClassList;
-

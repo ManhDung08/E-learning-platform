@@ -36,7 +36,7 @@ const TicketDetailModal = ({ open, handleClose, ticketId }) => {
     return (
         <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm" PaperProps={{ sx: { borderRadius: 2 } }}>
             <DialogTitle sx={{ fontWeight: 'bold', borderBottom: '1px solid #eee', bgcolor: '#f8f9fa' }}>
-                Chi tiết Ticket #{ticketId}
+                Ticket Detail #{ticketId}
             </DialogTitle>
             
             <DialogContent sx={{ mt: 2 }}>
@@ -45,7 +45,7 @@ const TicketDetailModal = ({ open, handleClose, ticketId }) => {
                 ) : (
                     <>
                         <Box sx={{ mb: 3 }}>
-                            <Typography variant="caption" color="textSecondary" fontWeight="bold">NGƯỜI GỬI</Typography>
+                            <Typography variant="caption" color="textSecondary" fontWeight="bold">SENDER</Typography>
                             <Stack direction="row" spacing={2} alignItems="center" sx={{ mt: 1 }}>
                                 <Avatar 
                                     src={user?.data?.profileImageUrl || user?.profileImageUrl} 
@@ -55,7 +55,7 @@ const TicketDetailModal = ({ open, handleClose, ticketId }) => {
                                 </Avatar>
                                 <Box>
                                     <Typography variant="body1" fontWeight="bold">
-                                        {userLoading ? "Đang tải..." : (user?.data?.username || user?.username || `User #${ticketDetail?.userId}`)}
+                                        {userLoading ? "Loading..." : (user?.data?.username || user?.username || `User #${ticketDetail?.userId}`)}
                                     </Typography>
                                     <Typography variant="caption" color="textSecondary">
                                         {user?.data?.email || user?.email}
@@ -65,7 +65,7 @@ const TicketDetailModal = ({ open, handleClose, ticketId }) => {
                         </Box>
 
                         <Box sx={{ mb: 2 }}>
-                            <Typography variant="caption" color="textSecondary" fontWeight="bold">CHỦ ĐỀ</Typography>
+                            <Typography variant="caption" color="textSecondary" fontWeight="bold">SUBJECT</Typography>
                             <Typography variant="h6" sx={{ color: '#2c3e50', fontSize: '1.1rem', mt: 0.5 }}>
                                 {ticketDetail?.subject}
                             </Typography>
@@ -74,7 +74,7 @@ const TicketDetailModal = ({ open, handleClose, ticketId }) => {
                         <Divider sx={{ my: 2 }} />
 
                         <Box sx={{ mb: 3 }}>
-                            <Typography variant="caption" color="textSecondary" fontWeight="bold">NỘI DUNG YÊU CẦU</Typography>
+                            <Typography variant="caption" color="textSecondary" fontWeight="bold">DESCRIPTION</Typography>
                             <Typography variant="body2" sx={{ 
                                 mt: 1, p: 2, 
                                 backgroundColor: '#f9f9f9', 
@@ -86,22 +86,22 @@ const TicketDetailModal = ({ open, handleClose, ticketId }) => {
                                 color: ticketDetail?.message ? 'text.primary' : 'text.disabled',
                                 fontStyle: ticketDetail?.message ? 'normal' : 'italic'
                             }}>
-                                {ticketDetail?.message || "Người dùng không để lại lời nhắn chi tiết cho yêu cầu này."}
+                                {ticketDetail?.message || "The user did not provide any details."}
                             </Typography>
                         </Box>
 
                         <FormControl fullWidth size="small">
-                            <InputLabel sx={{ '&.Mui-focused': { color: customThemeColor } }}>Cập nhật trạng thái</InputLabel>
+                            <InputLabel sx={{ '&.Mui-focused': { color: customThemeColor } }}>Update Status</InputLabel>
                             <Select
                                 value={ticketDetail?.status || ''}
-                                label="Cập nhật trạng thái"
+                                label="Update status"
                                 onChange={handleChangeStatus}
                                 sx={{ '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: customThemeColor } }}
                             >
-                                <MenuItem value="open">Open (Chờ xử lý)</MenuItem>
-                                <MenuItem value="in_progress">In Progress (Đang giải quyết)</MenuItem>
-                                <MenuItem value="resolved">Resolved (Đã xong)</MenuItem>
-                                <MenuItem value="closed">Closed (Đóng)</MenuItem>
+                                <MenuItem value="open">Open</MenuItem>
+                                <MenuItem value="in_progress">In Progress</MenuItem>
+                                <MenuItem value="resolved">Resolved</MenuItem>
+                                <MenuItem value="closed">Closed</MenuItem>
                             </Select>
                         </FormControl>
                     </>
@@ -118,7 +118,7 @@ const TicketDetailModal = ({ open, handleClose, ticketId }) => {
                         '&:hover': { backgroundColor: '#7a8a61' } 
                     }}
                 >
-                    Đóng
+                    Close
                 </Button>
             </DialogActions>
         </Dialog>

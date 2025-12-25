@@ -19,7 +19,7 @@ const Dashboard = () => {
         overview, revenueStats, growthTrends, courseStats, loading 
     } = useSelector(store => store.statistic || {});
 
-    const [revenueFilter, setRevenueFilter] = useState('12 Tháng');
+    const [revenueFilter, setRevenueFilter] = useState('12 Months');
     
     const PIE_COLORS = ['#00A76F', '#FFAB00', '#006C9C', '#FF5630'];
 
@@ -39,7 +39,7 @@ const Dashboard = () => {
             const compareDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
             months.push({
                 compareDate: compareDate,
-                displayDate: `T${d.getMonth() + 1}`,
+                displayDate: `M${d.getMonth() + 1}`,
             });
         }
 
@@ -70,10 +70,10 @@ const Dashboard = () => {
         const startDate = new Date();
         let filters = {};
 
-        if (label === '7 Ngày') startDate.setDate(endDate.getDate() - 7);
-        else if (label === '30 Ngày') startDate.setDate(endDate.getDate() - 30);
+        if (label === '7 Days') startDate.setDate(endDate.getDate() - 7);
+        else if (label === '30 Days') startDate.setDate(endDate.getDate() - 30);
         
-        if (label !== '12 Tháng') {
+        if (label !== '12 Months') {
             filters = { 
                 startDate: startDate.toISOString().split('T')[0], 
                 endDate: endDate.toISOString().split('T')[0] 
@@ -151,37 +151,35 @@ const Dashboard = () => {
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
             <Box>
                 <Typography variant="h4" fontWeight={800} color="#212B36">Dashboard</Typography>
-                <Typography variant="body2" color="#637381">Tổng quan hệ thống E-Learning</Typography>
+                <Typography variant="body2" color="#637381">E-Learning System Overview</Typography>
             </Box>
         </Box>
 
         {/* Top Stat Cards Section */}
         <Grid container spacing={3} mb={4}>
             <Grid item size={{xs: 12, sm: 6, lg: 3}}>
-                <StatCard title="Doanh Thu" value={formatCompact(safeOverview?.revenue?.total)} icon={<AnalyticsIcon fontSize="large" />} color="#00A76F" bgColor="#D0F2E3" />
+                <StatCard title="Total Revenue" value={formatCompact(safeOverview?.revenue?.total)} icon={<AnalyticsIcon fontSize="large" />} color="#00A76F" bgColor="#D0F2E3" />
             </Grid>
             <Grid item xs={12} sm={6} lg={3} size={{xs: 12, sm: 6, lg: 3}}>
-                <StatCard title="Người Dùng" value={safeOverview?.users?.total || 0} icon={<GroupAddIcon fontSize="large" />} color="#006C9C" bgColor="#CAFDF5" />
+                <StatCard title="Total Users" value={safeOverview?.users?.total || 0} icon={<GroupAddIcon fontSize="large" />} color="#006C9C" bgColor="#CAFDF5" />
             </Grid>
             <Grid item xs={12} sm={6} lg={3} size={{xs: 12, sm: 6, lg: 3}}>
-                <StatCard title="Khóa Học" value={safeOverview?.courses?.published || 0} icon={<SchoolIcon fontSize="large" />} color="#FFAB00" bgColor="#FFF5CC" />
+                <StatCard title="Total Courses" value={safeOverview?.courses?.published || 0} icon={<SchoolIcon fontSize="large" />} color="#FFAB00" bgColor="#FFF5CC" />
             </Grid>
             <Grid item xs={12} sm={6} lg={3} size={{xs: 12, sm: 6, lg: 3}}>
-                <StatCard title="Chứng Chỉ" value={safeOverview?.certificates?.issued || 0} icon={<VerifiedIcon fontSize="large" />} color="#FF5630" bgColor="#FFE7D9" />
+                <StatCard title="Certificates Issued" value={safeOverview?.certificates?.issued || 0} icon={<VerifiedIcon fontSize="large" />} color="#FF5630" bgColor="#FFE7D9" />
             </Grid>
         </Grid>
 
-        {/* Main Charts Grid - ĐƯA TẤT CẢ VÀO ĐÂY */}
         <Grid container spacing={3}>
             
-            {/* 1. Phân Tích Doanh Thu (Chiếm 8 phần trên màn hình lớn) */}
             <Grid item xs={12} lg={8} size={{xs: 12, lg: 8}}>
                 <Card sx={{ borderRadius: '12px', boxShadow: '0px 2px 10px rgba(0, 0, 0, 0.05)', height: 450 }}>
                     <CardContent sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
                         <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-                            <Typography variant="h6" fontWeight={700} color="#212B36">Phân Tích Doanh Thu</Typography>
+                            <Typography variant="h6" fontWeight={700} color="#212B36">Revenue Analysis</Typography>
                             <Box bgcolor="#F4F6F8" p={0.5} borderRadius={1}>
-                                {['12 Tháng', '30 Ngày', '7 Ngày'].map((label) => (
+                                {['12 Months', '30 Days', '7 Days'].map((label) => (
                                     <Chip 
                                         key={label} label={label} 
                                         onClick={() => handleRevenueFilterChange(label)}
@@ -218,12 +216,11 @@ const Dashboard = () => {
                 </Card>
             </Grid>
 
-            {/* 2. Người Dùng Mới (Chiếm 4 phần bên phải) */}
             <Grid item xs={12} md={6} lg={4} size={{xs: 12, md: 6, lg: 4}}>
                 <Card sx={{ borderRadius: '12px', boxShadow: '0px 2px 10px rgba(0, 0, 0, 0.05)', height: 450 }}>
                     <CardContent sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
-                        <Typography variant="h6" fontWeight={700} color="#212B36" mb={1}>Người Dùng Mới</Typography>
-                        <Typography variant="body2" color="#637381" mb={4}>6 tháng gần nhất</Typography>
+                        <Typography variant="h6" fontWeight={700} color="#212B36" mb={1}>New Users</Typography>
+                        <Typography variant="body2" color="#637381" mb={4}>Last 6 months</Typography>
                         <Box flex={1} minHeight={0}>
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={processedUserData}>
@@ -238,18 +235,17 @@ const Dashboard = () => {
                 </Card>
             </Grid>
 
-            {/* 3. Khóa Học Bán Chạy (Sẽ nhảy lên nếu có chỗ trống nhờ chung container) */}
             <Grid item xs={12} md={6} lg={8} size={{xs: 12, md: 6, lg: 8}}>
                 <Card sx={{ borderRadius: '12px', boxShadow: '0px 2px 10px rgba(0, 0, 0, 0.05)', height: '100%' }}>
                     <Box p={3} display="flex" justifyContent="space-between" alignItems="center">
-                        <Typography variant="h6" fontWeight={700} color="#212B36">Khóa Học Bán Chạy</Typography>
+                        <Typography variant="h6" fontWeight={700} color="#212B36">Best Selling Courses</Typography>
                         <Button 
                             size="small" 
                             onClick={() => navigate('/admin/courses')}
                             endIcon={<ArrowForwardIcon fontSize="small" />}
                             sx={{ color: '#212B36', textTransform: 'none', fontWeight: 600 }}
                         >
-                            Xem tất cả
+                            View All
                         </Button>
                     </Box>
                     <Stack spacing={0}>
@@ -264,7 +260,7 @@ const Dashboard = () => {
                                         <Typography variant="body2" fontWeight={700} color="#212B36" noWrap sx={{ maxWidth: {xs: 150, sm: 300} }}>
                                             {course.title}
                                         </Typography>
-                                        <Typography variant="caption" color="#637381">{course.enrollments} học viên</Typography>
+                                        <Typography variant="caption" color="#637381">{course.enrollments} students</Typography>
                                     </Box>
                                 </Box>
                                 <Typography variant="body2" fontWeight={700} color="#00A76F">{formatCompact(course.priceVND)} ₫</Typography>
@@ -274,11 +270,10 @@ const Dashboard = () => {
                 </Card>
             </Grid>
 
-            {/* 4. Nguồn Doanh Thu */}
             <Grid item xs={12} md={6} lg={4} size={{xs: 12, md: 6, lg: 4}}>
                 <Card sx={{ borderRadius: '12px', boxShadow: '0px 2px 10px rgba(0, 0, 0, 0.05)', height: '100%', minHeight: 450 }}>
                     <CardContent sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
-                        <Typography variant="h6" fontWeight={700} color="#212B36" mb={3}>Nguồn Doanh Thu</Typography>
+                        <Typography variant="h6" fontWeight={700} color="#212B36" mb={3}>Revenue Source</Typography>
                         {safeRevenue.topCourses && safeRevenue.topCourses.length > 0 ? (
                             <>
                                 <Box flex={1} minHeight={200}>
@@ -306,7 +301,7 @@ const Dashboard = () => {
                                 </Stack>
                             </>
                         ) : (
-                            <Box display="flex" alignItems="center" justifyContent="center" height="100%"><Typography color="#637381">Chưa có dữ liệu</Typography></Box>
+                            <Box display="flex" alignItems="center" justifyContent="center" height="100%"><Typography color="#637381">No data available</Typography></Box>
                         )}
                     </CardContent>
                 </Card>
