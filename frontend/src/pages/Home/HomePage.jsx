@@ -25,7 +25,7 @@ import LiveClassRoom from '../LiveClass/LiveClassRoom';
 import SupportManagement from '../Admin/SupportManagement';
 import MyStudent from '../Instructor/MyStudent';
 import InstructorDashboard from '../Instructor/InstructorDashboard';
-import Certificates from '../Certificates';
+import CreateTicketPage from '../SupportTicket'; // Đảm bảo đã import trang Support
 
 const HomePage = () => {
   
@@ -53,7 +53,7 @@ const HomePage = () => {
 
   let rightBarSize = 0;
   if (isLoggedIn) {
-    const isLearningPage = pathname.includes('/my-course/course/learn/');
+    const isLearningPage = pathname.includes('/my-course');
     if (isLearningPage) {
         rightBarSize = 0;
     } else {
@@ -75,11 +75,17 @@ const HomePage = () => {
     setMobileRightOpen(false);
   }, [pathname]);
 
+  useEffect(() => {
+    if (!isLoggedIn) {
+        setMobileRightOpen(false);
+        setMobileLeftOpen(false);
+    }
+  }, [isLoggedIn]);
+
   return (
     <>
     <div style={{height: 'calc(100vh - 65px)', width: '100vw', overflow: 'hidden', position: 'relative'}}>
 
-      {/* --- DRAWER TRÁI (Mobile) --- */}
       <Drawer
         variant="temporary"
         open={mobileLeftOpen}
@@ -96,30 +102,18 @@ const HomePage = () => {
           }, 
         }}
       >
-        {/* Box chứa nút đóng và Sidebar */}
         <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-            
-            {/* --- NÚT THU VỀ (ĐÓNG MENU) --- */}
-            <Box sx={{ 
-                display: 'flex', 
-                justifyContent: 'flex-end', // Căn phải
-                p: 1, 
-                borderBottom: '1px solid #f0f0f0' 
-            }}>
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', p: 1, borderBottom: '1px solid #f0f0f0' }}>
                 <IconButton onClick={handleLeftDrawerToggle}>
-                    {/* Icon mũi tên thu về hoặc MenuOpen */}
                     <MenuOpenIcon /> 
                 </IconButton>
             </Box>
-
-            {/* Nội dung Sidebar */}
             <Box sx={{ flexGrow: 1, overflowY: 'auto' }}>
                 <Sidebar isCollapsed={false} />
             </Box>
         </Box>
       </Drawer>
 
-      {/* --- DRAWER PHẢI (Mobile) --- */}
       <Drawer
         anchor="right"
         open={mobileRightOpen}
@@ -136,12 +130,11 @@ const HomePage = () => {
           },
         }}
       >
-        <RightBar isOpen={true} setIsOpen={handleRightDrawerToggle} />
+        {isLoggedIn && <RightBar isOpen={true} setIsOpen={handleRightDrawerToggle} />}
       </Drawer>
 
       <Grid container spacing={0} wrap='nowrap' sx={{height: '100%'}}>
         
-        {/* --- GRID TRÁI (PC/Tablet) --- */}
         {isMdScreen && (
             <Grid size={{ xs: leftSidebarSize }} sx={{display: 'block', height: '100%', overflowY: 'hidden', position: 'relative', zIndex: 1, transition: 'all 0.3s ease', minWidth: isSidebarCollapsed ? '65px' : '260px' }}>
             <div className='h-screen' style={{display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
@@ -150,12 +143,10 @@ const HomePage = () => {
             </Grid>
         )}
 
-        {/* --- MAIN CONTENT --- */}
         <Grid size={{ xs: mainContentGridSize }} style={{display: 'flex', justifyContent: 'center'}} 
               sx={{bgcolor: '#F4F6F8', height: '100%', overflowY: 'auto', position: 'relative', overflowX: 'hidden', zIndex: 2, transition: 'all 0.3s ease'}} ref={scrollRef}>    
           <div style={{width: '100%', padding: '10px', minHeight: '100%', display: 'flex', flexDirection: 'column'}}>
             
-            {/* NÚT MỞ MENU TRÁI (GHIM CỐ ĐỊNH) */}
             <Box sx={{ 
                 display: { xs: 'flex', md: 'none' }, 
                 position: 'fixed', 
@@ -171,7 +162,6 @@ const HomePage = () => {
                 </IconButton>
             </Box>
 
-            {/* NÚT MỞ MENU PHẢI (GHIM CỐ ĐỊNH) */}
             {isLoggedIn && !pathname.includes('/my-course') && (
                 <Box sx={{ 
                     display: { xs: 'flex', lg: 'none' }, 
@@ -186,40 +176,47 @@ const HomePage = () => {
                 </Box>
             )}
 
-            <Routes>
-              <Route path="/" element={<MiddleHome />} />
-              <Route path="/dashboard" element={<MiddleHome />} />
-              <Route path="/my-course" element={<MyCourses />} />
-              <Route path="/my-course/course/learn/:courseId" element={<Videos />} />
-              <Route path="/live-class" element={<LiveClassList />} />
-              <Route path="/live-class/room/:roomId" element={<LiveClassRoom />} />
-              <Route path="/instructors" element={<InstructorsList />} />
-              <Route path="/instructors/:id" element={<InstructorDetail />} />
-              <Route path="/search" element={<SearchResultsPage />} />
-              <Route path="/certificates" element={<Certificates />} />
-              {/* instructor */}
-              <Route path="/instructor/dashboard" element={<div><InstructorDashboard /></div>} />
-              <Route path="/instructor/courses" element={<InstructorCourses />} />
-              <Route path="/instructor/students" element={<div><MyStudent /></div>} />
-              <Route path="/instructor/quiz/:quizId/attempts" element={<AllQuizAttempts />} />
-              <Route path="/admin/dashboard" element={<Dashboard />}/>
-              <Route path="/admin/users" element={<UserManagement />} />
-              <Route path="/admin/courses" element={<CourseManagement />} />
-              <Route path="/admin/transactions" element={<TransactionManagement />} />
-              <Route path="/admin/quiz/:quizId/attempts" element={<AllQuizAttempts />} />
-              <Route path="/admin/support-ticket" element={<SupportManagement />} />
-            </Routes>
+            <Box sx={{ flexGrow: 1 }}>
+                <Routes>
+                  <Route path="/" element={<MiddleHome />} />
+                  <Route path="/dashboard" element={<MiddleHome />} />
+                  <Route path="/my-course" element={<MyCourses />} />
+                  <Route path="/my-course/course/learn/:courseId" element={<Videos />} />
+                  <Route path="/live-class" element={<LiveClassList />} />
+                  <Route path="/live-class/room/:roomId" element={<LiveClassRoom />} />
+                  <Route path="/instructors" element={<InstructorsList />} />
+                  <Route path="/instructors/:id" element={<InstructorDetail />} />
+                  <Route path="/search" element={<SearchResultsPage />} />
+                  <Route path="/instructor/dashboard" element={<div><InstructorDashboard /></div>} />
+                  <Route path="/instructor/courses" element={<InstructorCourses />} />
+                  <Route path="/instructor/students" element={<div><MyStudent /></div>} />
+                  <Route path="/instructor/quiz/:quizId/attempts" element={<AllQuizAttempts />} />
+                  <Route path="/admin/dashboard" element={<Dashboard />}/>
+                  <Route path="/admin/users" element={<UserManagement />} />
+                  <Route path="/admin/courses" element={<CourseManagement />} />
+                  <Route path="/admin/transactions" element={<TransactionManagement />} />
+                  <Route path="/admin/quiz/:quizId/attempts" element={<AllQuizAttempts />} />
+                  <Route path="/admin/support-ticket" element={<SupportManagement />} />
+                  <Route path="/support" element={<CreateTicketPage />} />
+                </Routes>
+            </Box>
 
-            {isStudent && (
-              <div style={{ marginTop: '40px', width: '100%' }}>
+            {/* Ẩn Footer ở trang support */}
+            {isStudent && pathname !== '/support' && (
+              <Box sx={{ 
+                  marginTop: '40px', 
+                  width: '100%',
+                  flexShrink: 0,
+                  position: 'relative',
+                  zIndex: 10 
+              }}>
                 <Footer />
-              </div>
+              </Box>
             )}
 
           </div>
         </Grid>
 
-        {/* --- GRID PHẢI (PC) --- */}
         {isLoggedIn && rightBarSize > 0 && (
           <Grid size={{ xs: rightBarSize }} sx={{display: { xs: 'none', lg: 'block'}, height: '100%', overflowY: 'auto', 
                 position: 'relative', zIndex: 1, transition: 'all 0.3s ease', minWidth: isLgScreen ? rightBarMinWidth : 0}}>

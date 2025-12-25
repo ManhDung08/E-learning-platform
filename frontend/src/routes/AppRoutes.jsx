@@ -32,7 +32,7 @@ function AppRoutes() {
             <Route path='/*' element={<HomePage />}></Route>
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/support" element={<CreateTicketPage />} />
+            {/* <Route path="/support" element={<CreateTicketPage />} /> */}
 
 
 

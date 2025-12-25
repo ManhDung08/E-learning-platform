@@ -2,9 +2,9 @@ import React, { useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom';
 import Card from '@mui/material/Card';
 import { useSelector } from 'react-redux';
-import { Tooltip } from '@mui/material'; //hover vào icon hiện chữ
+import { Tooltip } from '@mui/material';
 
-//role student
+//role student icons
 import HomeIcon from '@mui/icons-material/GridView';
 import CoursesIcon from '@mui/icons-material/WorkOutline';
 import LiveIcon from '@mui/icons-material/LiveTv';
@@ -12,18 +12,19 @@ import AssignmentsIcon from '@mui/icons-material/Checklist';
 import SavedIcon from '@mui/icons-material/BookmarkBorder';
 import SchoolIcon from '@mui/icons-material/Group';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline'; // 1. Import icon mới cho Help Center
 
-//role intructor + admin
+//role intructor + admin icons
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import PeopleIcon from '@mui/icons-material/People';
 import VideoLibraryIcon from '@mui/icons-material/VideoLibrary';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
-import SettingsIcon from '@mui/icons-material/Settings';
 import AnalyticsIcon from '@mui/icons-material/Analytics';
-import EditDocumentIcon from '@mui/icons-material/EditDocument';
 import SupportAgentIcon from '@mui/icons-material/SupportAgent';
 
-import HelpCenterCard from './HelpCenterCard';
+// XÓA dòng import HelpCenterCard vì không dùng nữa
+// import HelpCenterCard from './HelpCenterCard'; 
+
 const studentMenu = [
   {
     title: "Dashboard",
@@ -59,6 +60,12 @@ const studentMenu = [
     title: "Our Mentors",
     icon: <SchoolIcon />,
     path: "/instructors"
+  },
+  // 2. Thêm Help Center vào menu của Student
+  {
+    title: "Help Center",
+    icon: <HelpOutlineIcon />,
+    path: "/support"
   }
 ];
 
@@ -77,6 +84,12 @@ const instructorMenu = [
     title: "Students",
     icon: <SchoolIcon />,
     path: "/instructor/students"
+  },
+  // Thêm Help Center vào menu của Instructor (nếu cần)
+  {
+    title: "Help Center",
+    icon: <HelpOutlineIcon />,
+    path: "/support"
   }
 ];
 
@@ -133,7 +146,7 @@ const Sidebar = ({ isCollapsed }) => {
               sx={{
                   display: 'flex',
                   flexDirection: 'column',
-                  justifyContent: 'space-between',
+                  // justifyContent: 'space-between', // Có thể bỏ dòng này nếu muốn các item dồn lên trên
                   backgroundColor: 'white',
                   borderRadius: '16px',
                   overflowX: 'hidden', 
@@ -148,11 +161,9 @@ const Sidebar = ({ isCollapsed }) => {
           >
             <div className={`w-full ${isCollapsed ? 'flex flex-col items-center' : ''}`}>
                 {!isCollapsed ? (
-                    user && (
-                        <div className='px-10 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider transition-opacity duration-300'>
-                            {role} MENU
-                        </div>
-                    )
+                    <div className='px-10 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider transition-opacity duration-300'>
+                        {role} MENU
+                    </div>
                 ) : (
                     <div className='h-4'></div>
                 )}
@@ -163,15 +174,15 @@ const Sidebar = ({ isCollapsed }) => {
                         const content = (
                           <div onClick={() => handleNavigate(item)}
                               className={`flex items-center rounded-full cursor-pointer font-medium transition-all duration-200
-                                          ${isCollapsed 
-                                        ? 'justify-center p-3 w-10 h-10'
-                                        : 'space-x-3 px-4 py-3'
+                                            ${isCollapsed 
+                                            ? 'justify-center p-3 w-10 h-10'
+                                            : 'space-x-3 px-4 py-3'
                                     }
                                     ${active 
                                         ? 'bg-[#dadecd] text-[#97A87A]' 
                                         : 'text-gray-600 hover:bg-gray-100 hover:text-gray-800'
                                     }
-                          `}>
+                                  `}>
                             <span className={isCollapsed ? "" : ""}>{item.icon}</span>
                             
                             {!isCollapsed && (
@@ -193,12 +204,12 @@ const Sidebar = ({ isCollapsed }) => {
                 </div>
             </div>
 
-            
-            {!isCollapsed && (
+            {/* 3. XÓA PHẦN RENDER HelpCenterCard Ở ĐÂY */}
+            {/* {!isCollapsed && (
                 <div className='mb-4 transition-opacity duration-300'>
                     <HelpCenterCard />
                 </div>
-            )}
+            )} */}
         </Card>
     )
 }

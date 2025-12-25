@@ -24,13 +24,26 @@ import {
 } from "./course.actionType";
 
 //admin, student
-export const getAllCoursesAction = (page = 1, limit = 10, search = "", category = "", isPublished = "") => async (dispatch) => {
+// --- ĐÃ SỬA: Thêm sortBy và sortOrder vào cuối ---
+export const getAllCoursesAction = (
+    page = 1, 
+    limit = 10, 
+    search = "", 
+    category = "", 
+    isPublished = "",
+    sortBy = "createdAt",
+    sortOrder = "desc"
+) => async (dispatch) => {
     dispatch({ type: GET_ALL_COURSES_REQUEST });
     try {
         const params = { page, limit };
         if (search) params.search = search;
         if (category) params.category = category;
         if (isPublished) params.isPublished = isPublished;
+        
+        // Thêm params sắp xếp
+        if (sortBy) params.sortBy = sortBy;
+        if (sortOrder) params.sortOrder = sortOrder;
 
         const { data } = await api.get('/course', { params });
 

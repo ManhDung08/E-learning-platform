@@ -6,13 +6,15 @@ import {
   Box, Container, Accordion, AccordionSummary, AccordionDetails, 
   Rating, Button, Grid, Typography, Avatar, Chip,
   Dialog, DialogTitle, DialogContent, DialogActions, Radio, RadioGroup, FormControlLabel, FormControl, CircularProgress,
-  Tabs, Tab, TextField, IconButton, Tooltip, Snackbar, Alert, LinearProgress, Pagination, Stack, Paper, Divider
+  Tabs, Tab, TextField, IconButton, Tooltip, Snackbar, Alert, LinearProgress, Pagination, Stack, Paper, Divider,
+  useMediaQuery, useTheme 
 } from '@mui/material';
 import { 
   ExpandMore, PlayCircleOutline, Star, Update, Lock, ReceiptLong, 
   Description, RateReview, QuestionAnswer, Send,
   Edit as EditIcon, Delete as DeleteIcon, Cancel as CancelIcon,
-  Reply as ReplyIcon, AccessTime, PeopleAlt, VerifiedUser, School, Language, CheckCircle
+  Reply as ReplyIcon, AccessTime, PeopleAlt, VerifiedUser, School, Language, CheckCircle,
+  PlayArrow 
 } from '@mui/icons-material';
 import { getUserEnrollmentsAction } from '../../Redux/Course/course.action';
 
@@ -33,8 +35,8 @@ const formatDuration = (seconds) => {
 };
 
 // --- STYLES CONSTANTS ---
-const PRIMARY_COLOR = '#97A87A'; // Udemy Purple vibe
-const SECONDARY_COLOR = '#1c1d1f'; // Dark text
+const PRIMARY_COLOR = '#97A87A'; 
+const SECONDARY_COLOR = '#1c1d1f';
 const BG_COLOR = '#f7f9fa';
 const GLASS_STYLE = {
     background: 'rgba(255, 255, 255, 0.95)',
@@ -48,6 +50,8 @@ const CourseDetailPage = () => {
   const { slug } = useParams(); 
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm')); 
 
   // --- STATE ---
   const [course, setCourse] = useState(null);
@@ -80,9 +84,10 @@ const CourseDetailPage = () => {
 
   // --- MEMO & HELPERS ---
   const isEnrolled = useMemo(() => {
-    if (!course || !userEnrollments) return false;
+    // Check thêm currentUser để reset khi logout
+    if (!currentUser || !course || !userEnrollments) return false;
     return userEnrollments.some(e => e.course && String(e.course.id) === String(course.id));
-  }, [course, userEnrollments]);
+  }, [currentUser, course, userEnrollments]);
 
   const calculatedRating = useMemo(() => {
       if (!reviews || reviews.length === 0) return 0;
@@ -343,17 +348,26 @@ const CourseDetailPage = () => {
             <Tabs 
                 value={activeTab} 
                 onChange={(e, val) => setActiveTab(val)} 
-                variant="scrollable"
-                scrollButtons="auto"
+                variant="fullWidth" // Dùng fullWidth hoặc centered đều được, fullWidth sẽ chia đều
+                centered // Để icon luôn ở giữa nếu dùng fixed width
                 sx={{ 
-                    '& .MuiTab-root': { textTransform: 'none', fontWeight: 600, fontSize: '1rem', minHeight: 60 },
+                    '& .MuiTab-root': { 
+                        textTransform: 'none', 
+                        fontWeight: 600, 
+                        fontSize: '1rem', 
+                        minHeight: 60,
+                        minWidth: isMobile ? 50 : 90 // Thu nhỏ width tab trên mobile
+                    },
                     '& .Mui-selected': { color: PRIMARY_COLOR },
                     '& .MuiTabs-indicator': { backgroundColor: PRIMARY_COLOR, height: 3 }
                 }}
             >
-                <Tab icon={<School />} iconPosition="start" label="Course Content" />
-                <Tab icon={<RateReview />} iconPosition="start" label="Reviews & Ratings" />
-                <Tab icon={<QuestionAnswer />} iconPosition="start" label="Q&A Discussion" />
+                {/* LOGIC RESPONSIVE LABEL: 
+                    Dùng điều kiện !isMobile để ẩn label khi màn hình nhỏ 
+                */}
+                <Tab icon={<School />} iconPosition="start" label={!isMobile ? "Course Content" : null} />
+                <Tab icon={<RateReview />} iconPosition="start" label={!isMobile ? "Reviews & Ratings" : null} />
+                <Tab icon={<QuestionAnswer />} iconPosition="start" label={!isMobile ? "Q&A Discussion" : null} />
             </Tabs>
             </Box>
 
@@ -368,9 +382,10 @@ const CourseDetailPage = () => {
                             </Box>
                             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                                 {modules?.map((mod, idx) => (
+                                    // FIX LỖI TẠI ĐÂY: Thêm !! để ép kiểu thành boolean
                                     <Accordion 
                                         key={idx} 
-                                        expanded={expandedModules[idx]} 
+                                        expanded={!!expandedModules[idx]} // Quan trọng: !! để tránh undefined
                                         onChange={(e, x) => setExpandedModules({...expandedModules, [idx]: x})}
                                         elevation={0}
                                         sx={{ 
@@ -392,7 +407,19 @@ const CourseDetailPage = () => {
                                                         <Typography variant="body2" color="#1c1d1f">{lesson.title}</Typography>
                                                     </Box>
                                                     <Box>
-                                                        {(lesson.isFree || isEnrolled) ? 
+                                                        {/* LOGIC HIỂN THỊ TRẠNG THÁI BÀI HỌC */}
+                                                        {isEnrolled ? (
+                                                            // TH1: Đã đăng ký -> Hiện nút Play
+                                                            <Tooltip title="Start Learning">
+                                                                <IconButton 
+                                                                    onClick={(e) => { e.stopPropagation(); navigate(`/my-course/course/learn/${course.id}`); }} 
+                                                                    sx={{ color: PRIMARY_COLOR, border: `1px solid ${PRIMARY_COLOR}`, p: 0.5 }}
+                                                                >
+                                                                    <PlayArrow fontSize="small" />
+                                                                </IconButton>
+                                                            </Tooltip>
+                                                        ) : lesson.isFree ? (
+                                                            // TH2: Chưa đăng ký nhưng Free -> Hiện chữ Preview
                                                             <Tooltip title="Watch Preview">
                                                                 <Chip 
                                                                     label="Preview" 
@@ -402,9 +429,11 @@ const CourseDetailPage = () => {
                                                                     onClick={(e) => { e.stopPropagation(); navigate(`/my-course/course/learn/${course.id}`); }} 
                                                                     sx={{ height: 24, cursor: 'pointer', fontWeight: 600, borderColor: PRIMARY_COLOR, color: PRIMARY_COLOR }} 
                                                                 />
-                                                            </Tooltip> : 
-                                                            <Lock fontSize="small" sx={{ opacity: 0.4 }}/>
-                                                        }
+                                                            </Tooltip> 
+                                                        ) : (
+                                                            // TH3: Chưa đăng ký và Không Free -> Hiện Lock
+                                                            <Lock fontSize="small" sx={{ opacity: 0.4, color: '#aaa' }}/>
+                                                        )}
                                                     </Box>
                                                 </Box>
                                             ))}
@@ -430,13 +459,13 @@ const CourseDetailPage = () => {
                             <Grid item xs={12} md={8} size={{xs: 12, md: 8}}>
                                 {isEnrolled && (
                                     <Box id="review-form" mb={4} p={3} border="1px solid #eee" borderRadius={2} bgcolor="#fafafa">
-                                        <Typography variant="h6" mb={2} fontWeight="bold">{editingReviewId ? "Edit Your Review" : "Write a Review"}</Typography>
-                                        <Rating value={reviewRating} onChange={(e, val) => setReviewRating(val)} size="large" sx={{ mb: 2 }} />
-                                        <TextField fullWidth multiline rows={3} placeholder="Tell us about your own personal experience taking this course..." value={reviewComment} onChange={(e) => setReviewComment(e.target.value)} sx={{ bgcolor: 'white', mb: 2 }} />
-                                        <Box display="flex" gap={2}>
-                                            <Button variant="contained" onClick={handleSubmitReview} sx={{ bgcolor: PRIMARY_COLOR }}>{editingReviewId ? "Update" : "Submit"}</Button>
-                                            {editingReviewId && <Button onClick={cancelEditReview}>Cancel</Button>}
-                                        </Box>
+                                            <Typography variant="h6" mb={2} fontWeight="bold">{editingReviewId ? "Edit Your Review" : "Write a Review"}</Typography>
+                                            <Rating value={reviewRating} onChange={(e, val) => setReviewRating(val)} size="large" sx={{ mb: 2 }} />
+                                            <TextField fullWidth multiline rows={3} placeholder="Tell us about your own personal experience taking this course..." value={reviewComment} onChange={(e) => setReviewComment(e.target.value)} sx={{ bgcolor: 'white', mb: 2 }} />
+                                            <Box display="flex" gap={2}>
+                                                <Button variant="contained" onClick={handleSubmitReview} sx={{ bgcolor: PRIMARY_COLOR }}>{editingReviewId ? "Update" : "Submit"}</Button>
+                                                {editingReviewId && <Button onClick={cancelEditReview}>Cancel</Button>}
+                                            </Box>
                                     </Box>
                                 )}
 
@@ -485,56 +514,56 @@ const CourseDetailPage = () => {
                             <Stack spacing={3}>
                                 {discussions && discussions.length > 0 ? discussions.map((disc) => (
                                     <Box key={disc.id} p={3} border="1px solid #eee" borderRadius={2} bgcolor="white">
-                                        <Box display="flex" gap={2}>
-                                            <Avatar src={disc.user?.profileImageUrl} sx={{ bgcolor: '#1c1d1f' }}>{(disc.user?.firstName?.[0]) || "U"}</Avatar>
-                                            <Box flex={1}>
-                                                <Box display="flex" justifyContent="space-between">
-                                                    <Typography fontWeight="bold" variant="subtitle1">{disc.user ? `${disc.user.lastName} ${disc.user.firstName}` : "User"}</Typography>
-                                                    <Typography variant="caption" color="text.secondary">{new Date(disc.createdAt).toLocaleDateString('en-US')}</Typography>
-                                                </Box>
-                                                <Typography variant="body1" mt={1} mb={2}>{disc.content}</Typography>
-                                                
-                                                <Box display="flex" alignItems="center" gap={2}>
-                                                    <Button size="small" startIcon={<ReplyIcon />} onClick={() => setReplyingToId(replyingToId === disc.id ? null : disc.id)}>Reply</Button>
-                                                    {currentUser && disc.user && (String(currentUser.id) === String(disc.user.id)) && (
-                                                        <>
-                                                            <Button size="small" startIcon={<EditIcon />} onClick={() => startEditingDisc(disc.id, disc.content)}>Edit</Button>
-                                                            <Button size="small" color="error" startIcon={<DeleteIcon />} onClick={() => handleDeleteAny(disc.id)}>Delete</Button>
-                                                        </>
+                                            <Box display="flex" gap={2}>
+                                                <Avatar src={disc.user?.profileImageUrl} sx={{ bgcolor: '#1c1d1f' }}>{(disc.user?.firstName?.[0]) || "U"}</Avatar>
+                                                <Box flex={1}>
+                                                    <Box display="flex" justifyContent="space-between">
+                                                        <Typography fontWeight="bold" variant="subtitle1">{disc.user ? `${disc.user.lastName} ${disc.user.firstName}` : "User"}</Typography>
+                                                        <Typography variant="caption" color="text.secondary">{new Date(disc.createdAt).toLocaleDateString('en-US')}</Typography>
+                                                    </Box>
+                                                    <Typography variant="body1" mt={1} mb={2}>{disc.content}</Typography>
+                                                    
+                                                    <Box display="flex" alignItems="center" gap={2}>
+                                                        <Button size="small" startIcon={<ReplyIcon />} onClick={() => setReplyingToId(replyingToId === disc.id ? null : disc.id)}>Reply</Button>
+                                                        {currentUser && disc.user && (String(currentUser.id) === String(disc.user.id)) && (
+                                                            <>
+                                                                <Button size="small" startIcon={<EditIcon />} onClick={() => startEditingDisc(disc.id, disc.content)}>Edit</Button>
+                                                                <Button size="small" color="error" startIcon={<DeleteIcon />} onClick={() => handleDeleteAny(disc.id)}>Delete</Button>
+                                                            </>
+                                                        )}
+                                                    </Box>
+
+                                                    {/* Reply Input */}
+                                                    {replyingToId === disc.id && (
+                                                        <Box mt={2} display="flex" gap={2}>
+                                                                <TextField fullWidth size="small" placeholder="Write a reply..." value={replyInputContent} onChange={(e) => setReplyInputContent(e.target.value)} />
+                                                                <Button variant="contained" size="small" onClick={() => handleCreateReply(disc.id)} sx={{ bgcolor: PRIMARY_COLOR }}>Send</Button>
+                                                        </Box>
+                                                    )}
+
+                                                    {/* Nested Replies */}
+                                                    {disc.replies && disc.replies.length > 0 && (
+                                                        <Box mt={3} pl={3} borderLeft="3px solid #eee">
+                                                                {disc.replies.map((rep) => (
+                                                                    <Box key={rep.id} mt={2}>
+                                                                        <Box display="flex" gap={1.5} alignItems="center">
+                                                                            <Avatar src={rep.user?.profileImageUrl} sx={{ width: 24, height: 24, fontSize: '0.8rem' }}>{(rep.user?.firstName?.[0]) || "U"}</Avatar>
+                                                                            <Typography variant="subtitle2" fontWeight="bold">{rep.user ? `${rep.user.lastName} ${rep.user.firstName}` : "User"}</Typography>
+                                                                            <Typography variant="caption" color="text.secondary">• {new Date(rep.createdAt).toLocaleDateString('en-US')}</Typography>
+                                                                        </Box>
+                                                                        <Typography variant="body2" mt={0.5} ml={4.5} color="text.secondary">{rep.content}</Typography>
+                                                                        {currentUser && rep.user && (String(currentUser.id) === String(rep.user.id)) && (
+                                                                            <Box ml={4.5} mt={0.5}>
+                                                                                    <Typography variant="caption" sx={{ cursor: 'pointer', mr: 2, color: 'primary.main' }} onClick={() => startEditingDisc(rep.id, rep.content)}>Edit</Typography>
+                                                                                    <Typography variant="caption" sx={{ cursor: 'pointer', color: 'error.main' }} onClick={() => handleDeleteAny(rep.id)}>Delete</Typography>
+                                                                            </Box>
+                                                                        )}
+                                                                    </Box>
+                                                                ))}
+                                                        </Box>
                                                     )}
                                                 </Box>
-
-                                                {/* Reply Input */}
-                                                {replyingToId === disc.id && (
-                                                    <Box mt={2} display="flex" gap={2}>
-                                                        <TextField fullWidth size="small" placeholder="Write a reply..." value={replyInputContent} onChange={(e) => setReplyInputContent(e.target.value)} />
-                                                        <Button variant="contained" size="small" onClick={() => handleCreateReply(disc.id)} sx={{ bgcolor: PRIMARY_COLOR }}>Send</Button>
-                                                    </Box>
-                                                )}
-
-                                                {/* Nested Replies */}
-                                                {disc.replies && disc.replies.length > 0 && (
-                                                    <Box mt={3} pl={3} borderLeft="3px solid #eee">
-                                                        {disc.replies.map((rep) => (
-                                                            <Box key={rep.id} mt={2}>
-                                                                <Box display="flex" gap={1.5} alignItems="center">
-                                                                    <Avatar src={rep.user?.profileImageUrl} sx={{ width: 24, height: 24, fontSize: '0.8rem' }}>{(rep.user?.firstName?.[0]) || "U"}</Avatar>
-                                                                    <Typography variant="subtitle2" fontWeight="bold">{rep.user ? `${rep.user.lastName} ${rep.user.firstName}` : "User"}</Typography>
-                                                                    <Typography variant="caption" color="text.secondary">• {new Date(rep.createdAt).toLocaleDateString('en-US')}</Typography>
-                                                                </Box>
-                                                                <Typography variant="body2" mt={0.5} ml={4.5} color="text.secondary">{rep.content}</Typography>
-                                                                {currentUser && rep.user && (String(currentUser.id) === String(rep.user.id)) && (
-                                                                    <Box ml={4.5} mt={0.5}>
-                                                                        <Typography variant="caption" sx={{ cursor: 'pointer', mr: 2, color: 'primary.main' }} onClick={() => startEditingDisc(rep.id, rep.content)}>Edit</Typography>
-                                                                        <Typography variant="caption" sx={{ cursor: 'pointer', color: 'error.main' }} onClick={() => handleDeleteAny(rep.id)}>Delete</Typography>
-                                                                    </Box>
-                                                                )}
-                                                            </Box>
-                                                        ))}
-                                                    </Box>
-                                                )}
                                             </Box>
-                                        </Box>
                                     </Box>
                                 )) : <Typography fontStyle="italic" textAlign="center" color="text.secondary">No discussions yet. Be the first to ask!</Typography>}
                             </Stack>
