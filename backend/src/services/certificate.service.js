@@ -21,13 +21,7 @@ const signCertificateUrls = async (certificates) => {
   );
 };
 
-const issueCertificate = async ({
-  issuerId,
-  issuerRole,
-  userId,
-  courseId,
-  file,
-}) => {
+const issueCertificate = async ({ userId, courseId, file }) => {
   if (!file) {
     throw new BadRequestError(
       "Certificate file is required",
@@ -39,7 +33,7 @@ const issueCertificate = async ({
     prisma.user.findUnique({ where: { id: userId }, select: { id: true } }),
     prisma.course.findUnique({
       where: { id: courseId },
-      select: { id: true, instructorId: true },
+      select: { id: true },
     }),
     prisma.enrollment.findUnique({
       where: { userId_courseId: { userId, courseId } },
@@ -61,23 +55,15 @@ const issueCertificate = async ({
 
   if (!enrollment) {
     throw new BadRequestError(
-      "User must be enrolled in the course to receive a certificate",
+      "User must be enrolled in the course to create a certificate",
       "user_not_enrolled"
     );
   }
 
   if (existingCertificate) {
     throw new BadRequestError(
-      "Certificate has already been issued for this course",
+      "Certificate has already been created for this course",
       "certificate_already_exists"
-    );
-  }
-
-  // Only admin or the course instructor can issue the certificate
-  if (issuerRole !== "admin" && course.instructorId !== issuerId) {
-    throw new PermissionError(
-      "Only admin or the course instructor can issue certificates",
-      "not_course_instructor"
     );
   }
 
@@ -92,7 +78,6 @@ const issueCertificate = async ({
       metadata: {
         userId: userId.toString(),
         courseId: courseId.toString(),
-        issuedBy: issuerId.toString(),
       },
     });
 
@@ -122,13 +107,13 @@ const issueCertificate = async ({
       });
     });
 
-    // Notify user about certificate issuance
+    // Notify user about certificate creation
     await notificationService
       .createNotification({
         userId: certificate.userId,
         type: "system",
-        title: "Certificate Issued",
-        content: `Congratulations! You have been awarded a certificate for completing "${certificate.course.title}".`,
+        title: "Certificate Created",
+        content: `Congratulations! Your certificate for completing "${certificate.course.title}" has been created successfully.`,
       })
       .catch((err) => {
         console.error("Failed to send certificate notification:", err);

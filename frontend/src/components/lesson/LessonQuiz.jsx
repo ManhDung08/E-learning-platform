@@ -9,10 +9,11 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import LockIcon from '@mui/icons-material/Lock';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 
-const LessonQuiz = ({ lessonId, onNextLesson }) => {
+const LessonQuiz = ({ lessonId, onNextLesson, onQuizComplete, isLastLesson = false }) => {
     const dispatch = useDispatch();
     const { quizzes, currentAttempt, loading, quizResult, userAttempts } = useSelector(store => store.quiz);
-
+    // Debug log to verify isLastLesson prop
+    console.log('LessonQuiz rendered - lessonId:', lessonId, 'isLastLesson:', isLastLesson);
     // state quản lý vị trí bài thi hiện tại 0 -> n-1
     const [activeQuizIndex, setActiveQuizIndex] = useState(-1);
     // lưu đáp án học viên chọn
@@ -93,9 +94,13 @@ const LessonQuiz = ({ lessonId, onNextLesson }) => {
                 window.scrollTo(0, 0);
             } else {
                 setIsFlowFinished(true);
+                // Call onQuizComplete when all quizzes are finished
+                if (onQuizComplete) {
+                    onQuizComplete();
+                }
             }
         }
-    }, [quizResult, isSubmitting, activeQuizIndex, quizzes, dispatch]);
+    }, [quizResult, isSubmitting, activeQuizIndex, quizzes, dispatch, onQuizComplete]);
 
     // ấn nút start thì sẽ gọi đến api start quiz và set hasStarted thành true để khóa lần vào làm kế tiếp
     const handleStartClick = () => {
@@ -160,13 +165,18 @@ const LessonQuiz = ({ lessonId, onNextLesson }) => {
                         No Quiz Required
                     </Typography>
                     <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-                        This lesson doesn't have any quizzes. You can proceed to the next lesson directly.
+                        {isLastLesson 
+                            ? "This lesson doesn't have any quizzes. Complete all lessons and quizzes to finish the course."
+                            : "This lesson doesn't have any quizzes. You can proceed to the next lesson directly."
+                        }
                     </Typography>
                     
-                    <Button variant="contained" fullWidth size="large" onClick={onNextLesson} 
-                        sx={{ bgcolor: '#97A87A', borderRadius: 2, '&:hover': { bgcolor: '#7e8f63' } }} >
-                        Next Lesson
-                    </Button>
+                    {!isLastLesson && (
+                        <Button variant="contained" fullWidth size="large" onClick={onNextLesson} 
+                            sx={{ bgcolor: '#97A87A', borderRadius: 2, '&:hover': { bgcolor: '#7e8f63' } }} >
+                            Next Lesson
+                        </Button>
+                    )}
                 </Card>
             </Container>
         );
@@ -209,10 +219,12 @@ const LessonQuiz = ({ lessonId, onNextLesson }) => {
                                 </Typography>
                              </Box>
                         </Card>
-                        {/* sau link đến lesson khác */}
-                        <Button variant="contained" fullWidth size="large" onClick={onNextLesson} sx={{ bgcolor: '#97A87A', borderRadius: 2 }}>
-                            Next Lesson
-                        </Button>
+                        {/* Hide next lesson button if this is the last lesson */}
+                        {!isLastLesson && (
+                            <Button variant="contained" fullWidth size="large" onClick={onNextLesson} sx={{ bgcolor: '#97A87A', borderRadius: 2 }}>
+                                Next Lesson
+                            </Button>
+                        )}
                     </CardContent>
                 </Card>
             </Container>

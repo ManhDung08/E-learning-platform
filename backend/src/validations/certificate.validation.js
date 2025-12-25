@@ -1,12 +1,6 @@
 import { body, param } from "express-validator";
 
 export const issueCertificateValidation = [
-  body("userId")
-    .exists()
-    .withMessage("userId is required")
-    .isInt({ min: 1 })
-    .withMessage("userId must be a positive integer")
-    .toInt(),
   body("courseId")
     .exists()
     .withMessage("courseId is required")

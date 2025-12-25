@@ -2,13 +2,10 @@ import certificateService from "../services/certificate.service.js";
 
 const issueCertificate = async (req, res, next) => {
   try {
-    const issuerId = req.user.id;
-    const issuerRole = req.user.role;
-    const { userId, courseId } = req.body;
+    const userId = req.user.id;
+    const { courseId } = req.body;
 
     const certificate = await certificateService.issueCertificate({
-      issuerId,
-      issuerRole,
       userId,
       courseId,
       file: req.file,

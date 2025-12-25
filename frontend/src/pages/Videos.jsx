@@ -2,7 +2,10 @@ import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 
 import LessonQuiz from "../components/lesson/LessonQuiz";
+import CourseCompletionModal from "../components/modal/CourseCompletionModal";
+import IncompleteCourseModal from "../components/modal/IncompleteCourseModal";
 import api from "../Redux/api";
+import { generateCertificatePDF, uploadCertificatePDF, downloadCertificatePDF } from "../utils/certificateGenerator";
 
 const Videos = () => {
   const { courseId } = useParams();
@@ -11,6 +14,8 @@ const Videos = () => {
   const [selectedModule, setSelectedModule] = useState(null);
   const [lessons, setLessons] = useState([]);
   const [selectedLesson, setSelectedLesson] = useState(null);
+  const [expandedModules, setExpandedModules] = useState({}); // Track which modules are expanded
+  const [modulesWithLessons, setModulesWithLessons] = useState({}); // Store lessons for each module
   const [loading, setLoading] = useState(true);
   const [checkingAccess, setCheckingAccess] = useState(true);
   const [error, setError] = useState(null);
@@ -19,8 +24,20 @@ const Videos = () => {
   const [noteLoading, setNoteLoading] = useState(false);
   const [noteSaving, setNoteSaving] = useState(false);
   const [noteError, setNoteError] = useState(null);
+  const [currentMaxWatchedSeconds, setCurrentMaxWatchedSeconds] = useState(0); // State for UI updates
+  const [showCompletionModal, setShowCompletionModal] = useState(false);
+  const [showIncompleteModal, setShowIncompleteModal] = useState(false);
+  const [incompleteLessons, setIncompleteLessons] = useState(0);
+  const [incompleteQuizzes, setIncompleteQuizzes] = useState(0);
+  const [courseName, setCourseName] = useState("");
+  const [isGeneratingCertificate, setIsGeneratingCertificate] = useState(false);
   const videoRef = useRef(null);
   const lastUpdateTimeRef = useRef(0);
+  const maxWatchedSecondsRef = useRef(0); // Track maximum watched seconds (never decrease)
+  const isInitialLoadRef = useRef(true); // Track if this is the first load of the lesson
+  const wasPlayingRef = useRef(false); // Track if video was playing before visibility change
+  const previousTimeRef = useRef(0); // Track previous time to detect seeking
+  const isSeekingRef = useRef(false); // Track if video is currently seeking
 
   // Format duration from seconds to readable format (e.g., "5:30" or "1h 5m 30s")
   const formatDuration = (seconds) => {
@@ -90,6 +107,22 @@ const Videos = () => {
     const fetchModules = async () => {
       try {
         setLoading(true);
+        
+        // Fetch course details
+        const courseResponse = await fetch(`http://localhost:3000/api/course/${courseId}`, {
+          method: 'GET',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+        if (courseResponse.ok) {
+          const courseResult = await courseResponse.json();
+          const fetchedCourseName = courseResult.data?.title || 'Course Title';
+          setCourseName(fetchedCourseName);
+          console.log('📚 Course name set in state:', fetchedCourseName);
+        }
+        
         const response = await fetch(`http://localhost:3000/api/module/course/${courseId}`, {
           method: 'GET',
           credentials: 'include',
@@ -101,9 +134,41 @@ const Videos = () => {
           throw new Error('Không thể tải modules');
         }
         const result = await response.json();
-        setModules(result.data || []);
-        if (result.data && result.data.length > 0) {
-          setSelectedModule(result.data[0]);
+        const fetchedModules = result.data || [];
+        setModules(fetchedModules);
+        
+        // Fetch lessons for ALL modules to display them
+        const allModuleLessons = {};
+        for (const module of fetchedModules) {
+          try {
+            const lessonsResponse = await fetch(`http://localhost:3000/api/lesson/module/${module.id}`, {
+              method: 'GET',
+              credentials: 'include',
+              headers: {
+                'Content-Type': 'application/json'
+              }
+            });
+            if (lessonsResponse.ok) {
+              const lessonsResult = await lessonsResponse.json();
+              allModuleLessons[module.id] = lessonsResult.data || [];
+            }
+          } catch (err) {
+            console.error(`Error fetching lessons for module ${module.id}:`, err);
+          }
+        }
+        setModulesWithLessons(allModuleLessons);
+        
+        // Auto-expand first module and set it as selected
+        if (fetchedModules.length > 0) {
+          setSelectedModule(fetchedModules[0]);
+          setExpandedModules({ [fetchedModules[0].id]: true });
+          
+          // Set first lesson of first module as selected
+          const firstModuleLessons = allModuleLessons[fetchedModules[0].id] || [];
+          if (firstModuleLessons.length > 0) {
+            setLessons(firstModuleLessons);
+            setSelectedLesson(firstModuleLessons[0]);
+          }
         }
       } catch (err) {
         console.error(err);
@@ -117,10 +182,20 @@ const Videos = () => {
     }
   }, [courseId]);
 
-  // Fetch lessons for selected module
+  // Fetch lessons for selected module (includes progress data automatically)
   useEffect(() => {
     const fetchLessons = async () => {
       if (!selectedModule) return;
+      
+      // Check if we already have lessons for this module
+      if (modulesWithLessons[selectedModule.id]) {
+        setLessons(modulesWithLessons[selectedModule.id]);
+        if (modulesWithLessons[selectedModule.id].length > 0 && !selectedLesson) {
+          setSelectedLesson(modulesWithLessons[selectedModule.id][0]);
+        }
+        return;
+      }
+      
       try {
         const response = await fetch(`http://localhost:3000/api/lesson/module/${selectedModule.id}`, {
           method: 'GET',
@@ -133,9 +208,13 @@ const Videos = () => {
           throw new Error('Không thể tải lessons');
         }
         const result = await response.json();
-        setLessons(result.data || []);
-        if (result.data && result.data.length > 0) {
-          setSelectedLesson(result.data[0]);
+        const fetchedLessons = result.data || [];
+        
+        setLessons(fetchedLessons);
+        setModulesWithLessons(prev => ({ ...prev, [selectedModule.id]: fetchedLessons }));
+        
+        if (fetchedLessons.length > 0 && !selectedLesson) {
+          setSelectedLesson(fetchedLessons[0]);
         }
       } catch (err) {
         console.error(err);
@@ -144,6 +223,47 @@ const Videos = () => {
     };
     fetchLessons();
   }, [selectedModule]);
+
+  // Fetch detailed lesson data when lesson is selected to get latest progress
+  useEffect(() => {
+    if (!selectedLesson?.id) return;
+
+    const fetchLessonDetails = async () => {
+      try {
+        const response = await fetch(`http://localhost:3000/api/lesson/${selectedLesson.id}`, {
+          method: 'GET',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+        if (!response.ok) {
+          throw new Error('Không thể tải lesson details');
+        }
+        const result = await response.json();
+        const lessonData = result.data;
+        
+        // Update selected lesson with latest progress data
+        setSelectedLesson(lessonData);
+        
+        // Also update in lessons array
+        setLessons(prevLessons => 
+          prevLessons.map(l => 
+            l.id === lessonData.id ? lessonData : l
+          )
+        );
+
+        // Initialize maxWatchedSeconds from fetched progress
+        maxWatchedSecondsRef.current = lessonData.progress?.watchedSeconds || 0;
+        setCurrentMaxWatchedSeconds(lessonData.progress?.watchedSeconds || 0);
+        isInitialLoadRef.current = true;
+      } catch (err) {
+        console.error('Error fetching lesson details:', err);
+      }
+    };
+
+    fetchLessonDetails();
+  }, [selectedLesson?.id]);
 
   // Update lesson progress periodically during video playback
   const updateLessonProgress = async (lessonId, watchedSeconds, isCompleted = false) => {
@@ -157,37 +277,63 @@ const Videos = () => {
     }
   };
 
-  // Setup video progress tracking
+  // Setup video progress tracking with resume, increasing-only progress, and visibility handling
   useEffect(() => {
     if (!selectedLesson || !videoRef.current) return;
 
     const video = videoRef.current;
 
-    // Resume from last watched position
-    if (selectedLesson.progress?.watchedSeconds) {
+    // Resume from last watched position on initial load
+    if (isInitialLoadRef.current && selectedLesson.progress?.watchedSeconds) {
       video.currentTime = selectedLesson.progress.watchedSeconds;
+      previousTimeRef.current = selectedLesson.progress.watchedSeconds;
+      isInitialLoadRef.current = false;
     }
 
     const handleTimeUpdate = () => {
       const currentTime = Math.floor(video.currentTime);
       const duration = Math.floor(video.duration);
 
-      // Update progress every 10 seconds
-      if (currentTime - lastUpdateTimeRef.current >= 10) {
-        updateLessonProgress(selectedLesson.id, currentTime);
-        lastUpdateTimeRef.current = currentTime;
-        
-        // Update local lesson state to reflect progress
-        setLessons(prevLessons => 
-          prevLessons.map(l => 
-            l.id === selectedLesson.id 
-              ? { ...l, progress: { ...l.progress, watchedSeconds: currentTime, lastAccessedAt: new Date() } }
-              : l
-          )
-        );
+      // Skip update if video is seeking
+      if (isSeekingRef.current) {
+        return;
       }
 
-      // Check if video is near completion (95% watched)
+      // Check if this is continuous playback (time difference <= 2 seconds)
+      // This prevents progress update when user fast-forwards
+      const timeDifference = currentTime - previousTimeRef.current;
+      const isContinuousPlayback = timeDifference >= 0 && timeDifference <= 2;
+
+      // Only update max watched seconds if it's continuous playback and moving forward
+      if (isContinuousPlayback && currentTime > maxWatchedSecondsRef.current) {
+        maxWatchedSecondsRef.current = currentTime;
+        setCurrentMaxWatchedSeconds(currentTime); // Update state for UI
+
+        // Update progress every 10 seconds
+        if (currentTime - lastUpdateTimeRef.current >= 10) {
+          updateLessonProgress(selectedLesson.id, currentTime);
+          lastUpdateTimeRef.current = currentTime;
+          
+          // Update local lesson state to reflect progress
+          setLessons(prevLessons => 
+            prevLessons.map(l => 
+              l.id === selectedLesson.id 
+                ? { ...l, progress: { ...l.progress, watchedSeconds: currentTime, lastAccessedAt: new Date() } }
+                : l
+            )
+          );
+          
+          setSelectedLesson(prev => ({
+            ...prev,
+            progress: { ...prev.progress, watchedSeconds: currentTime, lastAccessedAt: new Date() }
+          }));
+        }
+      }
+
+      // Update previous time for next comparison
+      previousTimeRef.current = currentTime;
+
+      // Check if video is near completion (95% watched) or fully watched
       if (duration > 0 && currentTime >= duration * 0.95 && !selectedLesson.progress?.isCompleted) {
         updateLessonProgress(selectedLesson.id, currentTime, true);
         
@@ -204,6 +350,10 @@ const Videos = () => {
           ...prev,
           progress: { ...prev.progress, isCompleted: true, watchedSeconds: currentTime }
         }));
+        
+        // Check if this is the final lesson and trigger completion check
+        // The check will only proceed if this is the final lesson without quiz
+        setTimeout(() => checkCourseCompletionForFinalLesson(), 500);
       }
     };
 
@@ -224,15 +374,136 @@ const Videos = () => {
         ...prev,
         progress: { ...prev.progress, isCompleted: true, watchedSeconds: duration }
       }));
+      
+      // Check if this is the final lesson and trigger completion check
+      setTimeout(() => checkCourseCompletionForFinalLesson(), 500);
+    };
+
+    // Handle seeking: prevent fast-forward beyond max watched + 5 seconds
+    const handleSeeking = () => {
+      isSeekingRef.current = true;
+      const currentSeekTime = Math.floor(video.currentTime);
+      const maxAllowedSeekTime = maxWatchedSecondsRef.current + 5;
+
+      // If user tries to seek forward beyond allowed limit, restrict them
+      if (currentSeekTime > maxAllowedSeekTime) {
+        video.currentTime = maxAllowedSeekTime;
+      }
+    };
+
+    const handleSeeked = () => {
+      // Update previousTime after seeking is complete
+      previousTimeRef.current = Math.floor(video.currentTime);
+      isSeekingRef.current = false;
     };
 
     video.addEventListener('timeupdate', handleTimeUpdate);
     video.addEventListener('ended', handleEnded);
+    video.addEventListener('seeking', handleSeeking);
+    video.addEventListener('seeked', handleSeeked);
 
     return () => {
       video.removeEventListener('timeupdate', handleTimeUpdate);
       video.removeEventListener('ended', handleEnded);
+      video.removeEventListener('seeking', handleSeeking);
+      video.removeEventListener('seeked', handleSeeked);
       lastUpdateTimeRef.current = 0;
+    };
+  }, [selectedLesson]);
+
+  // Handle visibility change: pause video when user leaves tab, resume when returning
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      const video = videoRef.current;
+      if (!video) return;
+
+      if (document.visibilityState === 'hidden') {
+        // User switched to another tab - check if video is currently playing
+        if (!video.paused && !video.ended) {
+          wasPlayingRef.current = true;
+          video.pause();
+        }
+      } else if (document.visibilityState === 'visible') {
+        // User returned to tab - resume playing if video was playing before
+        if (wasPlayingRef.current) {
+          const playPromise = video.play();
+          if (playPromise !== undefined) {
+            playPromise.catch(err => {
+              console.log('Auto-play prevented:', err);
+            });
+          }
+          wasPlayingRef.current = false;
+        }
+      }
+    };
+
+    // Also handle window blur/focus as backup
+    const handleBlur = () => {
+      const video = videoRef.current;
+      if (video && !video.paused && !video.ended) {
+        wasPlayingRef.current = true;
+        video.pause();
+      }
+    };
+
+    const handleFocus = () => {
+      const video = videoRef.current;
+      if (video && wasPlayingRef.current) {
+        const playPromise = video.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(err => {
+            console.log('Auto-play prevented:', err);
+          });
+        }
+        wasPlayingRef.current = false;
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('blur', handleBlur);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('blur', handleBlur);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, []);
+
+  // Save progress before unmount or when user closes tab
+  useEffect(() => {
+    const saveProgressOnExit = () => {
+      if (selectedLesson && maxWatchedSecondsRef.current > 0) {
+        // Use fetch with keepalive for reliable delivery on page unload
+        // Note: sendBeacon doesn't support PATCH method, so we use fetch
+        try {
+          fetch(`http://localhost:3000/api/lesson/${selectedLesson.id}/progress`, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              watchedSeconds: maxWatchedSecondsRef.current,
+              isCompleted: selectedLesson.progress?.isCompleted || false
+            }),
+            credentials: 'include',
+            keepalive: true // Keep request alive even if page is closing
+          }).catch(err => {
+            console.error('Failed to save progress on exit:', err);
+          });
+        } catch (err) {
+          console.error('Error saving progress on exit:', err);
+        }
+      }
+    };
+
+    // Save on beforeunload (user closing tab/window)
+    window.addEventListener('beforeunload', saveProgressOnExit);
+
+    // Save on component unmount
+    return () => {
+      window.removeEventListener('beforeunload', saveProgressOnExit);
+      saveProgressOnExit();
     };
   }, [selectedLesson]);
 
@@ -330,15 +601,100 @@ const Videos = () => {
     }
   };
 
-  const onSelectModule = (module) => {
+  const onSelectModule = (module, moduleIndex) => {
+    // Check if module is locked
+    if (isModuleLocked(module, moduleIndex)) {
+      return; // Don't allow selection
+    }
+    
     setSelectedModule(module);
+    
+    // Expand/collapse the clicked module
+    setExpandedModules(prev => ({
+      ...prev,
+      [module.id]: !prev[module.id]
+    }));
+    
+    // Update lessons for the selected module
+    const moduleLessons = modulesWithLessons[module.id] || [];
+    setLessons(moduleLessons);
+    
+    // Select first unlocked lesson in the module
+    const firstUnlockedLesson = moduleLessons.find((lesson, idx) => !isLessonLocked(lesson, moduleLessons));
+    if (firstUnlockedLesson) {
+      onSelectLesson(firstUnlockedLesson, moduleLessons);
+    }
   };
 
-  const onSelectLesson = (lesson) => {
-    // Save current progress before switching
-    if (selectedLesson && videoRef.current && !videoRef.current.paused) {
-      const currentTime = Math.floor(videoRef.current.currentTime);
-      updateLessonProgress(selectedLesson.id, currentTime);
+  const isLessonLocked = (lesson, moduleLessons) => {
+    const lessonIndex = moduleLessons.findIndex(l => l.id === lesson.id);
+    
+    // Find which module this lesson belongs to
+    let currentModuleIndex = -1;
+    for (let i = 0; i < modules.length; i++) {
+      const modLessons = modulesWithLessons[modules[i].id] || [];
+      if (modLessons.some(l => l.id === lesson.id)) {
+        currentModuleIndex = i;
+        break;
+      }
+    }
+    
+    // Check if this is the first lesson of the first module
+    if (currentModuleIndex === 0 && lessonIndex === 0) return false; // First lesson of first module is always unlocked
+    
+    // Check if all previous lessons in current module are completed
+    for (let i = 0; i < lessonIndex; i++) {
+      if (!moduleLessons[i].progress?.isCompleted) {
+        return true; // Previous lesson not completed, so this is locked
+      }
+    }
+    
+    // If this is the first lesson of a module (but not first module), check if previous module is completed
+    if (lessonIndex === 0 && currentModuleIndex > 0) {
+      const previousModule = modules[currentModuleIndex - 1];
+      const previousModuleLessons = modulesWithLessons[previousModule.id] || [];
+      
+      if (previousModuleLessons.length === 0) return true;
+      
+      // Check if all lessons in previous module are completed
+      return !previousModuleLessons.every(l => l.progress?.isCompleted);
+    }
+    
+    return false; // All previous lessons completed
+  };
+
+  const isModuleLocked = (module, moduleIndex) => {
+    if (moduleIndex === 0) return false; // First module is always unlocked
+    
+    // Check if all lessons in previous module are completed
+    const previousModule = modules[moduleIndex - 1];
+    const previousModuleLessons = modulesWithLessons[previousModule.id] || [];
+    
+    if (previousModuleLessons.length === 0) return true; // If no lessons fetched, keep locked
+    
+    return !previousModuleLessons.every(l => l.progress?.isCompleted);
+  };
+
+  const onSelectLesson = (lesson, moduleLessons) => {
+    // Check if lesson is locked
+    if (isLessonLocked(lesson, moduleLessons)) {
+      return; // Don't allow selection
+    }
+    
+    // Save current progress before switching using max watched seconds
+    if (selectedLesson && maxWatchedSecondsRef.current > 0) {
+      updateLessonProgress(selectedLesson.id, maxWatchedSecondsRef.current, selectedLesson.progress?.isCompleted || false);
+    }
+    
+    // Find which module this lesson belongs to and update selectedModule
+    const lessonModule = modules.find(module => {
+      const moduleTheLessons = modulesWithLessons[module.id] || [];
+      return moduleTheLessons.some(l => l.id === lesson.id);
+    });
+    
+    if (lessonModule && lessonModule.id !== selectedModule?.id) {
+      setSelectedModule(lessonModule);
+      setLessons(moduleLessons);
     }
     
     setSelectedLesson(lesson);
@@ -349,21 +705,463 @@ const Videos = () => {
         // Ignore errors if video cannot be paused
       }
     }
+    
+    // Reset tracking refs for new lesson
     lastUpdateTimeRef.current = 0;
+    maxWatchedSecondsRef.current = 0;
+    setCurrentMaxWatchedSeconds(0);
+    isInitialLoadRef.current = true;
+    previousTimeRef.current = 0;
+    isSeekingRef.current = false;
   };
 
-  const handleNextLesson = () => {
+  const toggleModule = (moduleId) => {
+    setExpandedModules(prev => ({
+      ...prev,
+      [moduleId]: !prev[moduleId]
+    }));
+  };
+
+  // Check if all lessons (videos) and quizzes are completed
+  const checkFullCourseCompletion = async () => {
+    let incompleteLessonCount = 0;
+    let incompleteQuizCount = 0;
+
+    console.log('=== Starting Full Course Completion Check ===');
+
+    // Check all lessons are completed
+    for (const module of modules) {
+      const moduleLessons = modulesWithLessons[module.id] || [];
+      
+      for (const lesson of moduleLessons) {
+        if (!lesson.progress?.isCompleted) {
+          incompleteLessonCount++;
+          console.log(`Incomplete lesson found: ${lesson.title} (ID: ${lesson.id})`);
+        }
+      }
+    }
+
+    console.log(`Total incomplete lessons: ${incompleteLessonCount}`);
+
+    // Check all quizzes are completed - fetch quiz attempts for user
+    try {
+      const quizAttemptsResponse = await api.get('/quiz/my-attempts');
+      const userAttempts = quizAttemptsResponse.data?.data || [];
+      
+      console.log(`User has ${userAttempts.length} quiz attempts`);
+
+      // Get all quizzes for all lessons
+      for (const module of modules) {
+        const moduleLessons = modulesWithLessons[module.id] || [];
+        
+        for (const lesson of moduleLessons) {
+          try {
+            const quizzesResponse = await api.get(`/quiz/lesson/${lesson.id}`);
+            const lessonQuizzes = quizzesResponse.data?.data || [];
+            
+            console.log(`Lesson "${lesson.title}" has ${lessonQuizzes.length} quizzes`);
+            
+            // Check if each quiz has a completed attempt
+            for (const quiz of lessonQuizzes) {
+              const hasCompleted = userAttempts.some(attempt => 
+                attempt.quizId === quiz.id && (attempt.completedAt || attempt.score != null)
+              );
+              
+              if (!hasCompleted) {
+                incompleteQuizCount++;
+                console.log(`Incomplete quiz found: "${quiz.title}" (ID: ${quiz.id}) in lesson "${lesson.title}"`);
+              } else {
+                console.log(`Quiz completed: "${quiz.title}" (ID: ${quiz.id})`);
+              }
+            }
+          } catch (err) {
+            // If 404, it means no quizzes for this lesson - that's OK, skip it
+            if (err.response?.status === 404) {
+              console.log(`No quizzes found for lesson "${lesson.title}" (404) - OK`);
+            } else {
+              console.error(`Error fetching quizzes for lesson ${lesson.id}:`, err);
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching quiz attempts:', err);
+    }
+
+    console.log(`Total incomplete quizzes: ${incompleteQuizCount}`);
+    console.log('=== Full Course Completion Check Complete ===');
+
+    setIncompleteLessons(incompleteLessonCount);
+    setIncompleteQuizzes(incompleteQuizCount);
+
+    const isComplete = incompleteLessonCount === 0 && incompleteQuizCount === 0;
+    console.log(`Course completion status: ${isComplete ? 'COMPLETE' : 'INCOMPLETE'}`);
+    return { isComplete, incompleteLessonCount, incompleteQuizCount };
+  };
+
+  // Check if certificate exists for this course
+  const checkCertificateExists = async (courseId) => {
+    try {
+      console.log('Checking if certificate exists for courseId:', courseId);
+      const response = await api.get('/certificate/me');
+      if (response.data && response.data.success) {
+        const certificates = response.data.data || [];
+        console.log('User certificates:', certificates);
+        const exists = certificates.some(cert => cert.courseId === parseInt(courseId));
+        console.log('Certificate exists:', exists);
+        return exists;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error checking certificate:', error);
+      return false;
+    }
+  };
+
+  // Generate and upload certificate
+  const generateAndUploadCertificate = async (userId, userName, courseId, courseName) => {
+    try {
+      setIsGeneratingCertificate(true);
+      console.log('=== CERTIFICATE GENERATION START ===');
+      console.log('📋 Parameters received:', { 
+        userId, 
+        userName, 
+        courseId, 
+        courseName: courseName,
+        courseNameLength: courseName?.length,
+        courseNameType: typeof courseName
+      });
+      
+      // First check if certificate already exists
+      const exists = await checkCertificateExists(courseId);
+      if (exists) {
+        console.log('Certificate already exists for this course');
+        return { success: true, alreadyExists: true };
+      }
+      
+      // ALWAYS fetch fresh course name to ensure accuracy
+      console.log('🔍 Fetching fresh course title from backend...');
+      console.log('Current courseName from parameter:', courseName);
+      
+      // First priority: use the courseName passed as parameter (from state)
+      let validatedCourseName = courseName;
+      
+      // If parameter is empty or default, fetch from API
+      if (!validatedCourseName || validatedCourseName.trim() === '' || validatedCourseName === 'Course Title') {
+        console.log('Parameter courseName is empty/default, fetching from API...');
+        validatedCourseName = await fetchCourseName(courseId);
+        console.log('Fetched course title from API:', validatedCourseName);
+      } else {
+        console.log('Using courseName from parameter:', validatedCourseName);
+      }
+      
+      // Final validation
+      if (!validatedCourseName || validatedCourseName.trim() === '' || validatedCourseName === 'Completed Course') {
+        console.error('CRITICAL: Could not get valid course title!');
+        validatedCourseName = 'Course Completion Certificate'; // Last resort fallback
+      }
+      
+      console.log('✅ Final validated course name:', validatedCourseName);
+      
+      console.log('✅ Generating new certificate PDF');
+      console.log('📝 Final values being passed to PDF generator:', {
+        userName,
+        courseName: validatedCourseName,
+        courseNameLength: validatedCourseName?.length,
+        completionDate: new Date()
+      });
+      // Generate PDF with validated course title and current date as completion date
+      const pdf = generateCertificatePDF(userName, validatedCourseName, new Date());
+      
+      console.log('✓ Converting PDF to file...');
+      // Convert to file
+      const certificateFile = await uploadCertificatePDF(pdf, `${validatedCourseName || 'certificate'}-certificate.pdf`);
+      
+      console.log('✓ Creating FormData and uploading to backend...');
+      // Create FormData
+      const formData = new FormData();
+      formData.append('userId', userId);
+      formData.append('courseId', courseId);
+      formData.append('certificate', certificateFile);
+      
+      // Upload to backend
+      const response = await api.post('/certificate', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      
+      console.log('✓ Certificate uploaded successfully:', response.data);
+      console.log('=== CERTIFICATE GENERATION END ===');
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error('Error generating/uploading certificate:', error);
+      throw error;
+    } finally {
+      setIsGeneratingCertificate(false);
+    }
+  };
+
+  // Helper function to fetch course name if not available
+  const fetchCourseName = async (courseId) => {
+    try {
+      console.log('🔄 Fetching course name for courseId:', courseId);
+      
+      // Use fetch with credentials to match the working initial load
+      const response = await fetch(`http://localhost:3000/api/course/${courseId}`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        const name = result.data?.title || 'Completed Course';
+        console.log('✅ Fetched course name successfully:', name);
+        return name;
+      } else {
+        console.warn('⚠️ Response not OK, status:', response.status);
+        console.log('Falling back to state value or default');
+        return 'Completed Course';
+      }
+    } catch (error) {
+      console.error('❌ Error fetching course name:', error);
+      return 'Completed Course';
+    }
+  };
+
+  // Modified completion check
+  const checkCourseCompletion = () => {
+    // Check if all lessons in all modules are completed
+    for (const module of modules) {
+      const moduleLessons = modulesWithLessons[module.id] || [];
+      if (moduleLessons.length === 0) return false;
+      
+      for (const lesson of moduleLessons) {
+        if (!lesson.progress?.isCompleted) {
+          return false;
+        }
+      }
+    }
+    return true;
+  };
+
+  // Handle quiz completion for the final lesson
+  const handleQuizComplete = async () => {
+    console.log('handleQuizComplete called');
+    // Check if all lessons and quizzes are complete
+    const { isComplete, incompleteLessonCount, incompleteQuizCount } = await checkFullCourseCompletion();
+    
+    console.log('Course completion status:', { isComplete, incompleteLessonCount, incompleteQuizCount });
+    
+    if (isComplete) {
+      console.log('Course is complete! Checking/generating certificate...');
+      // Generate and upload certificate
+      try {
+        const userResponse = await api.get('/user/me');
+        const userData = userResponse.data?.data;
+        
+        console.log('User data:', userData);
+        console.log('🔍 BEFORE CERTIFICATE GENERATION - courseName state value:', courseName);
+        
+        if (userData) {
+          // Check if certificate exists, if not generate it
+          const certExists = await checkCertificateExists(courseId);
+          if (!certExists) {
+            await generateAndUploadCertificate(
+              userData.id,
+              userData.fullname || userData.email,
+              courseId,
+              courseName
+            );
+            console.log('Certificate created successfully');
+          } else {
+            console.log('Certificate already exists, skipping generation');
+          }
+        }
+        
+        // Show completion modal
+        console.log('Showing completion modal');
+        setShowCompletionModal(true);
+      } catch (error) {
+        console.error('Error in completion process:', error);
+        // Show completion modal even if certificate generation fails
+        setShowCompletionModal(true);
+      }
+    } else {
+      console.log('Course incomplete, showing incomplete modal');
+      // Show incomplete modal
+      setShowIncompleteModal(true);
+    }
+  };
+
+  const handleNextLesson = async () => {
     if (!selectedLesson || !lessons.length) return;
 
     const currentIndex = lessons.findIndex(l => l.id === selectedLesson.id);
     
     if (currentIndex !== -1 && currentIndex < lessons.length - 1) {
+        // Move to next lesson in current module
         const nextLesson = lessons[currentIndex + 1];
-        onSelectLesson(nextLesson);
+        onSelectLesson(nextLesson, lessons);
         
         window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
-        alert("Chúc mừng! Bạn đã hoàn thành module này.");
+        // Last lesson of current module - try to move to first lesson of next module
+        const currentModuleIndex = modules.findIndex(m => m.id === selectedModule?.id);
+        
+        if (currentModuleIndex !== -1 && currentModuleIndex < modules.length - 1) {
+            // There is a next module
+            const nextModule = modules[currentModuleIndex + 1];
+            const nextModuleLessons = modulesWithLessons[nextModule.id] || [];
+            
+            if (nextModuleLessons.length > 0 && !isModuleLocked(nextModule, currentModuleIndex + 1)) {
+                // Select next module and its first lesson
+                setSelectedModule(nextModule);
+                setExpandedModules(prev => ({
+                  ...prev,
+                  [nextModule.id]: true
+                }));
+                setLessons(nextModuleLessons);
+                
+                const firstLesson = nextModuleLessons[0];
+                onSelectLesson(firstLesson, nextModuleLessons);
+                
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } else {
+                alert("Module tiếp theo đang bị khóa. Vui lòng hoàn thành module hiện tại trước.");
+            }
+        }
+        // Note: For last lesson of last module, we don't do anything here
+        // The completion check will be handled by the continuous monitoring useEffect
+    }
+  };
+
+  // Check course completion when final lesson video is completed (only if no quiz exists)
+  const checkCourseCompletionForFinalLesson = async () => {
+    console.log('Checking course completion for final lesson');
+    
+    // Check if this is the final lesson
+    const currentModuleIndex = modules.findIndex(m => m.id === selectedModule?.id);
+    const isLastModule = currentModuleIndex === modules.length - 1;
+    
+    // Use modulesWithLessons to get the correct lessons for the current module
+    const currentModuleLessons = selectedModule ? (modulesWithLessons[selectedModule.id] || []) : [];
+    const currentLessonIndex = currentModuleLessons.findIndex(l => l.id === selectedLesson?.id);
+    const isLastLesson = currentLessonIndex === currentModuleLessons.length - 1;
+    
+    console.log('Final lesson check:', { 
+      currentModuleIndex, 
+      isLastModule, 
+      currentLessonIndex, 
+      isLastLesson,
+      totalModules: modules.length,
+      totalLessonsInModule: currentModuleLessons.length
+    });
+    
+    if (!isLastModule || !isLastLesson) {
+      console.log('Not the final lesson, skipping completion check');
+      return; // Not the final lesson, don't check
+    }
+    
+    // Check if final lesson has quizzes
+    try {
+      console.log('Fetching quizzes for lesson:', selectedLesson.id);
+      const quizzesResponse = await api.get(`/quiz/lesson/${selectedLesson.id}`);
+      const lessonQuizzes = quizzesResponse.data?.data || [];
+      
+      console.log('Quizzes found for final lesson:', lessonQuizzes.length);
+      
+      if (lessonQuizzes.length > 0) {
+        console.log('Final lesson has quizzes, completion check will happen after quiz');
+        return; // Has quizzes, completion will be checked after quiz is done
+      }
+      
+      // No quizzes on final lesson, check full completion now
+      console.log('Final lesson has no quizzes, checking full completion');
+      const { isComplete, incompleteLessonCount, incompleteQuizCount } = await checkFullCourseCompletion();
+      
+      console.log('Full completion check result:', { isComplete, incompleteLessonCount, incompleteQuizCount });
+      
+      if (isComplete) {
+        console.log('Course is complete! Checking/generating certificate...');
+        try {
+          const userResponse = await api.get('/user/me');
+          const userData = userResponse.data?.data;
+          
+          if (userData) {
+            // Check if certificate exists, if not generate it
+            const certExists = await checkCertificateExists(courseId);
+            if (!certExists) {
+              await generateAndUploadCertificate(
+                userData.id,
+                userData.fullname || userData.email,
+                courseId,
+                courseName
+              );
+            } else {
+              console.log('Certificate already exists, skipping generation');
+            }
+          }
+          
+          console.log('Setting completion modal to true');
+          setShowCompletionModal(true);
+        } catch (error) {
+          console.error('Error in completion process:', error);
+          console.log('Setting completion modal to true (after error)');
+          setShowCompletionModal(true);
+        }
+      } else {
+        console.log('Course incomplete, showing incomplete modal');
+        setShowIncompleteModal(true);
+      }
+    } catch (error) {
+      // If 404 or no quizzes found, treat as no quizzes and check completion
+      console.log('Error fetching quizzes (likely 404 - no quizzes exist), treating as no quizzes');
+      console.log('Final lesson has no quizzes, checking full completion');
+      
+      try {
+        const { isComplete, incompleteLessonCount, incompleteQuizCount } = await checkFullCourseCompletion();
+        
+        console.log('Full completion check result:', { isComplete, incompleteLessonCount, incompleteQuizCount });
+        
+        if (isComplete) {
+          console.log('Course is complete! Checking/generating certificate...');
+          try {
+            const userResponse = await api.get('/user/me');
+            const userData = userResponse.data?.data;
+            
+            if (userData) {
+              // Check if certificate exists, if not generate it
+              const certExists = await checkCertificateExists(courseId);
+              if (!certExists) {
+                await generateAndUploadCertificate(
+                  userData.id,
+                  userData.fullname || userData.email,
+                  courseId,
+                  courseName
+                );
+              } else {
+                console.log('Certificate already exists, skipping generation');
+              }
+            }
+            
+            console.log('Setting completion modal to true');
+            setShowCompletionModal(true);
+          } catch (certError) {
+            console.error('Error in completion process:', certError);
+            console.log('Setting completion modal to true (after error)');
+            setShowCompletionModal(true);
+          }
+        } else {
+          console.log('Course incomplete, showing incomplete modal');
+          setShowIncompleteModal(true);
+        }
+      } catch (completionError) {
+        console.error('Error checking course completion:', completionError);
+      }
     }
   };
 
@@ -377,20 +1175,22 @@ const Videos = () => {
 
   return (
     <div className="w-full bg-gray-50">
-      <div className="p-6">
-        <h1 className="text-2xl font-semibold mb-4">Videos - {selectedModule?.title || 'Chọn module'}</h1>
+      <div className="p-6 pb-8">
+        <h1 className="text-2xl font-bold mb-6 text-gray-900">{selectedModule?.title || 'Select a module'}</h1>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Left column: video + notes stacked */}
-          <div className="lg:col-span-8 flex flex-col gap-4">
+          {/* Left column: video + quiz stacked */}
+          <div className="lg:col-span-8 flex flex-col gap-6">
             {selectedLesson && (
               <>
-                <div className="rounded shadow-lg overflow-hidden bg-black">
+                <div className="rounded-lg shadow overflow-hidden bg-black">
                   <div className="w-full h-[260px] md:h-[420px] lg:h-[540px]">
                     <video
                       ref={videoRef}
                       key={selectedLesson?.id}
                       controls
+                      controlsList="nodownload nopictureinpicture"
+                      disablePictureInPicture
                       className="w-full h-full object-contain bg-black"
                       src={selectedLesson?.videoUrl}
                     >
@@ -399,12 +1199,12 @@ const Videos = () => {
                   </div>
 
                   <div className="p-4 bg-white border-t">
-                    <div className="flex items-start justify-between gap-4 mb-3">
+                    <div className="flex items-start justify-between gap-4">
                       <div className="flex-1">
                         <div className="flex items-center gap-3">
-                          <h2 className="text-lg font-semibold">{selectedLesson?.title}</h2>
+                          <h2 className="text-lg font-semibold text-gray-900">{selectedLesson?.title}</h2>
                           {selectedLesson?.progress?.isCompleted && (
-                            <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-full">
+                            <span className="inline-flex items-center gap-1 px-3 py-1 bg-emerald-50 text-emerald-700 text-xs font-semibold rounded-full border border-emerald-200">
                               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
                               </svg>
@@ -412,183 +1212,364 @@ const Videos = () => {
                             </span>
                           )}
                         </div>
-                        <p className="text-sm text-gray-500 mt-1">Duration: {formatDuration(selectedLesson?.durationSeconds)}</p>
                         
                         {/* Progress Bar */}
                         {selectedLesson?.durationSeconds > 0 && (
                           <div className="mt-3">
-                            <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
-                              <span>Progress: {formatDuration(selectedLesson?.progress?.watchedSeconds || 0)} / {formatDuration(selectedLesson?.durationSeconds)}</span>
-                              <span className="font-semibold">
-                                {Math.min(100, Math.round(((selectedLesson?.progress?.watchedSeconds || 0) / selectedLesson?.durationSeconds) * 100))}%
+                            <div className="flex items-center justify-between text-xs text-gray-600 mb-1.5">
+                              <span className="font-medium">
+                                {formatDuration(Math.max(selectedLesson?.progress?.watchedSeconds || 0, currentMaxWatchedSeconds))} / {formatDuration(selectedLesson?.durationSeconds)}
+                              </span>
+                              <span className="font-semibold text-blue-600">
+                                {Math.min(100, Math.round(((Math.max(selectedLesson?.progress?.watchedSeconds || 0, currentMaxWatchedSeconds)) / selectedLesson?.durationSeconds) * 100))}%
                               </span>
                             </div>
-                            <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                            <div className="w-full h-2.5 bg-gray-200 rounded-full overflow-hidden">
                               <div 
                                 className={`h-full transition-all duration-300 ${
-                                  selectedLesson?.progress?.isCompleted ? 'bg-green-500' : 'bg-blue-500'
+                                  selectedLesson?.progress?.isCompleted ? 'bg-emerald-500' : 'bg-blue-600'
                                 }`}
                                 style={{ 
-                                  width: `${Math.min(100, ((selectedLesson?.progress?.watchedSeconds || 0) / selectedLesson?.durationSeconds) * 100)}%` 
+                                  width: `${Math.min(100, ((Math.max(selectedLesson?.progress?.watchedSeconds || 0, currentMaxWatchedSeconds)) / selectedLesson?.durationSeconds) * 100)}%` 
                                 }}
                               />
                             </div>
                           </div>
                         )}
                       </div>
-                      <div className="text-sm text-gray-400">ID: {selectedLesson?.id}</div>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-white rounded shadow-lg p-6 border-gray-200">
-                  <h3 className="text-lg font-bold mb-4 border-b pb-2 text-gray-700">
-                    Quiz for Lesson
-                  </h3>
-                  <LessonQuiz key={selectedLesson.id} lessonId={selectedLesson.id} onNextLesson={handleNextLesson} />
+                <div className="bg-white rounded-lg shadow border border-gray-200">
+                  <div className="px-4 py-3 border-b border-gray-200 bg-slate-50">
+                    <h3 className="font-semibold text-gray-900 text-base">Lesson Quiz</h3>
+                  </div>
+                  <div className="p-6">
+                    <LessonQuiz 
+                      key={selectedLesson.id} 
+                      lessonId={selectedLesson.id}
+                      isLastLesson={(() => {
+                        const currentModuleIndex = modules.findIndex(m => m.id === selectedModule?.id);
+                        const isLastModule = currentModuleIndex === modules.length - 1;
+                        
+                        // Use modulesWithLessons to get the correct lessons for the current module
+                        const currentModuleLessons = selectedModule ? (modulesWithLessons[selectedModule.id] || []) : [];
+                        const currentLessonIndex = currentModuleLessons.findIndex(l => l.id === selectedLesson?.id);
+                        const isLastLesson = currentLessonIndex === currentModuleLessons.length - 1;
+                        
+                        const result = isLastModule && isLastLesson;
+                        console.log('Calculating isLastLesson:', {
+                          currentModuleIndex,
+                          totalModules: modules.length,
+                          isLastModule,
+                          currentLessonIndex,
+                          totalLessons: currentModuleLessons.length,
+                          isLastLesson,
+                          finalResult: result
+                        });
+                        return result;
+                      })()}
+                      onNextLesson={handleNextLesson}
+                      onQuizComplete={async () => {
+                        // Always check completion when quiz is done, regardless of which lesson
+                        // This handles the case where final lesson has a quiz
+                        const currentModuleIndex = modules.findIndex(m => m.id === selectedModule?.id);
+                        const currentLessonIndex = lessons.findIndex(l => l.id === selectedLesson?.id);
+                        const isLastModule = currentModuleIndex === modules.length - 1;
+                        const isLastLesson = currentLessonIndex === lessons.length - 1;
+                        
+                        if (isLastModule && isLastLesson) {
+                          // This is the final lesson with quiz - check full completion
+                          console.log('Final lesson quiz completed, checking full course completion');
+                          await handleQuizComplete();
+                        }
+                      }}
+                    />
+                  </div>
                 </div>
               </>
             )}
           </div>
 
-          {/* Right column: list of modules and lessons */}
+          {/* Right column: Course content (modules + lessons) and notes */}
           <aside className="lg:col-span-4">
             <div className="space-y-4 sticky top-6">
-              {/* Modules list */}
-              <div className="bg-white rounded shadow p-3 border border-gray-200">
-                <h3 className="font-medium mb-3 pb-2 border-b border-gray-100">Danh sách module</h3>
-                <div className="mt-2" style={{ maxHeight: '150px', overflowY: 'auto' }}>
-                  <ul className="space-y-2 px-1">
-                    {modules.map((m) => (
-                      <li
-                        key={m.id}
-                        className={`p-2 rounded-md cursor-pointer transition-shadow ${m.id === selectedModule?.id ? 'bg-indigo-50 shadow-sm ring-1 ring-indigo-200 border border-indigo-100' : 'hover:shadow-sm hover:bg-gray-50'}`}
-                        onClick={() => onSelectModule(m)}
-                      >
-                        <div className="font-medium text-sm text-gray-800">{m.title}</div>
-                        <div className="text-xs text-gray-500">{m.description || 'Mô tả module'}</div>
-                      </li>
-                    ))}
-                  </ul>
+              {/* Course Content - Combined Modules and Lessons */}
+              <div className="bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
+                <div className="bg-slate-800 px-4 py-3.5 border-b border-slate-700">
+                  <h3 className="font-semibold text-white text-base">Course Content</h3>
+                </div>
+                
+                <div className="max-h-[calc(100vh-300px)] overflow-y-auto">
+                  {modules.map((module, moduleIndex) => {
+                    const moduleLessons = modulesWithLessons[module.id] || [];
+                    const isExpanded = expandedModules[module.id];
+                    const completedCount = moduleLessons.filter(l => l.progress?.isCompleted).length;
+                    const totalLessons = moduleLessons.length;
+                    const isModuleDisabled = isModuleLocked(module, moduleIndex);
+                    
+                    return (
+                      <div key={module.id} className="border-b border-gray-200 last:border-b-0">
+                        {/* Module Header */}
+                        <div
+                          className={`flex items-start gap-3 p-4 transition-colors relative ${
+                            isModuleDisabled
+                              ? 'bg-gray-50 opacity-60'
+                              : selectedModule?.id === module.id
+                              ? 'bg-blue-50 border-l-4 border-blue-600 cursor-pointer'
+                              : 'hover:bg-gray-50 cursor-pointer'
+                          }`}
+                          onClick={() => onSelectModule(module, moduleIndex)}
+                        >
+                          {isModuleDisabled && (
+                            <div className="absolute top-3 right-3">
+                              <div className="flex items-center gap-1 px-2 py-1 bg-gray-200 rounded-md">
+                                <svg className="w-4 h-4 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd"/>
+                                </svg>
+                                <span className="text-xs font-medium text-gray-600">Locked</span>
+                              </div>
+                            </div>
+                          )}
+                          
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleModule(module.id);
+                            }}
+                            className="mt-1 flex-shrink-0 transition-transform text-gray-600 hover:text-gray-800"
+                          >
+                            <svg
+                              className={`w-5 h-5 transition-transform duration-200 ${
+                                isExpanded ? 'transform rotate-90' : ''
+                              }`}
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                          </button>
+                          
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-2 mb-1">
+                              <h4 className={`font-semibold text-sm leading-tight ${
+                                isModuleDisabled ? 'text-gray-500' : 'text-gray-900'
+                              }`}>
+                                {moduleIndex + 1}. {module.title}
+                              </h4>
+                              {totalLessons > 0 && (
+                                <span className={`text-xs whitespace-nowrap flex-shrink-0 font-medium ${
+                                  completedCount === totalLessons ? 'text-emerald-600' : 'text-gray-500'
+                                }`}>
+                                  {completedCount}/{totalLessons}
+                                </span>
+                              )}
+                            </div>
+                            {module.description && (
+                              <p className={`text-xs mt-1 line-clamp-2 ${
+                                isModuleDisabled ? 'text-gray-400' : 'text-gray-600'
+                              }`}>
+                                {module.description}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Lessons List */}
+                        {isExpanded && moduleLessons.length > 0 && (
+                          <div className="bg-gray-50">
+                            {moduleLessons.map((lesson, lessonIndex) => {
+                              const isSelected = selectedLesson?.id === lesson.id;
+                              // Use currentMaxWatchedSeconds for selected lesson to show real-time progress
+                              const watchedSeconds = isSelected 
+                                ? Math.max(lesson.progress?.watchedSeconds || 0, currentMaxWatchedSeconds)
+                                : (lesson.progress?.watchedSeconds || 0);
+                              const progressPercent = lesson.durationSeconds > 0
+                                ? Math.min(100, (watchedSeconds / lesson.durationSeconds) * 100)
+                                : 0;
+                              const isLocked = isLessonLocked(lesson, moduleLessons);
+
+                              return (
+                                <div
+                                  key={lesson.id}
+                                  className={`flex items-start gap-3 pl-12 pr-4 py-3 transition-colors border-t border-gray-200 relative ${
+                                    isLocked
+                                      ? 'bg-gray-100 opacity-60 cursor-not-allowed'
+                                      : isSelected
+                                      ? 'bg-blue-100 border-l-4 border-blue-600 cursor-pointer'
+                                      : 'hover:bg-gray-100 cursor-pointer'
+                                  }`}
+                                  onClick={() => !isLocked && onSelectLesson(lesson, moduleLessons)}
+                                >
+                                  {isLocked && (
+                                    <div className="absolute top-2 right-3">
+                                      <div className="flex items-center gap-1 px-2 py-1 bg-gray-200 rounded-md">
+                                        <svg className="w-3.5 h-3.5 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
+                                          <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd"/>
+                                        </svg>
+                                        <span className="text-xs font-medium text-gray-600">Locked</span>
+                                      </div>
+                                    </div>
+                                  )}
+                                  
+                                  {/* Play/Check Icon */}
+                                  <div className="flex-shrink-0 mt-0.5">
+                                    {lesson.progress?.isCompleted ? (
+                                      <svg className="w-5 h-5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path
+                                          fillRule="evenodd"
+                                          d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                          clipRule="evenodd"
+                                        />
+                                      </svg>
+                                    ) : (
+                                      <svg className={`w-5 h-5 ${isLocked ? 'text-gray-400' : 'text-gray-500'}`} fill="currentColor" viewBox="0 0 20 20">
+                                        <path
+                                          fillRule="evenodd"
+                                          d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
+                                          clipRule="evenodd"
+                                        />
+                                      </svg>
+                                    )}
+                                  </div>
+
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-start justify-between gap-2 mb-1">
+                                      <h5
+                                        className={`text-sm font-medium leading-tight ${
+                                          isLocked ? 'text-gray-500' : isSelected ? 'text-blue-900' : 'text-gray-900'
+                                        }`}
+                                      >
+                                        {lessonIndex + 1}. {lesson.title}
+                                      </h5>
+                                      <span className={`text-xs whitespace-nowrap flex-shrink-0 ${
+                                        isLocked ? 'text-gray-400' : 'text-gray-600'
+                                      }`}>
+                                        {formatDuration(lesson.durationSeconds)}
+                                      </span>
+                                    </div>
+                                    
+                                    {lesson.content && (
+                                      <p className={`text-xs mt-1 line-clamp-2 mb-2 ${
+                                        isLocked ? 'text-gray-400' : 'text-gray-600'
+                                      }`}>
+                                        {lesson.content}
+                                      </p>
+                                    )}
+
+                                    {/* Progress Bar */}
+                                    {lesson.durationSeconds > 0 && (
+                                      <div className={`w-full h-1 rounded-full overflow-hidden ${
+                                        isLocked ? 'bg-gray-300' : 'bg-gray-200'
+                                      }`}>
+                                        <div
+                                          className={`h-full transition-all ${
+                                            lesson.progress?.isCompleted ? 'bg-emerald-500' : 'bg-blue-600'
+                                          }`}
+                                          style={{ width: `${progressPercent}%` }}
+                                        />
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
-              {/* Lessons list */}
-              {selectedModule && (
-                <div className="bg-white rounded shadow p-3 border border-gray-200">
-                  <h3 className="font-medium mb-3 pb-2 border-b border-gray-100">Danh sách video trong module</h3>
-                  <div className="mt-2" style={{ maxHeight: '220px', overflowY: 'auto' }}>
-                    <ul className="space-y-3 px-1">
-                      {lessons.map((l) => {
-                        const progressPercent = l.durationSeconds > 0 
-                          ? Math.min(100, ((l.progress?.watchedSeconds || 0) / l.durationSeconds) * 100)
-                          : 0;
-                        
-                        return (
-                          <li
-                            key={l.id}
-                            className={`relative flex items-center gap-3 p-2 rounded-md cursor-pointer transition-shadow ${l.id === selectedLesson?.id ? 'bg-indigo-50 shadow-sm ring-1 ring-indigo-200 border border-indigo-100' : 'hover:shadow-sm hover:bg-gray-50'}`}
-                            onClick={() => onSelectLesson(l)}
-                          >
-                            <div className="w-20 h-12 bg-gray-100 rounded flex items-center justify-center text-xs text-gray-500 overflow-hidden relative">
-                              {l.videoUrl ? 'Video' : 'No Video'}
-                              {l.progress?.isCompleted && (
-                                <div className="absolute inset-0 bg-green-500 bg-opacity-20 flex items-center justify-center">
-                                  <svg className="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
-                                  </svg>
-                                </div>
-                              )}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
-                                <div className="font-medium text-sm text-gray-800 truncate">{l.title}</div>
-                                {l.progress?.isCompleted && (
-                                  <svg className="w-4 h-4 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
-                                  </svg>
-                                )}
-                              </div>
-                              <div className="text-xs text-gray-500">{formatDuration(l.durationSeconds)}</div>
-                              {/* Mini progress bar */}
-                              {l.durationSeconds > 0 && (
-                                <div className="w-full h-1 bg-gray-200 rounded-full overflow-hidden mt-1">
-                                  <div 
-                                    className={`h-full transition-all ${l.progress?.isCompleted ? 'bg-green-500' : 'bg-blue-400'}`}
-                                    style={{ width: `${progressPercent}%` }}
-                                  />
-                                </div>
-                              )}
-                            </div>
-                            <div className="text-xs text-indigo-600 font-medium flex-shrink-0">
-                              {l.progress?.isCompleted ? 'Replay' : 'Play'}
-                            </div>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </div>
-                </div>
-              )}
-
               {/* Notes */}
               {selectedLesson && (
-                <div className="bg-white rounded shadow p-3" style={{ maxHeight: '50vh', overflowY: 'auto' }}>
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="font-medium">Ghi chú</h3>
-                    {noteError && (
-                      <span className="text-xs text-red-500">{noteError}</span>
-                    )}
+                <div className="bg-white rounded-lg shadow border border-gray-200">
+                  <div className="px-4 py-3 border-b border-gray-200 bg-slate-50">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-semibold text-gray-900 text-sm">Lesson Notes</h3>
+                      {noteError && (
+                        <span className="text-xs text-red-600">{noteError}</span>
+                      )}
+                    </div>
                   </div>
 
-                  {noteLoading ? (
-                    <div className="w-full h-56 flex items-center justify-center border border-gray-200 rounded">
-                      <span className="text-sm text-gray-500">Đang tải ghi chú...</span>
-                    </div>
-                  ) : (
-                    <>
-                      <textarea
-                        value={note}
-                        onChange={(e) => {
-                          setNote(e.target.value);
-                          setNoteError(null);
-                        }}
-                        placeholder="Ghi chú cho video này..."
-                        className="w-full h-56 border border-gray-200 rounded p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200"
-                        disabled={noteLoading}
-                      />
-                      <div className="flex items-center justify-between mt-3">
-                        <button
-                          className="text-sm text-red-600 hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
-                          onClick={handleDeleteNote}
-                          disabled={noteSaving || noteLoading || (!note && !savedNote)}
-                        >
-                          Xóa
-                        </button>
-                        <div className="flex items-center gap-2">
-                          {noteSaving && (
-                            <span className="text-xs text-blue-500">Đang lưu...</span>
-                          )}
-                          {!noteSaving && note.trim() === savedNote && savedNote && (
-                            <span className="text-xs text-green-500">Đã lưu</span>
-                          )}
-                          <button
-                            className="px-4 py-1.5 bg-indigo-600 text-white text-sm rounded hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                            onClick={handleSaveNote}
-                            disabled={noteSaving || noteLoading || note.trim() === savedNote}
-                          >
-                            {noteSaving ? "Đang lưu..." : "Lưu"}
-                          </button>
-                        </div>
+                  <div className="p-4">
+                    {noteLoading ? (
+                      <div className="w-full h-48 flex items-center justify-center border border-gray-200 rounded-lg bg-gray-50">
+                        <span className="text-sm text-gray-500">Loading notes...</span>
                       </div>
-                    </>
-                  )}
+                    ) : (
+                      <>
+                        <textarea
+                          value={note}
+                          onChange={(e) => {
+                            setNote(e.target.value);
+                            setNoteError(null);
+                          }}
+                          placeholder="Write your notes here..."
+                          className="w-full h-48 border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                          disabled={noteLoading}
+                        />
+                        <div className="flex items-center justify-between mt-3">
+                          <button
+                            className="text-sm text-red-600 hover:text-red-700 font-medium hover:underline disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            onClick={handleDeleteNote}
+                            disabled={noteSaving || noteLoading || (!note && !savedNote)}
+                          >
+                            Delete
+                          </button>
+                          <div className="flex items-center gap-3">
+                            {noteSaving && (
+                              <span className="text-xs text-blue-600">Saving...</span>
+                            )}
+                            {!noteSaving && note.trim() === savedNote && savedNote && (
+                              <span className="text-xs text-emerald-600 flex items-center gap-1 font-medium">
+                                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
+                                </svg>
+                                Saved
+                              </span>
+                            )}
+                            <button
+                              className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+                              onClick={handleSaveNote}
+                              disabled={noteSaving || noteLoading || note.trim() === savedNote}
+                            >
+                              {noteSaving ? "Saving..." : "Save"}
+                            </button>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
           </aside>
         </div>
       </div>
+
+      {/* Course Completion Modal */}
+      <CourseCompletionModal 
+        open={showCompletionModal}
+        onClose={() => setShowCompletionModal(false)}
+        courseName={courseName}
+        isGeneratingCertificate={isGeneratingCertificate}
+      />
+
+      {/* Incomplete Course Modal */}
+      <IncompleteCourseModal 
+        open={showIncompleteModal}
+        onClose={() => setShowIncompleteModal(false)}
+        incompleteLessons={incompleteLessons}
+        incompleteQuizzes={incompleteQuizzes}
+      />
     </div>
   );
 };

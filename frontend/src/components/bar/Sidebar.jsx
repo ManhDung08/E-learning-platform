@@ -11,6 +11,7 @@ import LiveIcon from '@mui/icons-material/LiveTv';
 import AssignmentsIcon from '@mui/icons-material/Checklist';
 import SavedIcon from '@mui/icons-material/BookmarkBorder';
 import SchoolIcon from '@mui/icons-material/Group';
+import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 
 //role intructor + admin
 import DashboardIcon from '@mui/icons-material/Dashboard';
@@ -33,6 +34,11 @@ const studentMenu = [
     title: "My Courses",
     icon: <CoursesIcon/>,
     path: "/my-course"
+  },
+  {
+    title: "Certificates",
+    icon: <EmojiEventsIcon/>,
+    path: "/certificates"
   },
   {
     title: "Live Class",

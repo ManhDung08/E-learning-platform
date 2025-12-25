@@ -22,7 +22,7 @@ const router = Router();
  * @swagger
  * /api/certificate:
  *   post:
- *     summary: Issue a certificate for a user in a course
+ *     summary: Create a certificate for current user in a course
  *     tags: [Certificates]
  *     security:
  *       - bearerAuth: []
@@ -34,9 +34,6 @@ const router = Router();
  *           schema:
  *             type: object
  *             properties:
- *               userId:
- *                 type: integer
- *                 example: 1
  *               courseId:
  *                 type: integer
  *                 example: 2
@@ -46,17 +43,15 @@ const router = Router();
  *                 description: Certificate file (PDF/JPEG/PNG)
  *     responses:
  *       201:
- *         description: Certificate issued successfully
+ *         description: Certificate created successfully
  *       400:
  *         description: Validation error or certificate already exists
  *       401:
  *         description: Unauthorized
- *       403:
- *         description: Forbidden
  */
 router.post(
   "/",
-  isAuth(["admin", "instructor"]),
+  isAuth(),
   uploadCertificate,
   issueCertificateValidation,
   validate,
