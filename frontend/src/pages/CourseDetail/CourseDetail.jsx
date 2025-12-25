@@ -79,7 +79,10 @@ const CourseDetailPage = () => {
       return (total / reviews.length).toFixed(1);
   }, [reviews]);
 
-  useEffect(() => { dispatch(getUserEnrollmentsAction()); }, [dispatch]);
+  useEffect(() => { 
+        if(currentUser)
+            dispatch(getUserEnrollmentsAction());
+    }, [dispatch]);
 
   useEffect(() => {
     const fetchCourseDetail = async () => {
@@ -256,7 +259,19 @@ const CourseDetailPage = () => {
   const showSnackbar = (message, severity = 'success') => setSnackbar({ open: true, message, severity });
   const handleCloseSnackbar = () => setSnackbar({ ...snackbar, open: false });
   const handleTabChange = (e, val) => setActiveTab(val);
-  const handleEnrollClick = () => isEnrolled ? navigate(`/my-course/course/learn/${course.id}`) : setOpenPaymentModal(true);
+  const handleEnrollClick = () => {
+    if (isEnrolled) {
+        navigate(`/my-course/course/learn/${course.id}`);
+        return;
+    }
+    if (!currentUser) {
+        showSnackbar("Bạn cần đăng nhập để đăng ký khóa học này!", "warning");
+        
+        return;
+    }
+
+    setOpenPaymentModal(true);
+};
   
   const handleProceedPayment = async () => {
     setIsProcessing(true);
