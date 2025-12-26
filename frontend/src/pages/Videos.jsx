@@ -290,6 +290,19 @@ const Videos = () => {
           )
         );
         
+        // Also update modulesWithLessons to unlock next lesson in sidebar
+        setModulesWithLessons(prev => {
+          const updatedModules = { ...prev };
+          for (const moduleId in updatedModules) {
+            updatedModules[moduleId] = updatedModules[moduleId].map(l =>
+              l.id === selectedLesson.id
+                ? { ...l, progress: { ...l.progress, isCompleted: true, watchedSeconds: currentTime } }
+                : l
+            );
+          }
+          return updatedModules;
+        });
+        
         setSelectedLesson(prev => ({
           ...prev,
           progress: { ...prev.progress, isCompleted: true, watchedSeconds: currentTime }
@@ -313,6 +326,19 @@ const Videos = () => {
             : l
         )
       );
+      
+      // Also update modulesWithLessons to unlock next lesson in sidebar
+      setModulesWithLessons(prev => {
+        const updatedModules = { ...prev };
+        for (const moduleId in updatedModules) {
+          updatedModules[moduleId] = updatedModules[moduleId].map(l =>
+            l.id === selectedLesson.id
+              ? { ...l, progress: { ...l.progress, isCompleted: true, watchedSeconds: duration } }
+              : l
+          );
+        }
+        return updatedModules;
+      });
       
       setSelectedLesson(prev => ({
         ...prev,
@@ -928,14 +954,26 @@ const Videos = () => {
   };
 
   const handleNextLesson = async () => {
-    if (!selectedLesson || !lessons.length) return;
-
-    const currentIndex = lessons.findIndex(l => l.id === selectedLesson.id);
+    if (!selectedLesson || !selectedModule) return;
     
-    if (currentIndex !== -1 && currentIndex < lessons.length - 1) {
+    // Use modulesWithLessons for consistency with sidebar lock/unlock logic
+    const currentModuleLessons = modulesWithLessons[selectedModule.id] || [];
+    if (currentModuleLessons.length === 0) return;
+
+    const currentIndex = currentModuleLessons.findIndex(l => l.id === selectedLesson.id);
+    
+    if (currentIndex !== -1 && currentIndex < currentModuleLessons.length - 1) {
         // Move to next lesson in current module
-        const nextLesson = lessons[currentIndex + 1];
-        onSelectLesson(nextLesson, lessons);
+        const nextLesson = currentModuleLessons[currentIndex + 1];
+        
+        // Check if next lesson is locked
+        if (isLessonLocked(nextLesson, currentModuleLessons)) {
+            console.log('Next lesson is still locked');
+            return;
+        }
+        
+        onSelectLesson(nextLesson, currentModuleLessons);
+        setLessons(currentModuleLessons); // Keep lessons state in sync
         
         window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {

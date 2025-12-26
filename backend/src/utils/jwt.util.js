@@ -19,6 +19,10 @@ export const generateTokens = (payload) => {
 };
 
 export const decodeToken = (token) => {
+  if (!token) {
+    return null;
+  }
+  
   try {
     if (!process.env.JWT_SECRET) {
       throw new AppError("JWT_SECRET is not defined");
