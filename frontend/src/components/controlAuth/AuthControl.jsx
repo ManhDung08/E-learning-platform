@@ -1,22 +1,22 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Button, Box } from '@mui/material';
+import { useDispatch, useSelector } from 'react-redux';
 import AuthModal from '../auth/AuthModal';
+import { openAuthModal, closeAuthModal } from '../../Redux/Auth/auth.action';
 
 const AuthControl = () => {
-  const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [initialView, setInitialView] = useState('login');
+  const dispatch = useDispatch();
+  const { authModalOpen, authModalView } = useSelector(state => state.auth);
 
   const handleOpenLogin = () => {
-    setInitialView('login');
-    setAuthModalOpen(true);
+    dispatch(openAuthModal('login'));
   }
   const handleOpenRegister = () => {
-    setInitialView('register');
-    setAuthModalOpen(true);
+    dispatch(openAuthModal('register'));
   }
 
   const handleCloseAuthModal = () => {
-    setAuthModalOpen(false);
+    dispatch(closeAuthModal());
   }
   
 
@@ -37,7 +37,7 @@ const AuthControl = () => {
       </Box>
       
 
-      <AuthModal open={authModalOpen} onClose={handleCloseAuthModal} initialView={initialView}/>
+      <AuthModal open={authModalOpen} onClose={handleCloseAuthModal} initialView={authModalView}/>
     </div>
   )
 }

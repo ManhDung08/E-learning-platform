@@ -45,8 +45,9 @@ const HomePage = () => {
   const isLgScreen = useMediaQuery(theme.breakpoints.up('lg'));
   const isMdScreen = useMediaQuery(theme.breakpoints.up('md'));
 
+  // Only show sidebar when user is logged in
   let leftSidebarSize = 0;
-  if (isMdScreen) {
+  if (isLoggedIn && isMdScreen) {
       leftSidebarSize = isLgScreen ? 2.2 : 0.8; 
   }
   const isSidebarCollapsed = !isLgScreen;
@@ -86,33 +87,35 @@ const HomePage = () => {
     <>
     <div style={{height: 'calc(100vh - 65px)', width: '100vw', overflow: 'hidden', position: 'relative'}}>
 
-      <Drawer
-        variant="temporary"
-        open={mobileLeftOpen}
-        onClose={handleLeftDrawerToggle}
-        ModalProps={{ keepMounted: true }} 
-        sx={{
-          display: { xs: 'block', md: 'none' }, 
-          '& .MuiBackdrop-root': { top: '65px' }, 
-          '& .MuiDrawer-paper': { 
-            boxSizing: 'border-box', 
-            width: '260px',
-            top: '65px',
-            height: 'calc(100% - 65px)' 
-          }, 
-        }}
-      >
-        <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', p: 1, borderBottom: '1px solid #f0f0f0' }}>
-                <IconButton onClick={handleLeftDrawerToggle}>
-                    <MenuOpenIcon /> 
-                </IconButton>
-            </Box>
-            <Box sx={{ flexGrow: 1, overflowY: 'auto' }}>
-                <Sidebar isCollapsed={false} />
-            </Box>
-        </Box>
-      </Drawer>
+      {isLoggedIn && (
+        <Drawer
+          variant="temporary"
+          open={mobileLeftOpen}
+          onClose={handleLeftDrawerToggle}
+          ModalProps={{ keepMounted: true }} 
+          sx={{
+            display: { xs: 'block', md: 'none' }, 
+            '& .MuiBackdrop-root': { top: '65px' }, 
+            '& .MuiDrawer-paper': { 
+              boxSizing: 'border-box', 
+              width: '260px',
+              top: '65px',
+              height: 'calc(100% - 65px)' 
+            }, 
+          }}
+        >
+          <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end', p: 1, borderBottom: '1px solid #f0f0f0' }}>
+                  <IconButton onClick={handleLeftDrawerToggle}>
+                      <MenuOpenIcon /> 
+                  </IconButton>
+              </Box>
+              <Box sx={{ flexGrow: 1, overflowY: 'auto' }}>
+                  <Sidebar isCollapsed={false} />
+              </Box>
+          </Box>
+        </Drawer>
+      )}
 
       <Drawer
         anchor="right"
@@ -135,7 +138,7 @@ const HomePage = () => {
 
       <Grid container spacing={0} wrap='nowrap' sx={{height: '100%'}}>
         
-        {isMdScreen && (
+        {isLoggedIn && isMdScreen && (
             <Grid size={{ xs: leftSidebarSize }} sx={{display: 'block', height: '100%', overflowY: 'hidden', position: 'relative', zIndex: 1, transition: 'all 0.3s ease', minWidth: isSidebarCollapsed ? '65px' : '260px' }}>
             <div className='h-screen' style={{display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
                 <Sidebar isCollapsed={isSidebarCollapsed}/>
@@ -147,20 +150,22 @@ const HomePage = () => {
               sx={{bgcolor: '#F4F6F8', height: '100%', overflowY: 'auto', position: 'relative', overflowX: 'hidden', zIndex: 2, transition: 'all 0.3s ease'}} ref={scrollRef}>    
           <div style={{width: '100%', padding: '10px', minHeight: '100%', display: 'flex', flexDirection: 'column'}}>
             
-            <Box sx={{ 
-                display: { xs: 'flex', md: 'none' }, 
-                position: 'fixed', 
-                top: '75px',       
-                left: '10px',      
-                zIndex: 1000       
-            }}>
-                <IconButton 
-                    onClick={handleLeftDrawerToggle} 
-                    sx={{ bgcolor: 'white', boxShadow: 2, color: '#333' }}
-                >
-                    <MenuIcon />
-                </IconButton>
-            </Box>
+            {isLoggedIn && (
+              <Box sx={{ 
+                  display: { xs: 'flex', md: 'none' }, 
+                  position: 'fixed', 
+                  top: '75px',       
+                  left: '10px',      
+                  zIndex: 1000       
+              }}>
+                  <IconButton 
+                      onClick={handleLeftDrawerToggle} 
+                      sx={{ bgcolor: 'white', boxShadow: 2, color: '#333' }}
+                  >
+                      <MenuIcon />
+                  </IconButton>
+              </Box>
+            )}
 
             {isLoggedIn && !pathname.includes('/my-course') && (
                 <Box sx={{ 
