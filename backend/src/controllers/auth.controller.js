@@ -7,9 +7,9 @@ const login = async (req, res, next) => {
 
     setAuthCookies(res, result);
 
-    return res.status(200).json({ 
+    return res.status(200).json({
       success: true,
-      message: "Login successful" 
+      message: "Login successful",
     });
   } catch (err) {
     console.error("Login error:", err);
@@ -42,13 +42,11 @@ const signup = async (req, res, next) => {
       dateOfBirth || null,
       phoneNumber || null
     );
-    return res
-      .status(201)
-      .json({ 
-        success: true,
-        message: result.message, 
-        data: { userId: result.userId }
-      });
+    return res.status(201).json({
+      success: true,
+      message: result.message,
+      data: { userId: result.userId },
+    });
   } catch (error) {
     console.error("Signup error:", error);
     next(error);
@@ -68,9 +66,9 @@ const verifyEmail = async (req, res, next) => {
 
     const result = await authService.verifyEmail(token);
     setAuthCookies(res, result);
-    return res.status(200).json({ 
+    return res.status(200).json({
       success: true,
-      message: result.message 
+      message: result.message,
     });
   } catch (error) {
     console.error("Verify email error:", error);
@@ -90,9 +88,9 @@ const resendVerification = async (req, res, next) => {
     }
 
     const result = await authService.resendVerificationEmail(email);
-    return res.status(200).json({ 
+    return res.status(200).json({
       success: true,
-      message: result.message 
+      message: result.message,
     });
   } catch (error) {
     console.error("Resend verification error:", error);
@@ -105,9 +103,9 @@ const forgotPassword = async (req, res, next) => {
     const { email } = req.body;
 
     const result = await authService.forgotPassword(email);
-    return res.status(200).json({ 
+    return res.status(200).json({
       success: true,
-      message: result.message 
+      message: result.message,
     });
   } catch (error) {
     console.error("Forgot password error:", error);
@@ -120,9 +118,9 @@ const resetPassword = async (req, res, next) => {
     const { token, newPassword } = req.body;
 
     const result = await authService.resetPassword(token, newPassword);
-    return res.status(200).json({ 
+    return res.status(200).json({
       success: true,
-      message: result.message 
+      message: result.message,
     });
   } catch (error) {
     console.error("Reset password error:", error);
