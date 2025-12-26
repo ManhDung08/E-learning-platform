@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import { Box, Container, Typography, CircularProgress, Button, Paper, IconButton, Chip, Stack } from '@mui/material';
 import SchoolIcon from '@mui/icons-material/School';
 import PlayCircleOutlineIcon from '@mui/icons-material/PlayCircleOutline';

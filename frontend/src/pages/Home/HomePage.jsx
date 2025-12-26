@@ -25,7 +25,8 @@ import LiveClassRoom from '../LiveClass/LiveClassRoom';
 import SupportManagement from '../Admin/SupportManagement';
 import MyStudent from '../Instructor/MyStudent';
 import InstructorDashboard from '../Instructor/InstructorDashboard';
-import CreateTicketPage from '../SupportTicket'; // Đảm bảo đã import trang Support
+import CreateTicketPage from '../SupportTicket';
+import Certificates from '../Certificates';
 
 const HomePage = () => {
   
@@ -187,6 +188,7 @@ const HomePage = () => {
                   <Route path="/dashboard" element={<MiddleHome />} />
                   <Route path="/my-course" element={<MyCourses />} />
                   <Route path="/my-course/course/learn/:courseId" element={<Videos />} />
+                  <Route path="/certificates" element={<Certificates />} />
                   <Route path="/live-class" element={<LiveClassList />} />
                   <Route path="/live-class/room/:roomId" element={<LiveClassRoom />} />
                   <Route path="/instructors" element={<InstructorsList />} />

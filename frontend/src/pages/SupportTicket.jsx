@@ -20,6 +20,7 @@ import SupportAgentIcon from '@mui/icons-material/SupportAgent';
 import HistoryIcon from '@mui/icons-material/History';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import api from '../Redux/api';
 
 const CreateTicketPage = () => {
   const [formData, setFormData] = useState({ subject: '', message: '' });
@@ -28,7 +29,6 @@ const CreateTicketPage = () => {
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
 
-  const API_BASE = 'http://localhost:3000/api'; 
   const FIXED_HEIGHT = '600px'; 
 
   // --- MÀU SẮC THƯƠNG HIỆU ---
@@ -63,15 +63,10 @@ const CreateTicketPage = () => {
   const fetchHistory = async () => {
     setLoadingHistory(true);
     try {
-      const response = await fetch(`${API_BASE}/supportTicket/me?limit=10&page=1`, {
-        method: 'GET',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' }
+      const response = await api.get('/supportTicket/me', {
+        params: { limit: 10, page: 1 }
       });
-      const data = await response.json();
-      if (response.ok) {
-        setTickets(data.data?.items || []);
-      }
+      setTickets(response.data?.data?.items || []);
     } catch (error) {
       console.error("Error:", error);
     } finally {
@@ -83,24 +78,14 @@ const CreateTicketPage = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE}/supportTicket`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
-      });
-      const data = await response.json();
-      if (response.ok) {
-        setNotification({ open: true, message: 'Submitted successfully!', severity: 'success' });
-        setFormData({ subject: '', message: '' });
-        fetchHistory();
-      } else {
-        let errorMsg = data.message || 'Error submitting request.';
-        if (response.status === 401) errorMsg = 'Session expired.';
-        setNotification({ open: true, message: errorMsg, severity: 'error' });
-      }
+      await api.post('/supportTicket', formData);
+      setNotification({ open: true, message: 'Submitted successfully!', severity: 'success' });
+      setFormData({ subject: '', message: '' });
+      fetchHistory();
     } catch (error) {
-      setNotification({ open: true, message: 'Connection error.', severity: 'error' });
+      let errorMsg = error?.message || 'Error submitting request.';
+      if (error?.status === 401) errorMsg = 'Session expired.';
+      setNotification({ open: true, message: errorMsg, severity: 'error' });
     } finally {
       setLoading(false);
     }
