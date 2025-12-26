@@ -96,12 +96,13 @@ const getAllCourses = async (page = 1, limit = 10, filters = {}) => {
 
       // Calculate statistics
       const enrollmentCount = course.enrollments.length;
+      const reviewCount = course.reviews.length;
       const averageRating =
-        course.reviews.length > 0
+        reviewCount > 0
           ? parseFloat(
               (
                 course.reviews.reduce((sum, review) => sum + review.rating, 0) /
-                course.reviews.length
+                reviewCount
               ).toFixed(1)
             )
           : 0;
@@ -131,6 +132,7 @@ const getAllCourses = async (page = 1, limit = 10, filters = {}) => {
         },
         enrollmentCount,
         averageRating,
+        reviewCount,
         totalLessons,
         totalDuration,
       };
@@ -333,6 +335,7 @@ const getCourseById = async (courseId) => {
     reviews: reviewsWithSignedUrls,
     discussions: discussionsWithSignedUrls,
     enrollmentCount: course.enrollments.length,
+    reviewCount: course.reviews.length,
     averageRating:
       course.reviews.length > 0
         ? parseFloat(
@@ -655,6 +658,7 @@ const getCourseBySlug = async (slug, userId = null, userRole = "public") => {
     enrollmentCount: course.enrollments
       ? course.enrollments.length
       : course._count?.enrollments || 0,
+    reviewCount: course.reviews.length,
     averageRating:
       course.reviews.length > 0
         ? parseFloat(
@@ -1568,18 +1572,20 @@ const getInstructorCourses = async (
         }
       }
 
+      const reviewCount = course.reviews.length;
       return {
         ...course,
         image: imageUrl,
         enrollmentCount: course.enrollments.length,
+        reviewCount,
         averageRating:
-          course.reviews.length > 0
+          reviewCount > 0
             ? parseFloat(
                 (
                   course.reviews.reduce(
                     (sum, review) => sum + review.rating,
                     0
-                  ) / course.reviews.length
+                  ) / reviewCount
                 ).toFixed(1)
               )
             : 0,

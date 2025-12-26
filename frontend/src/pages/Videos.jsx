@@ -61,22 +61,9 @@ const Videos = () => {
     const checkAccess = async () => {
       try {
         setCheckingAccess(true);
-        const response = await fetch(`http://localhost:3000/api/course/me/enrollments`, {
-          method: 'GET',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
+        const response = await api.get('/course/me/enrollments');
 
-        if (!response.ok) {
-          // If not authenticated or no enrollments, redirect to home
-          navigate('/');
-          return;
-        }
-
-        const result = await response.json();
-        const enrollments = result.data?.enrollments || [];
+        const enrollments = response.data?.data?.enrollments || [];
         
         // Check if user is enrolled in this course
         const isEnrolled = enrollments.some(
@@ -110,49 +97,25 @@ const Videos = () => {
         setLoading(true);
         
         // Fetch course details
-        const courseResponse = await fetch(`http://localhost:3000/api/course/${courseId}`, {
-          method: 'GET',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
-        if (courseResponse.ok) {
-          const courseResult = await courseResponse.json();
-          const fetchedCourseName = courseResult.data?.title || 'Course Title';
+        try {
+          const courseResponse = await api.get(`/course/${courseId}`);
+          const fetchedCourseName = courseResponse.data?.data?.title || 'Course Title';
           setCourseName(fetchedCourseName);
           console.log('📚 Course name set in state:', fetchedCourseName);
+        } catch (err) {
+          console.error('Error fetching course details:', err);
         }
         
-        const response = await fetch(`http://localhost:3000/api/module/course/${courseId}`, {
-          method: 'GET',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
-        if (!response.ok) {
-          throw new Error('Không thể tải modules');
-        }
-        const result = await response.json();
-        const fetchedModules = result.data || [];
+        const response = await api.get(`/module/course/${courseId}`);
+        const fetchedModules = response.data?.data || [];
         setModules(fetchedModules);
         
         // Fetch lessons for ALL modules to display them
         const allModuleLessons = {};
         for (const module of fetchedModules) {
           try {
-            const lessonsResponse = await fetch(`http://localhost:3000/api/lesson/module/${module.id}`, {
-              method: 'GET',
-              credentials: 'include',
-              headers: {
-                'Content-Type': 'application/json'
-              }
-            });
-            if (lessonsResponse.ok) {
-              const lessonsResult = await lessonsResponse.json();
-              allModuleLessons[module.id] = lessonsResult.data || [];
-            }
+            const lessonsResponse = await api.get(`/lesson/module/${module.id}`);
+            allModuleLessons[module.id] = lessonsResponse.data?.data || [];
           } catch (err) {
             console.error(`Error fetching lessons for module ${module.id}:`, err);
           }
@@ -198,18 +161,8 @@ const Videos = () => {
       }
       
       try {
-        const response = await fetch(`http://localhost:3000/api/lesson/module/${selectedModule.id}`, {
-          method: 'GET',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
-        if (!response.ok) {
-          throw new Error('Không thể tải lessons');
-        }
-        const result = await response.json();
-        const fetchedLessons = result.data || [];
+        const response = await api.get(`/lesson/module/${selectedModule.id}`);
+        const fetchedLessons = response.data?.data || [];
         
         setLessons(fetchedLessons);
         setModulesWithLessons(prev => ({ ...prev, [selectedModule.id]: fetchedLessons }));
@@ -231,18 +184,8 @@ const Videos = () => {
 
     const fetchLessonDetails = async () => {
       try {
-        const response = await fetch(`http://localhost:3000/api/lesson/${selectedLesson.id}`, {
-          method: 'GET',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
-        if (!response.ok) {
-          throw new Error('Không thể tải lesson details');
-        }
-        const result = await response.json();
-        const lessonData = result.data;
+        const response = await api.get(`/lesson/${selectedLesson.id}`);
+        const lessonData = response.data?.data;
         
         // Update selected lesson with latest progress data
         setSelectedLesson(lessonData);
@@ -909,25 +852,10 @@ const Videos = () => {
     try {
       console.log('🔄 Fetching course name for courseId:', courseId);
       
-      // Use fetch with credentials to match the working initial load
-      const response = await fetch(`http://localhost:3000/api/course/${courseId}`, {
-        method: 'GET',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (response.ok) {
-        const result = await response.json();
-        const name = result.data?.title || 'Completed Course';
-        console.log('✅ Fetched course name successfully:', name);
-        return name;
-      } else {
-        console.warn('⚠️ Response not OK, status:', response.status);
-        console.log('Falling back to state value or default');
-        return 'Completed Course';
-      }
+      const response = await api.get(`/course/${courseId}`);
+      const name = response.data?.data?.title || 'Completed Course';
+      console.log('✅ Fetched course name successfully:', name);
+      return name;
     } catch (error) {
       console.error('❌ Error fetching course name:', error);
       return 'Completed Course';

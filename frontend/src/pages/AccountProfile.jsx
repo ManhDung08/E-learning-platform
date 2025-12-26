@@ -4,6 +4,7 @@ import { User, Mail, Phone, Calendar, Users, BookOpen, Award, Lock, Check, Edit2
 import InputField from '../components/InputField';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
 import CourseCard from '../components/courses/CourseCard';
+import api from '../Redux/api';
 
 function AccountProfile() {
   const navigate = useNavigate();
@@ -38,24 +39,17 @@ function AccountProfile() {
     const fetchProfile = async () => {
       try {
         setLoading(true);
-        const response = await fetch('http://localhost:3000/api/user/me', {
-          method: 'GET',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' }
-        });
-
-        if (!response.ok) {
-          if (response.status === 401) throw new Error('Session expired. Please log in again.');
-          throw new Error('Unable to load user profile.');
-        }
-
-        const result = await response.json();
-        const data = result.data;
+        const response = await api.get('/user/me');
+        const data = response.data.data;
         setProfile(data);
         setEditedProfile(data);
       } catch (err) {
         console.error(err);
-        setError(err.message || 'Unable to load user profile.');
+        if (err?.status === 401) {
+          setError('Session expired. Please log in again.');
+        } else {
+          setError(err?.message || 'Unable to load user profile.');
+        }
       } finally {
         setLoading(false);
       }
@@ -64,18 +58,9 @@ function AccountProfile() {
     const fetchCertificates = async () => {
       try {
         setCertLoading(true);
-        // Dùng fetch thay vì api.get để đồng bộ với code cũ của bạn
-        const response = await fetch('http://localhost:3000/api/certificate/me', {
-          method: 'GET',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' }
-        });
-
-        if (response.ok) {
-          const result = await response.json();
-          if (result.success) {
-            setCertificates(result.data || []);
-          }
+        const response = await api.get('/certificate/me');
+        if (response.data?.success) {
+          setCertificates(response.data.data || []);
         }
       } catch (err) {
         console.error("Error fetching certificates:", err);
@@ -137,31 +122,19 @@ function AccountProfile() {
         const formData = new FormData();
         formData.append('avatar', avatarFile);
 
-        const uploadResponse = await fetch('http://localhost:3000/api/user/upload-avatar', {
-          method: 'POST',
-          credentials: 'include',
-          body: formData
+        const uploadResponse = await api.post('/user/upload-avatar', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
         });
 
-        if (!uploadResponse.ok) throw new Error('Unable to upload avatar.');
-        const uploadResult = await uploadResponse.json();
-        uploadedImageUrl = uploadResult.data.profileImageUrl + '?t=' + Date.now();
+        uploadedImageUrl = uploadResponse.data.data.profileImageUrl + '?t=' + Date.now();
       }
 
-      const response = await fetch('http://localhost:3000/api/user/update-profile', {
-        method: 'PUT',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...editedProfile,
-          profileImageUrl: uploadedImageUrl
-        })
+      const response = await api.put('/user/update-profile', {
+        ...editedProfile,
+        profileImageUrl: uploadedImageUrl
       });
-
-      if (!response.ok) throw new Error('Unable to update profile.');
-      const result = await response.json();
       
-      const updatedData = { ...result.data, profileImageUrl: uploadedImageUrl };
+      const updatedData = { ...response.data.data, profileImageUrl: uploadedImageUrl };
       setProfile(prev => ({ ...prev, ...updatedData }));
       setEditedProfile(prev => ({ ...prev, ...updatedData }));
       setAvatarPreview(uploadedImageUrl);
@@ -172,7 +145,7 @@ function AccountProfile() {
 
     } catch (err) {
       console.error('Error update profile:', err);
-      alert(err.message || 'Unable to update profile. Please try again!');
+      alert(err?.message || 'Unable to update profile. Please try again!');
     }
   };
 
@@ -210,25 +183,12 @@ function AccountProfile() {
     }
 
     try {
-      const response = await fetch("http://localhost:3000/api/user/change-password", {
-        method: "PUT",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ currentPassword, newPassword }),
-      });
-
-      const data = await response.json();
-      if (!response.ok) {
-        setDialogMessage(data.message || "Password change failed.");
-        setOpenDialog(true);
-        return;
-      }
+      await api.put("/user/change-password", { currentPassword, newPassword });
       setDialogMessage("Password changed successfully!");
       setOpenDialog(true);
-
     } catch (err) {
       console.error("Error change password:", err);
-      setDialogMessage("Password change failed. Please try again!");
+      setDialogMessage(err?.message || "Password change failed. Please try again!");
       setOpenDialog(true);
     }
   };

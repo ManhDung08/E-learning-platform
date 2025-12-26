@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { 
@@ -17,14 +16,7 @@ import {
   PlayArrow 
 } from '@mui/icons-material';
 import { getUserEnrollmentsAction } from '../../Redux/Course/course.action';
-
-const API_BASE_URL = 'http://localhost:3000'; 
-
-const api = axios.create({
-    baseURL: API_BASE_URL,
-    withCredentials: true,
-    headers: { 'Content-Type': 'application/json' }
-});
+import api from '../../Redux/api';
 
 const formatCurrency = (amount) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount || 0);
 const formatDuration = (seconds) => {
@@ -101,7 +93,7 @@ const CourseDetailPage = () => {
   useEffect(() => {
     const fetchCourseDetail = async () => {
         try {
-            const res = await api.get(`/api/course/slug/${slug}`);
+            const res = await api.get(`/course/slug/${slug}`);
             if (res.data?.success) setCourse(res.data.data);
         } catch (error) { console.error(error); } 
         finally { setLoading(false); }
@@ -112,7 +104,7 @@ const CourseDetailPage = () => {
   const fetchReviews = async (page = 1) => {
     if (!course) return;
     try {
-        const res = await api.get(`/api/course/${course.id}/reviews`, {
+        const res = await api.get(`/course/${course.id}/reviews`, {
             params: { page: page, limit: 5, sortBy: 'createdAt', sortOrder: 'desc' } 
         });
         if(res.data.success && res.data.data) {
@@ -125,7 +117,7 @@ const CourseDetailPage = () => {
   const fetchDiscussions = async (page = 1) => {
     if (!course) return;
     try {
-        const res = await api.get(`/api/course/${course.id}/discussions`, { 
+        const res = await api.get(`/course/${course.id}/discussions`, { 
             params: { page: page, limit: 5, sortOrder: 'desc' } 
         });
         if(res.data.success && res.data.data) {
@@ -143,10 +135,10 @@ const CourseDetailPage = () => {
       if (!reviewComment.trim()) return showSnackbar("Please enter a review comment", "warning");
       try {
           if (editingReviewId) {
-              await api.put(`/api/course/${course.id}/reviews/${editingReviewId}`, { rating: reviewRating, comment: reviewComment });
+              await api.put(`/course/${course.id}/reviews/${editingReviewId}`, { rating: reviewRating, comment: reviewComment });
               showSnackbar("Review updated!");
           } else {
-              await api.post(`/api/course/${course.id}/reviews`, { rating: reviewRating, comment: reviewComment });
+              await api.post(`/course/${course.id}/reviews`, { rating: reviewRating, comment: reviewComment });
               showSnackbar("Review submitted successfully!");
               setReviewPage(1);
           }
@@ -161,7 +153,7 @@ const CourseDetailPage = () => {
   const handleDeleteReview = async (reviewId) => {
       if (!window.confirm("Delete this review?")) return;
       try {
-          await api.delete(`/api/course/${course.id}/reviews/${reviewId}`);
+          await api.delete(`/course/${course.id}/reviews/${reviewId}`);
           showSnackbar("Review deleted.");
           fetchReviews(reviewPage); 
       } catch (error) { showSnackbar("Unable to delete review.", "error"); }
@@ -171,10 +163,10 @@ const CourseDetailPage = () => {
     if (!discContent.trim()) return showSnackbar("Please enter content!", "warning");
     try {
         if (editingDiscId) {
-            await api.put(`/api/course/${course.id}/discussions/${editingDiscId}`, { content: discContent });
+            await api.put(`/course/${course.id}/discussions/${editingDiscId}`, { content: discContent });
             showSnackbar("Updated successfully!");
         } else {
-            await api.post(`/api/course/${course.id}/discussions`, { content: discContent });
+            await api.post(`/course/${course.id}/discussions`, { content: discContent });
             showSnackbar("Discussion posted!");
             setDiscPage(1);
         }
@@ -186,7 +178,7 @@ const CourseDetailPage = () => {
   const handleDeleteAny = async (id) => {
       if(!window.confirm("Delete this content?")) return;
       try {
-          await api.delete(`/api/course/${course.id}/discussions/${id}`);
+          await api.delete(`/course/${course.id}/discussions/${id}`);
           showSnackbar("Deleted successfully.");
           fetchDiscussions(discPage); 
       } catch (error) { showSnackbar("Unable to delete.", "error"); }
@@ -195,7 +187,7 @@ const CourseDetailPage = () => {
   const handleCreateReply = async (parentDiscId) => {
     if (!replyInputContent.trim()) return showSnackbar("Please enter a reply!", "warning");
     try {
-        await api.post(`/api/course/${course.id}/discussions/${parentDiscId}/reply`, { content: replyInputContent });
+        await api.post(`/course/${course.id}/discussions/${parentDiscId}/reply`, { content: replyInputContent });
         showSnackbar("Reply sent!");
         setReplyInputContent(''); setReplyingToId(null);
         fetchDiscussions(discPage);
@@ -211,7 +203,7 @@ const CourseDetailPage = () => {
   const handleProceedPayment = async () => {
     setIsProcessing(true);
     try {
-        const res = await api.post(`/api/payment/courses/${course.id}/payments`, { bankCode: "NCB", locale: "vn" });
+        const res = await api.post(`/payment/courses/${course.id}/payments`, { bankCode: "NCB", locale: "vn" });
         if (res.data?.success) window.location.href = res.data.data.paymentUrl; 
     } catch (error) { showSnackbar(`Payment error: ${error.response?.data?.message}`, "error"); setIsProcessing(false); }
   };

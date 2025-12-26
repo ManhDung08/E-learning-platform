@@ -99,30 +99,40 @@ const CourseCard = ({ course, progress }) => {
                     </Typography>
                 </Box>
 
-                {/* --- RATING: Chỉ hiển thị nếu > 0 --- */}
-                {ratingValue > 0 && (
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1.5 }}>
-                        <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#b4690e', fontSize: '0.9rem' }}>
-                            {ratingValue.toFixed(1)}
-                        </Typography>
-                        <Rating 
-                            name="read-only" 
-                            value={ratingValue} 
-                            readOnly 
-                            precision={0.5} 
-                            size="small"
-                            sx={{ color: '#e59819' }}
-                        />
-                        {reviewCount > 0 && (
+                {/* --- RATING: Luôn hiển thị --- */}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1.5 }}>
+                    {ratingValue > 0 ? (
+                        <>
+                            <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#b4690e', fontSize: '0.9rem' }}>
+                                {ratingValue.toFixed(1)}
+                            </Typography>
+                            <Rating 
+                                name="read-only" 
+                                value={ratingValue} 
+                                readOnly 
+                                precision={0.5} 
+                                size="small"
+                                sx={{ color: '#e59819' }}
+                            />
                             <Typography variant="caption" color="text.secondary" sx={{ ml: 0.5 }}>
                                 ({reviewCount})
                             </Typography>
-                        )}
-                    </Box>
-                )}
-
-                {/* Nếu không có rating thì dùng margin để đẩy nội dung cho đều (tùy chọn) */}
-                {ratingValue === 0 && <Box sx={{ mb: 1.5 }} />}
+                        </>
+                    ) : (
+                        <>
+                            <Rating 
+                                name="read-only" 
+                                value={0} 
+                                readOnly 
+                                size="small"
+                                sx={{ color: '#e0e0e0' }}
+                            />
+                            <Typography variant="caption" color="text.secondary" sx={{ ml: 0.5 }}>
+                                (No reviews)
+                            </Typography>
+                        </>
+                    )}
+                </Box>
 
                 <Typography variant="body2" color="text.secondary" sx={{ 
                     mb: 2,

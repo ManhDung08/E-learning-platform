@@ -1,11 +1,10 @@
-import axios from 'axios'; // Or import your configured axios instance
+import api from '../Redux/api';
 
 export const createPaymentUrl = async (courseId, bankCode = "") => {
     try {
-        // Call the correct API endpoint
-        const response = await axios.post(`/api/payment/courses/${courseId}/payments`, {
+        const response = await api.post(`/payment/courses/${courseId}/payments`, {
             bankCode: bankCode, 
-            locale: "vn" // You can change this to "en" if your payment gateway supports English interface
+            locale: "vn"
         });
         
         if (response.data && response.data.success) {
@@ -20,5 +19,5 @@ export const createPaymentUrl = async (courseId, bankCode = "") => {
 };
 
 export const verifyPayment = async (params) => {
-    return axios.post('/api/payment/verify', params);
+    return api.post('/payment/verify', params);
 };
