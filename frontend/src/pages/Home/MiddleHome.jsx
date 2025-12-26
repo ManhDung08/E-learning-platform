@@ -17,12 +17,14 @@ import CloseIcon from '@mui/icons-material/Close';
 import { useNavigate, createSearchParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { getAllCoursesAction } from '../../Redux/Course/course.action';
+import { openAuthModal } from '../../Redux/Auth/auth.action';
 
 const MiddleHome = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
   const { courses = [], loading } = useSelector(store => store.course || {});
+  const { isAuthenticated } = useSelector(store => store.auth);
 
   const [anchorEl, setAnchorEl] = useState(null);
   
@@ -59,6 +61,14 @@ const MiddleHome = () => {
   const handleFilterClick = (event) => setAnchorEl(event.currentTarget);
   const handleFilterClose = () => setAnchorEl(null);
   const handleFilterChange = (e) => setFilterData({ ...filterData, [e.target.name]: e.target.value });
+
+  const handleJoinNow = () => {
+    if (isAuthenticated) {
+      navigate('/dashboard');
+    } else {
+      dispatch(openAuthModal('login'));
+    }
+  };
   
   const open = Boolean(anchorEl);
   const id = open ? 'simple-popover' : undefined;
@@ -126,7 +136,7 @@ const MiddleHome = () => {
           <div style={{position: 'relative'}}>
             <p style={{fontSize: '14px', fontWeight: '600', letterSpacing: '1px', marginBottom: '12px', opacity: 0.9}}>ONLINE COURSE</p>
             <h2 style={{ fontSize: '36px', fontWeight: 'bold', marginBottom: '24px', lineHeight: '1.2', maxWidth: '500px' }}>Sharpen Your Skills With Professional Online Courses</h2>
-            <Button variant='contained' endIcon={<ArrowForwardIcon />} sx={{backgroundColor: '#2b3b31', color: 'white', padding: '12px 28px', borderRadius: '50px', textTransform: 'none', fontSize: '12px', fontWeight: '600', transition: 'all 0.3s ease', '&:hover': {transform: 'translateY(-2px)', backgroundColor: '#16241b'}}}>Join now</Button>
+            <Button onClick={handleJoinNow} variant='contained' endIcon={<ArrowForwardIcon />} sx={{backgroundColor: '#2b3b31', color: 'white', padding: '12px 28px', borderRadius: '50px', textTransform: 'none', fontSize: '12px', fontWeight: '600', transition: 'all 0.3s ease', '&:hover': {transform: 'translateY(-2px)', backgroundColor: '#16241b'}}}>Join now</Button>
           </div>
         </Card>
       </div>
